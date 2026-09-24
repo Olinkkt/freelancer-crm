@@ -7,9 +7,11 @@ import {
   CalendarDays,
   Check,
   ChevronDown,
+  ChevronUp,
   CirclePlus,
   FileText,
   LayoutDashboard,
+  MessageSquare,
   MoreHorizontal,
   Search,
   Settings2,
@@ -41,6 +43,7 @@ import { LogCallModal } from '@/components/modals/log-call-modal'
 import { DealDetailDrawer } from '@/components/drawers/deal-detail-drawer'
 import { DealKanban } from '@/components/deals/deal-kanban'
 import { ToastHUD, ToastHUDItem } from '@/components/ui/toast-hud'
+import { MarkdownFormatter } from '@/components/ui/markdown-formatter'
 
 function NavItem({
   icon: Icon,
@@ -86,6 +89,14 @@ export default function Page() {
   const [activitySearch, setActivitySearch] = useState('')
   const [dealSearch, setDealSearch] = useState('')
   const [isDealSearchOpen, setIsDealSearchOpen] = useState(false)
+  const [expandedActivityIds, setExpandedActivityIds] = useState<Record<string, boolean>>({})
+
+  const toggleExpandActivity = (id: string) => {
+    setExpandedActivityIds((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }))
+  }
 
   // Modals & Drawers State
   const [isPaletteOpen, setIsPaletteOpen] = useState(false)
@@ -124,8 +135,8 @@ export default function Page() {
         target.tagName === 'TEXTAREA' ||
         target.isContentEditable
 
-      // Cmd+K or Ctrl+K: Toggle Command Palette anywhere
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      // Ctrl+K or Cmd+K: Toggle Command Palette anywhere
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault()
         setIsPaletteOpen((prev) => !prev)
         return
@@ -294,6 +305,9 @@ export default function Page() {
       case 'toggle_table':
         setActiveView('Deals')
         break
+      case 'open_scratchpad':
+        setIsPaletteOpen(true)
+        break
       default:
         break
     }
@@ -347,6 +361,21 @@ export default function Page() {
     if (selectedDeal?.id === updated.id) {
       setSelectedDeal(updated)
     }
+  }
+
+  // Sync action items from Scratchpad to Dashboard Follow-ups
+  const handleSyncTodos = (todos: string[], companyName: string = 'Workspace') => {
+    const newItems: FollowUpItem[] = todos.map((todo, idx) => ({
+      id: `fu-${Date.now()}-${idx}`,
+      day: 'Today',
+      company: companyName,
+      action: todo,
+      time: '14:00',
+      tone: 'urgent',
+      completed: false,
+    }))
+    setFollowUps((prev) => [...newItems, ...prev])
+    addToast(`Synced ${todos.length} action item${todos.length > 1 ? 's' : ''} to Follow-ups`, 'GTD')
   }
 
   // Delete Deal
@@ -489,11 +518,11 @@ export default function Page() {
               type="button"
               onClick={() => setIsPaletteOpen(true)}
               className="topbar-search"
-              title="Search workspace (Cmd+K)"
+              title="Search workspace (Ctrl+K)"
             >
               <Search size={14} />
               <span>Search workspace...</span>
-              <span className="search-shortcut">⌘K</span>
+              <span className="search-shortcut">Ctrl+K</span>
             </button>
 
             <button className="avatar" title="Oliver Seidl">
@@ -558,7 +587,14 @@ export default function Page() {
             </>
           ) : activeView === 'Calendar' ? (
             /* CALENDAR VIEW */
-            <CalendarView />
+            <CalendarView
+              deals={deals}
+              followUps={followUps}
+              onOpenDeal={(deal) => {
+                setSelectedDeal(deal)
+                setIsDealDrawerOpen(true)
+              }}
+            />
           ) : activeView === 'Activities' ? (
             /* ACTIVITIES TIMELINE VIEW */
             <>
@@ -636,46 +672,120 @@ export default function Page() {
                         a.person.toLowerCase().includes(activitySearch.toLowerCase()) ||
                         a.company.toLowerCase().includes(activitySearch.toLowerCase())
                     )
-                    .map((activity) => (
-                      <div
-                        className="company-row"
-                        key={`${activity.id}-${activity.title}`}
-                      >
-                        <div className="company-name">
-                          <span className={`company-avatar ${activity.color}`}>
-                            {activity.type.charAt(0)}
-                          </span>
-                          <div>
-                            <strong>{activity.title}</strong>
-                            <span>{activity.type}</span>
+                    .map((activity) => {
+                      const isExpanded = !!expandedActivityIds[activity.id]
+                      const associatedDeal = deals.find(
+                        (d) => d.id === activity.dealId || d.company === activity.company
+                      )
+
+                      return (
+                        <div key={`${activity.id}-${activity.title}`}>
+                          <div
+                            className="company-row cursor-pointer hover:bg-[#fafbfc] transition-colors"
+                            onClick={() => toggleExpandActivity(activity.id)}
+                          >
+                            <div className="company-name">
+                              <span className={`company-avatar ${activity.color}`}>
+                                {activity.type.charAt(0)}
+                              </span>
+                              <div>
+                                <strong>{activity.title}</strong>
+                                <span>{activity.type}</span>
+                              </div>
+                            </div>
+                            <div className="company-contact">
+                              <strong>{activity.person}</strong>
+                            </div>
+                            <div className="company-contact">
+                              <strong>{activity.company}</strong>
+                            </div>
+                            <span className="last-touch">{activity.date}</span>
+                            <span
+                              className={`status-pill ${
+                                activity.status === 'Completed'
+                                  ? 'active'
+                                  : activity.status === 'Due today'
+                                  ? 'prospect'
+                                  : 'inactive'
+                              }`}
+                            >
+                              {activity.status}
+                            </span>
+                            <div className="flex items-center justify-end">
+                              {activity.summary ? (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    toggleExpandActivity(activity.id)
+                                  }}
+                                  className="w-6 h-6 flex items-center justify-center text-[#8f99a8] hover:text-[#1c1d1f] rounded transition-colors"
+                                  title={isExpanded ? 'Collapse notes' : 'Expand notes'}
+                                >
+                                  {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                </button>
+                              ) : (
+                                <button
+                                  className="more-button"
+                                  aria-label={`Options for ${activity.title}`}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <MoreHorizontal size={17} />
+                                </button>
+                              )}
+                            </div>
                           </div>
+
+                          {/* Expanded Notes & Linked Deal Opportunity */}
+                          {isExpanded && (
+                            <div className="px-4 py-3 bg-[#fafbfc] border-t border-[#edf0f3] text-[12px] space-y-2.5 animate-in fade-in duration-100">
+                              {activity.summary ? (
+                                <div className="p-3.5 bg-white border border-[#e4e7ec] rounded-[8px] shadow-2xs">
+                                  <MarkdownFormatter content={activity.summary} />
+                                </div>
+                              ) : (
+                                <p className="text-[11px] text-[#8f99a8] italic">
+                                  No detailed notes recorded for this interaction.
+                                </p>
+                              )}
+
+                              {associatedDeal && (
+                                <div className="flex items-center justify-between pt-1 text-[11px]">
+                                  <span className="text-[#6f7988] flex items-center gap-1.5">
+                                    <Building2 size={13} className="text-[#8f99a8]" />
+                                    Opportunity: <strong className="text-[#1c1d1f]">{associatedDeal.title}</strong>{' '}
+                                    <span className="font-mono text-[#505967]">({associatedDeal.value})</span>
+                                  </span>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedDeal(associatedDeal)
+                                      setIsDealDrawerOpen(true)
+                                    }}
+                                    className="inline-flex items-center gap-1 text-[#266df0] hover:underline font-semibold cursor-pointer"
+                                  >
+                                    <span>Open Deal Drawer</span>
+                                    <ArrowUpRight size={13} />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
-                        <div className="company-contact">
-                          <strong>{activity.person}</strong>
-                        </div>
-                        <div className="company-contact">
-                          <strong>{activity.company}</strong>
-                        </div>
-                        <span className="last-touch">{activity.date}</span>
-                        <span
-                          className={`status-pill ${
-                            activity.status === 'Completed'
-                              ? 'active'
-                              : activity.status === 'Due today'
-                              ? 'prospect'
-                              : 'inactive'
-                          }`}
-                        >
-                          {activity.status}
-                        </span>
-                        <button
-                          className="more-button"
-                          aria-label={`Options for ${activity.title}`}
-                        >
-                          <MoreHorizontal size={17} />
-                        </button>
-                      </div>
-                    ))}
+                      )
+                    })}
+
+                  {activities.filter(
+                    (a) =>
+                      a.title.toLowerCase().includes(activitySearch.toLowerCase()) ||
+                      a.person.toLowerCase().includes(activitySearch.toLowerCase()) ||
+                      a.company.toLowerCase().includes(activitySearch.toLowerCase())
+                  ).length === 0 && (
+                    <div className="py-8 text-center text-[#8f99a8] text-[12px]">
+                      No activities matching &ldquo;{activitySearch}&rdquo;
+                    </div>
+                  )}
                 </div>
               </section>
             </>
@@ -969,16 +1079,16 @@ export default function Page() {
                     {/* Top 10 Compact List */}
                     <div className="space-y-1">
                       {[
-                        { label: 'Universal Command Palette', keys: ['⌘K'], tag: 'Global', primary: true },
+                        { label: 'Universal Command Palette', keys: ['Ctrl+K'], tag: 'Global', primary: true },
                         { label: 'Quick-add new deal drawer', keys: ['N'], tag: 'Capture', primary: false },
                         { label: 'Quick-add new contact drawer', keys: ['C'], tag: 'Capture', primary: false },
                         { label: 'Quick-log call / meeting note', keys: ['L'], tag: 'Capture', primary: false },
-                        { label: 'Navigate Kanban stage columns', keys: ['H', 'L'], tag: 'Kanban', primary: false },
-                        { label: 'Select deal card in column', keys: ['J', 'K'], tag: 'Kanban', primary: false },
+                        { label: 'Navigate Kanban stage columns', keys: ['←', '→'], tag: 'Kanban', primary: false },
+                        { label: 'Select deal card in column', keys: ['↑', '↓'], tag: 'Kanban', primary: false },
+                        { label: 'Cycle forward through deals', keys: ['Tab'], tag: 'Kanban', primary: false },
                         { label: 'Inspect deal (slide-over drawer)', keys: ['↵'], tag: 'Kanban', primary: false },
                         { label: 'Shift deal stage left / right', keys: ['[', ']'], tag: 'Kanban', primary: false },
                         { label: 'Jump to Dashboard view', keys: ['G', 'D'], tag: 'Nav', primary: false },
-                        { label: 'Jump to Deals & Pipeline', keys: ['G', 'P'], tag: 'Nav', primary: false },
                       ].map((item, idx) => (
                         <div
                           key={idx}
@@ -1351,7 +1461,7 @@ export default function Page() {
         </div>
       </main>
 
-      {/* COMMAND PALETTE (Cmd+K) */}
+      {/* COMMAND PALETTE (Ctrl+K) */}
       <CommandPalette
         isOpen={isPaletteOpen}
         onClose={() => setIsPaletteOpen(false)}
@@ -1359,6 +1469,9 @@ export default function Page() {
         deals={deals}
         contacts={contacts}
         companies={companies}
+        onUpdateDeal={handleUpdateDeal}
+        onSyncTodos={handleSyncTodos}
+        onAddActivity={(act) => handleLogActivity(act)}
       />
 
       {/* SHORTCUTS CHEATSHEET MODAL (?) */}
@@ -1399,6 +1512,9 @@ export default function Page() {
         onClose={() => setIsDealDrawerOpen(false)}
         onUpdateDeal={handleUpdateDeal}
         onDeleteDeal={handleDeleteDeal}
+        onSyncTodos={handleSyncTodos}
+        activities={activities}
+        onAddActivity={(act) => handleLogActivity(act)}
       />
 
       {/* FLOATING TOAST HUD */}

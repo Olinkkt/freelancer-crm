@@ -6,6 +6,26 @@ export type DealStage =
   | 'Negotiation'
   | 'Won'
 
+export interface DeliverableItem {
+  id: string
+  title: string
+  status: 'Pending' | 'In Progress' | 'Done'
+  clientSignOff?: boolean
+  dueDate?: string
+}
+
+export interface InvoiceMilestone {
+  id: string
+  type: 'Deposit' | 'Progress' | 'Final'
+  label: string
+  amount: number
+  formattedAmount: string
+  percentage: number
+  status: 'Draft' | 'Sent' | 'Paid' | 'Overdue'
+  dueDate?: string
+  paidAt?: string
+}
+
 export interface Deal {
   id: string
   title: string
@@ -21,6 +41,10 @@ export interface Deal {
   contactEmail?: string
   notes?: string
   createdAt?: string
+  startDate?: string
+  endDate?: string
+  deliverables?: DeliverableItem[]
+  invoices?: InvoiceMilestone[]
 }
 
 export interface Contact {
@@ -49,6 +73,7 @@ export interface Company {
 
 export interface Activity {
   id: string
+  dealId?: string
   type: 'Call' | 'Meeting' | 'Email' | 'Follow-up' | 'Note'
   title: string
   person: string

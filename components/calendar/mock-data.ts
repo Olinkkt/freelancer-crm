@@ -1,4 +1,4 @@
-import { CalendarEvent, DayColumn } from './types'
+import { CalendarEvent, DayColumn, FeaturedEvent } from './types'
 
 export interface CRMContact {
   id: string
@@ -27,7 +27,7 @@ export const INITIAL_DAYS: DayColumn[] = [
   { dayNumber: '25', dayName: 'FRI', fullDate: new Date(2026, 8, 25), isToday: false, isBlockedAfterHour: 12 },
 ]
 
-export const TOP_FEATURED_EVENTS = [
+export const TOP_FEATURED_EVENTS: FeaturedEvent[] = [
   {
     id: 'feat-1',
     title: 'Follow up on quote — Frajmanová',

@@ -153,6 +153,18 @@ export const INITIAL_DEALS: Deal[] = [
     contactName: 'Petra Frajmanová',
     contactEmail: 'petra@chalupaulesa.cz',
     notes: 'Client loved the minimal booking concept. Quote sent with 50% deposit terms. Follow up to confirm timeline.',
+    startDate: '2026-09-22',
+    endDate: '2026-10-15',
+    deliverables: [
+      { id: 'del-1-1', title: 'Booking flow wireframes & responsive UX', status: 'Done', clientSignOff: true, dueDate: '2026-09-20' },
+      { id: 'del-1-2', title: 'High-fidelity Figma presentation', status: 'In Progress', clientSignOff: false, dueDate: '2026-09-24' },
+      { id: 'del-1-3', title: 'Next.js frontend build & CMS connection', status: 'Pending', clientSignOff: false, dueDate: '2026-10-05' },
+      { id: 'del-1-4', title: 'Vercel deployment & custom domain handoff', status: 'Pending', clientSignOff: false, dueDate: '2026-10-15' },
+    ],
+    invoices: [
+      { id: 'inv-1-1', type: 'Deposit', label: '50% Initial Deposit', amount: 7500, formattedAmount: '7 500 Kč', percentage: 50, status: 'Sent', dueDate: '2026-09-24' },
+      { id: 'inv-1-2', type: 'Final', label: '50% Final Delivery Balance', amount: 7500, formattedAmount: '7 500 Kč', percentage: 50, status: 'Draft', dueDate: '2026-10-15' },
+    ],
   },
   {
     id: 'deal-2',
@@ -168,6 +180,18 @@ export const INITIAL_DEALS: Deal[] = [
     contactName: 'Martin Kraj',
     contactEmail: 'martin@studiokraj.cz',
     notes: 'Discussed scope adjustments: CMS setup + custom case study layouts. Prepare revised milestone schedule.',
+    startDate: '2026-09-22',
+    endDate: '2026-10-30',
+    deliverables: [
+      { id: 'del-2-1', title: 'Brand identity guidelines & typography system', status: 'Done', clientSignOff: true, dueDate: '2026-09-18' },
+      { id: 'del-2-2', title: 'Portfolio architecture & layout design', status: 'In Progress', clientSignOff: false, dueDate: '2026-09-25' },
+      { id: 'del-2-3', title: 'CMS integration for case studies', status: 'Pending', clientSignOff: false, dueDate: '2026-10-12' },
+      { id: 'del-2-4', title: 'Production release & asset handoff', status: 'Pending', clientSignOff: false, dueDate: '2026-10-30' },
+    ],
+    invoices: [
+      { id: 'inv-2-1', type: 'Deposit', label: '50% Kickoff Deposit', amount: 16000, formattedAmount: '16 000 Kč', percentage: 50, status: 'Sent', dueDate: '2026-09-25' },
+      { id: 'inv-2-2', type: 'Final', label: '50% Final Balance', amount: 16000, formattedAmount: '16 000 Kč', percentage: 50, status: 'Draft', dueDate: '2026-10-30' },
+    ],
   },
   {
     id: 'deal-3',
@@ -183,6 +207,17 @@ export const INITIAL_DEALS: Deal[] = [
     contactName: 'Jan Novák',
     contactEmail: 'jan@novakarch.cz',
     notes: 'Initial outreach received. High-end modern projects. Needs mobile-first showcase.',
+    startDate: '2026-09-23',
+    endDate: '2026-11-10',
+    deliverables: [
+      { id: 'del-3-1', title: 'Discovery & architectural photo curation', status: 'In Progress', clientSignOff: false, dueDate: '2026-09-23' },
+      { id: 'del-3-2', title: 'Editorial portfolio interactive prototype', status: 'Pending', clientSignOff: false, dueDate: '2026-10-08' },
+      { id: 'del-3-3', title: 'Static Next.js site build with fast gallery loads', status: 'Pending', clientSignOff: false, dueDate: '2026-11-01' },
+    ],
+    invoices: [
+      { id: 'inv-3-1', type: 'Deposit', label: '50% Project Deposit', amount: 13000, formattedAmount: '13 000 Kč', percentage: 50, status: 'Draft', dueDate: '2026-09-28' },
+      { id: 'inv-3-2', type: 'Final', label: '50% Completion Payment', amount: 13000, formattedAmount: '13 000 Kč', percentage: 50, status: 'Draft', dueDate: '2026-11-10' },
+    ],
   },
   {
     id: 'deal-4',
@@ -193,11 +228,24 @@ export const INITIAL_DEALS: Deal[] = [
     stage: 'Scope',
     probability: '60%',
     next: 'Draft wireframes & milestones',
-    nextDueDate: 'Thu, Sep 25',
+    nextDueDate: 'Thu, Sep 24',
     color: 'green',
     contactName: 'Lucie Marešová',
     contactEmail: 'lucie@maresco.cz',
     notes: 'Scoping meeting complete. Client wants 3 phases: Discovery, UI prototyping, and Tailwind handoff.',
+    startDate: '2026-09-24',
+    endDate: '2026-11-20',
+    deliverables: [
+      { id: 'del-4-1', title: 'Scoping specification & technical requirements', status: 'Done', clientSignOff: true, dueDate: '2026-09-21' },
+      { id: 'del-4-2', title: 'Client portal wireframes & user flows', status: 'In Progress', clientSignOff: false, dueDate: '2026-09-24' },
+      { id: 'del-4-3', title: 'Figma UI design system (desktop & tablet)', status: 'Pending', clientSignOff: false, dueDate: '2026-10-18' },
+      { id: 'del-4-4', title: 'Tailwind CSS component kit handoff', status: 'Pending', clientSignOff: false, dueDate: '2026-11-20' },
+    ],
+    invoices: [
+      { id: 'inv-4-1', type: 'Deposit', label: '40% Phase 1 Deposit', amount: 18000, formattedAmount: '18 000 Kč', percentage: 40, status: 'Sent', dueDate: '2026-09-25' },
+      { id: 'inv-4-2', type: 'Progress', label: '30% Milestone 2 Delivery', amount: 13500, formattedAmount: '13 500 Kč', percentage: 30, status: 'Draft', dueDate: '2026-10-20' },
+      { id: 'inv-4-3', type: 'Final', label: '30% Final Code Delivery', amount: 13500, formattedAmount: '13 500 Kč', percentage: 30, status: 'Draft', dueDate: '2026-11-20' },
+    ],
   },
   {
     id: 'deal-5',
@@ -208,11 +256,21 @@ export const INITIAL_DEALS: Deal[] = [
     stage: 'Lead',
     probability: '30%',
     next: 'Schedule 20-min intro sync',
-    nextDueDate: 'Fri, Sep 26',
+    nextDueDate: 'Fri, Sep 25',
     color: 'blue',
     contactName: 'David Formánek',
     contactEmail: 'david@formastudio.cz',
     notes: 'Referred by Petra. Looking for typography system and Figma token library.',
+    startDate: '2026-09-25',
+    endDate: '2026-10-25',
+    deliverables: [
+      { id: 'del-5-1', title: 'Design system scope alignment call', status: 'Pending', clientSignOff: false, dueDate: '2026-09-25' },
+      { id: 'del-5-2', title: 'Typography & color tokens Figma file', status: 'Pending', clientSignOff: false, dueDate: '2026-10-10' },
+    ],
+    invoices: [
+      { id: 'inv-5-1', type: 'Deposit', label: '50% Initial Deposit', amount: 9000, formattedAmount: '9 000 Kč', percentage: 50, status: 'Draft', dueDate: '2026-09-28' },
+      { id: 'inv-5-2', type: 'Final', label: '50% Balance on Delivery', amount: 9000, formattedAmount: '9 000 Kč', percentage: 50, status: 'Draft', dueDate: '2026-10-25' },
+    ],
   },
   {
     id: 'deal-6',
@@ -223,11 +281,21 @@ export const INITIAL_DEALS: Deal[] = [
     stage: 'Quote sent',
     probability: '75%',
     next: 'Await contract sign-off',
-    nextDueDate: 'Mon, Sep 29',
+    nextDueDate: 'Mon, Sep 28',
     color: 'violet',
     contactName: 'Anna Kovářová',
     contactEmail: 'anna@kovardigital.cz',
     notes: 'Final contract submitted. Deposit invoice drafted.',
+    startDate: '2026-09-28',
+    endDate: '2026-11-05',
+    deliverables: [
+      { id: 'del-6-1', title: 'Next.js App Router boilerplate & architecture', status: 'In Progress', clientSignOff: false, dueDate: '2026-09-28' },
+      { id: 'del-6-2', title: 'Core prototype interactive workflows', status: 'Pending', clientSignOff: false, dueDate: '2026-10-15' },
+    ],
+    invoices: [
+      { id: 'inv-6-1', type: 'Deposit', label: '50% Kickoff Deposit', amount: 17500, formattedAmount: '17 500 Kč', percentage: 50, status: 'Sent', dueDate: '2026-09-28' },
+      { id: 'inv-6-2', type: 'Final', label: '50% Final Handoff', amount: 17500, formattedAmount: '17 500 Kč', percentage: 50, status: 'Draft', dueDate: '2026-11-05' },
+    ],
   },
   {
     id: 'deal-7',
@@ -243,6 +311,17 @@ export const INITIAL_DEALS: Deal[] = [
     contactName: 'Lucie Marešová',
     contactEmail: 'lucie@maresco.cz',
     notes: 'Deposit paid! First sprint begins next Monday.',
+    startDate: '2026-09-15',
+    endDate: '2026-10-10',
+    deliverables: [
+      { id: 'del-7-1', title: 'Brand exploration & visual benchmarks', status: 'Done', clientSignOff: true, dueDate: '2026-09-18' },
+      { id: 'del-7-2', title: 'New logo vectors & usage guidelines', status: 'In Progress', clientSignOff: true, dueDate: '2026-09-28' },
+      { id: 'del-7-3', title: 'Business cards & stationery template export', status: 'Pending', clientSignOff: false, dueDate: '2026-10-10' },
+    ],
+    invoices: [
+      { id: 'inv-7-1', type: 'Deposit', label: '50% Initial Deposit', amount: 14000, formattedAmount: '14 000 Kč', percentage: 50, status: 'Paid', dueDate: '2026-09-15', paidAt: '2026-09-16' },
+      { id: 'inv-7-2', type: 'Final', label: '50% Delivery Payment', amount: 14000, formattedAmount: '14 000 Kč', percentage: 50, status: 'Draft', dueDate: '2026-10-10' },
+    ],
   },
 ]
 
@@ -288,57 +367,105 @@ export const INITIAL_FOLLOW_UPS: FollowUpItem[] = [
 export const INITIAL_ACTIVITIES: Activity[] = [
   {
     id: 'act-1',
+    dealId: 'deal-1',
     type: 'Follow-up',
-    title: 'Follow up on quote',
+    title: 'Follow up on quote & deposit terms',
     person: 'Petra Frajmanová',
     company: 'Chalupa U lesa',
     date: 'Today, 10:00',
     status: 'Due today',
     color: 'blue',
-    summary: 'Check if Petra reviewed the booking flow proposal and deposit breakdown.',
+    summary: `### 📞 Client Call — Sep 22
+- **Attendees:** Petra Frajmanová, Oliver Seidl
+- **Key Takeaways:**
+  • Client loved minimal booking flow prototype.
+  • Discussed 50% deposit terms (7 500 Kč).
+- **Agreed Decisions:**
+  • Oliver to send confirmation email with staging link.`,
+  },
+  {
+    id: 'act-1b',
+    dealId: 'deal-1',
+    type: 'Call',
+    title: 'Initial Discovery Call',
+    person: 'Petra Frajmanová',
+    company: 'Chalupa U lesa',
+    date: 'Sep 18, 14:00',
+    status: 'Completed',
+    color: 'blue',
+    summary: `### 📞 Discovery Session — Sep 18
+- **Goal:** Understand booking bottlenecks on current WordPress site.
+- **Key Needs:**
+  • Direct reservations without high Airbnb commission.
+  • Clean mobile-first design tailored to mountain guests.
+  • Fast page load under 1.5s on mobile.`,
   },
   {
     id: 'act-2',
-    type: 'Email',
-    title: 'Send revised scope',
+    dealId: 'deal-2',
+    type: 'Meeting',
+    title: 'Scope Alignment & CMS Review',
     person: 'Martin Kraj',
     company: 'Studio Kraj s.r.o.',
     date: 'Today, 14:30',
     status: 'Due today',
     color: 'violet',
-    summary: 'Email updated scope document including CMS integration and 2 review rounds.',
+    summary: `### 📋 Scope Review Meeting
+- **Attendees:** Martin Kraj, Oliver Seidl
+- **Deliverables Reviewed:**
+  - [x] Brand typography system & color palette
+  - [ ] Case study CMS schema
+  - [ ] Production Next.js release
+- **Budget Adjustments:** Added 7 000 Kč for custom case study animations.`,
+  },
+  {
+    id: 'act-2b',
+    dealId: 'deal-2',
+    type: 'Call',
+    title: 'Brand Strategy Kickoff',
+    person: 'Martin Kraj',
+    company: 'Studio Kraj s.r.o.',
+    date: 'Sep 16, 11:00',
+    status: 'Completed',
+    color: 'violet',
+    summary: `### 🤝 Kickoff Sync
+- Agreed on editorial, architectural feel with high typography contrast.
+- Approved initial moodboards and benchmark references.`,
   },
   {
     id: 'act-3',
+    dealId: 'deal-3',
     type: 'Meeting',
-    title: 'Prepare discovery call',
+    title: 'Discovery & Photo Curation',
     person: 'Jan Novák',
     company: 'Novák Architecture',
     date: 'Tomorrow, 09:00',
     status: 'Upcoming',
     color: 'amber',
-    summary: '30-minute Google Meet to review portfolio aesthetic requirements.',
+    summary: 'Review 12 featured architecture projects and select high-res assets for hero gallery.',
   },
   {
     id: 'act-4',
+    dealId: 'deal-4',
     type: 'Note',
-    title: 'Share case studies',
+    title: 'Client Portal Scoping Spec',
     person: 'Lucie Marešová',
     company: 'Mareš & Co.',
     date: 'Friday, 16:00',
     status: 'Upcoming',
     color: 'green',
-    summary: 'Send PDF portfolio of previous B2B portal implementations.',
+    summary: 'Spec complete. 3 milestone deliveries: Discovery wireframes, UI prototyping, and Tailwind code handoff.',
   },
   {
     id: 'act-5',
+    dealId: 'deal-5',
     type: 'Call',
-    title: 'Introductory call',
+    title: 'Introductory Design System Sync',
     person: 'David Formánek',
     company: 'Forma Studio',
     date: 'Sep 19, 11:00',
     status: 'Completed',
     color: 'blue',
-    summary: 'Aligned on brand design needs and design system tokens.',
+    summary: 'Aligned on brand design needs and design system tokens in Figma.',
   },
 ]

@@ -19,11 +19,27 @@ export interface CalendarEvent {
   durationHours: number // 1.0, 1.5, 2.0
   startTimeLabel: string // "10:00"
   endTimeLabel: string // "11:30"
-  category: 'follow-up' | 'meeting' | 'call' | 'review'
+  category: 'follow-up' | 'meeting' | 'call' | 'review' | 'milestone'
   colorTheme: 'blue' | 'violet' | 'amber' | 'green'
   attendees: CalendarAttendee[]
   overflowAttendeesCount?: number // e.g. +7
   actionLabel?: string // e.g. "Chalupa U lesa" or "Client meeting"
+  dealId?: string
+  amountLabel?: string
+}
+
+export interface FeaturedEvent {
+  id: string
+  title: string
+  subtitle: string
+  company: string
+  person: string
+  time: string
+  colorTheme: 'blue' | 'violet' | 'amber' | 'green'
+  category: 'follow-up' | 'meeting' | 'call' | 'review' | 'milestone'
+  actionLabel: string
+  dealId?: string
+  attendees: CalendarAttendee[]
 }
 
 export interface DayColumn {

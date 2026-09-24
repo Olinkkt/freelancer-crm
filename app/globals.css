@@ -860,8 +860,9 @@ button {
 
 /* Sophisticated Monochromatic Avatars */
 .company-avatar, .deal-avatar {
-  display: grid;
-  place-items: center;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   width: 30px;
   height: 30px;
   border-radius: 8px;
@@ -869,6 +870,12 @@ button {
   color: var(--blue);
   font-weight: 600;
   font-size: 11px;
+  flex-shrink: 0;
+}
+
+.company-avatar svg, .deal-avatar svg {
+  display: block;
+  margin: auto;
   flex-shrink: 0;
 }
 

@@ -10,9 +10,16 @@ import {
   Check,
   FileText,
 } from 'lucide-react'
-import { CalendarEvent, DayColumn } from './types'
+import { CalendarEvent, DayColumn, FeaturedEvent } from './types'
 import { INITIAL_DAYS, INITIAL_EVENTS, TOP_FEATURED_EVENTS } from './mock-data'
 import { EventModal } from './event-modal'
+import { Deal, FollowUpItem } from '@/lib/crm-types'
+
+interface CalendarViewProps {
+  deals?: Deal[]
+  followUps?: FollowUpItem[]
+  onOpenDeal?: (deal: Deal) => void
+}
 
 const HOUR_HEIGHT = 88 // height per hour row in pixels (compact & sleek)
 const START_HOUR = 9 // 09:00
@@ -81,8 +88,86 @@ const THEME_STYLES: Record<string, typeof UNIFIED_THEME> = {
   dark: UNIFIED_THEME,
 }
 
-export function CalendarView() {
-  const [events, setEvents] = useState<CalendarEvent[]>(INITIAL_EVENTS)
+export function CalendarView({ deals = [], followUps = [], onOpenDeal }: CalendarViewProps) {
+  // Dynamically map deal milestones (Section 3.4) into calendar events
+  const dealMilestoneEvents = useMemo<CalendarEvent[]>(() => {
+    return deals
+      .filter((d) => d.nextDueDate && d.nextDueDate !== 'Done')
+      .map((d) => {
+        let dayIdx = 1 // default Tuesday (Today)
+        let startH = 10.0
+        const due = d.nextDueDate?.toLowerCase() || ''
+        if (due.includes('today')) {
+          dayIdx = 1
+          if (due.includes('14:30')) startH = 14.5
+          else if (due.includes('10:00')) startH = 10.0
+          else startH = 11.5
+        } else if (due.includes('tomorrow')) {
+          dayIdx = 2
+          startH = 9.0
+        } else if (due.includes('thu') || due.includes('sep 24')) {
+          dayIdx = 3
+          startH = 11.0
+        } else if (due.includes('fri') || due.includes('sep 25')) {
+          dayIdx = 4
+          startH = 10.0
+        }
+
+        const dateStr = ['2026-09-21', '2026-09-22', '2026-09-23', '2026-09-24', '2026-09-25'][dayIdx] || '2026-09-22'
+
+        return {
+          id: `deal-ms-${d.id}`,
+          title: `Milestone: ${d.next}`,
+          subtitle: `${d.company} • ${d.title}`,
+          company: d.company,
+          person: d.contactName || d.company,
+          dayIndex: dayIdx,
+          dateString: dateStr,
+          startHour: startH,
+          durationHours: 1.0,
+          startTimeLabel: formatHourMinute(startH),
+          endTimeLabel: formatHourMinute(startH + 1.0),
+          category: 'milestone',
+          colorTheme: d.color || 'blue',
+          actionLabel: `Open deal (${d.value})`,
+          dealId: d.id,
+          amountLabel: d.value,
+          attendees: [
+            {
+              id: `att-${d.id}`,
+              name: d.contactName || d.company,
+              initials: (d.contactName || d.company)
+                .split(' ')
+                .map((n) => n[0])
+                .join('')
+                .slice(0, 2)
+                .toUpperCase(),
+              colorTheme: d.color,
+            },
+            {
+              id: 'os',
+              name: 'Oliver Seidl',
+              initials: 'OS',
+              colorTheme: 'dark',
+            },
+          ],
+        }
+      })
+  }, [deals])
+
+  // Merge base events with deal milestone events
+  const allCombinedEvents = useMemo(() => {
+    // Avoid duplicates by id
+    const existingIds = new Set(INITIAL_EVENTS.map((e) => e.id))
+    const uniqueMilestones = dealMilestoneEvents.filter((e) => !existingIds.has(e.id))
+    return [...INITIAL_EVENTS, ...uniqueMilestones]
+  }, [dealMilestoneEvents])
+
+  const [events, setEvents] = useState<CalendarEvent[]>(allCombinedEvents)
+
+  useEffect(() => {
+    setEvents(allCombinedEvents)
+  }, [allCombinedEvents])
   const [days, setDays] = useState<DayColumn[]>(INITIAL_DAYS)
   const [searchQuery, setSearchQuery] = useState('')
   const [toastMessage, setToastMessage] = useState<string | null>(null)
@@ -428,13 +513,58 @@ export function CalendarView() {
     setIsModalOpen(true)
   }
 
-  // Open modal on existing event click
+  // Open modal on existing event click (or open deal drawer if milestone)
   const handleEventClick = (e: React.MouseEvent, event: CalendarEvent) => {
     e.stopPropagation()
     if (justFinishedDragRef.current) return
+    if (event.dealId && onOpenDeal) {
+      const matched = deals.find((d) => d.id === event.dealId)
+      if (matched) {
+        onOpenDeal(matched)
+        return
+      }
+    }
     setSelectedEvent(event)
     setIsModalOpen(true)
   }
+
+  // Active top featured cards derived from real deals
+  const activeFeaturedEvents: FeaturedEvent[] = useMemo(() => {
+    if (deals.length > 0) {
+      return deals.slice(0, 3).map((d) => ({
+        id: `feat-${d.id}`,
+        title: d.next,
+        subtitle: `${d.title} • ${d.stage}`,
+        company: d.company,
+        person: d.contactName || d.company,
+        time: d.nextDueDate || 'Scheduled',
+        colorTheme: d.color || ('blue' as const),
+        category: 'milestone' as const,
+        actionLabel: `Open deal (${d.value})`,
+        dealId: d.id,
+        attendees: [
+          {
+            id: `att-${d.id}`,
+            name: d.contactName || d.company,
+            initials: (d.contactName || d.company)
+              .split(' ')
+              .map((n) => n[0])
+              .join('')
+              .slice(0, 2)
+              .toUpperCase(),
+            colorTheme: d.color,
+          },
+          {
+            id: 'os',
+            name: 'Oliver Seidl',
+            initials: 'OS',
+            colorTheme: 'dark' as const,
+          },
+        ],
+      }))
+    }
+    return TOP_FEATURED_EVENTS
+  }, [deals])
 
   // Save event
   const handleSaveEvent = (savedEvent: Partial<CalendarEvent>) => {
@@ -479,7 +609,7 @@ export function CalendarView() {
           <p className="eyebrow">Workspace schedule</p>
           <h1>Tuesday, September 22, 2026</h1>
           <p className="subcopy">
-            You have {todayEventsCount} meetings and 2 follow-ups on your schedule today.
+            You have {todayEventsCount} meetings & milestones on your schedule today.
           </p>
         </div>
 
@@ -499,7 +629,7 @@ export function CalendarView() {
 
       {/* 2. TOP FEATURED CARDS CAROUSEL (3 cards layout) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 mb-6">
-        {TOP_FEATURED_EVENTS.map((item) => {
+        {activeFeaturedEvents.map((item) => {
           const theme = THEME_STYLES[item.colorTheme] || THEME_STYLES.blue
 
           return (
@@ -509,7 +639,16 @@ export function CalendarView() {
               style={{
                 padding: '18px 20px',
               }}
-              onClick={() => showToast(`Opening ${item.company} deal`)}
+              onClick={() => {
+                if (item.dealId && onOpenDeal) {
+                  const d = deals.find((x) => x.id === item.dealId)
+                  if (d) {
+                    onOpenDeal(d)
+                    return
+                  }
+                }
+                showToast(`Opening ${item.company} schedule`)
+              }}
             >
               <div>
                 <div className="flex items-center justify-between mb-2">
@@ -790,6 +929,20 @@ export function CalendarView() {
                           <p className="text-[10px] text-[#8f99a8] mt-0.5 line-clamp-1 leading-snug">
                             {event.subtitle}
                           </p>
+                        )}
+
+                        {event.category === 'milestone' && (
+                          <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                            <span className="px-1.5 py-0.2 rounded-[4px] bg-[#e9f0ff] text-[#266df0] text-[9px] font-mono font-bold uppercase tracking-wider flex items-center gap-1">
+                              <span>⬡</span>
+                              <span>Milestone</span>
+                            </span>
+                            {event.amountLabel && (
+                              <span className="px-1.5 py-0.2 rounded-[4px] bg-[#f0f2f5] text-[#232529] text-[9px] font-mono font-bold">
+                                {event.amountLabel}
+                              </span>
+                            )}
+                          </div>
                         )}
                       </div>
 

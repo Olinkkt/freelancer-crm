@@ -14,6 +14,7 @@ import {
   Settings2,
   FileText,
   ArrowRight,
+  ArrowLeft,
   Sparkles,
   Command,
   CornerDownLeft,
@@ -23,8 +24,13 @@ import {
   Keyboard,
   Clock,
   CheckCircle2,
+  ListTodo,
+  Calculator,
+  CheckSquare,
+  Save,
 } from 'lucide-react'
-import { Deal, Contact, Company } from '@/lib/crm-types'
+import { Deal, Contact, Company, Activity } from '@/lib/crm-types'
+import { ScratchpadEditor } from '../drawers/scratchpad-editor'
 
 export type PaletteActionType =
   | 'navigate'
@@ -37,10 +43,11 @@ export type PaletteActionType =
   | 'toggle_kanban'
   | 'toggle_table'
   | 'show_shortcuts'
+  | 'open_scratchpad'
 
 export interface PaletteItem {
   id: string
-  category: 'Actions' | 'Deals' | 'Contacts' | 'Companies' | 'Navigation'
+  category: 'Actions' | 'Notes' | 'Deals' | 'Contacts' | 'Companies' | 'Navigation'
   title: string
   subtitle?: string
   badge?: string
@@ -58,6 +65,9 @@ interface CommandPaletteProps {
   deals: Deal[]
   contacts: Contact[]
   companies: Company[]
+  onUpdateDeal?: (deal: Deal) => void
+  onSyncTodos?: (todos: string[], companyName?: string) => void
+  onAddActivity?: (activity: Omit<Activity, 'id'>) => void
 }
 
 export function CommandPalette({
@@ -67,10 +77,17 @@ export function CommandPalette({
   deals,
   contacts,
   companies,
+  onUpdateDeal,
+  onSyncTodos,
+  onAddActivity,
 }: CommandPaletteProps) {
   const [query, setQuery] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [selectedCategory, setSelectedCategory] = useState<string>('All')
+  const [subpage, setSubpage] = useState<'main' | 'scratchpad'>('main')
+  const [targetDealId, setTargetDealId] = useState<string>('')
+  const [scratchpadNotes, setScratchpadNotes] = useState<string>('')
+  const [isSavedToast, setIsSavedToast] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
 
@@ -80,16 +97,68 @@ export function CommandPalette({
       setQuery('')
       setSelectedIndex(0)
       setSelectedCategory('All')
+      setSubpage('main')
+      const initialDeal = deals[0]
+      setTargetDealId(initialDeal?.id || 'general')
+      setScratchpadNotes(initialDeal?.notes || '')
+      setIsSavedToast(false)
       const timer = setTimeout(() => {
         inputRef.current?.focus()
       }, 30)
       return () => clearTimeout(timer)
     }
-  }, [isOpen])
+  }, [isOpen, deals])
 
   // Build searchable items
   const allItems: PaletteItem[] = useMemo(() => {
     const items: PaletteItem[] = [
+      // Scratchpad & Notes Subpage (Section 3.3)
+      {
+        id: 'action-scratchpad',
+        category: 'Notes',
+        title: 'Open Scratchpad & Meeting Notes',
+        subtitle: 'Fast slash-command notes, /call, /scope, /quote, /todo',
+        shortcut: 'Ctrl+N',
+        icon: <FileText size={15} className="text-[#266df0]" />,
+        actionType: 'open_scratchpad',
+      },
+      {
+        id: 'action-slash-call',
+        category: 'Notes',
+        title: '/call — Client Call Log',
+        subtitle: 'Insert timestamped call notes & decisions template',
+        icon: <PhoneCall size={15} className="text-[#266df0]" />,
+        actionType: 'open_scratchpad',
+        payload: { command: '/call' },
+      },
+      {
+        id: 'action-slash-scope',
+        category: 'Notes',
+        title: '/scope — Deliverables & Scope Checklist',
+        subtitle: 'Insert structured deliverables milestone checklist',
+        icon: <ListTodo size={15} className="text-[#805ad5]" />,
+        actionType: 'open_scratchpad',
+        payload: { command: '/scope' },
+      },
+      {
+        id: 'action-slash-quote',
+        category: 'Notes',
+        title: '/quote — Commercial Quote Calculation',
+        subtitle: 'Insert 50% deposit and commercial terms breakdown',
+        icon: <Calculator size={15} className="text-[#43a878]" />,
+        actionType: 'open_scratchpad',
+        payload: { command: '/quote' },
+      },
+      {
+        id: 'action-slash-todo',
+        category: 'Notes',
+        title: '/todo — GTD Next Action Item',
+        subtitle: 'Insert action item that syncs directly to dashboard follow-ups',
+        icon: <CheckSquare size={15} className="text-[#c4882b]" />,
+        actionType: 'open_scratchpad',
+        payload: { command: '/todo' },
+      },
+
       // Quick Actions
       {
         id: 'action-new-deal',
@@ -331,8 +400,81 @@ export function CommandPalette({
     }
   }, [selectedIndex])
 
+  const handleSelectTargetDeal = (dealId: string) => {
+    setTargetDealId(dealId)
+    if (dealId === 'general') {
+      setScratchpadNotes('')
+    } else {
+      const d = deals.find((x) => x.id === dealId)
+      setScratchpadNotes(d?.notes || '')
+    }
+  }
+
+  const handleSaveNotes = () => {
+    if (!scratchpadNotes.trim()) return
+
+    const now = new Date()
+    const timeStr = 'Today, ' + now.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })
+
+    if (targetDealId && targetDealId !== 'general') {
+      const d = deals.find((x) => x.id === targetDealId)
+      if (d) {
+        if (onUpdateDeal) {
+          onUpdateDeal({ ...d, notes: scratchpadNotes })
+        }
+        if (onAddActivity) {
+          onAddActivity({
+            dealId: d.id,
+            type: 'Meeting',
+            title: `${d.company} Meeting Note`,
+            person: d.contactName || d.company,
+            company: d.company,
+            date: timeStr,
+            status: 'Completed',
+            color: d.color || 'blue',
+            summary: scratchpadNotes.trim(),
+          })
+        }
+      }
+    } else if (targetDealId === 'general') {
+      if (onAddActivity) {
+        onAddActivity({
+          type: 'Note',
+          title: 'Workspace Scratchpad Note',
+          person: 'Workspace',
+          company: 'Workspace',
+          date: timeStr,
+          status: 'Completed',
+          color: 'blue',
+          summary: scratchpadNotes.trim(),
+        })
+      }
+    }
+
+    setIsSavedToast(true)
+    setTimeout(() => setIsSavedToast(false), 2500)
+  }
+
+  const handleSyncTodosFromScratchpad = (todos: string[]) => {
+    if (onSyncTodos) {
+      const targetDeal = deals.find((d) => d.id === targetDealId)
+      onSyncTodos(todos, targetDeal?.company || 'Workspace')
+    }
+  }
+
   // Keyboard navigation within the palette
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (subpage === 'scratchpad') {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        setSubpage('main')
+      } else if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault()
+        handleSaveNotes()
+      }
+      return
+    }
+
     if (e.key === 'ArrowDown' || (e.ctrlKey && e.key === 'n')) {
       e.preventDefault()
       setSelectedIndex((prev) => (filteredItems.length > 0 ? (prev + 1) % filteredItems.length : 0))
@@ -352,7 +494,7 @@ export function CommandPalette({
     } else if (e.key === 'Tab') {
       // Cycle through categories
       e.preventDefault()
-      const categories = ['All', 'Actions', 'Deals', 'Contacts', 'Companies', 'Navigation']
+      const categories = ['All', 'Notes', 'Actions', 'Deals', 'Contacts', 'Companies', 'Navigation']
       const currentIndex = categories.indexOf(selectedCategory)
       const nextIndex = e.shiftKey
         ? (currentIndex - 1 + categories.length) % categories.length
@@ -362,6 +504,31 @@ export function CommandPalette({
   }
 
   const executeItem = (item: PaletteItem) => {
+    if (item.actionType === 'open_scratchpad') {
+      setSubpage('scratchpad')
+      if (item.payload?.command) {
+        const cmd = item.payload.command
+        const targetDeal = deals.find((d) => d.id === targetDealId)
+        let snippet = ''
+        if (cmd === '/call') {
+          const nowStr = new Date().toLocaleDateString('cs-CZ', {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          })
+          snippet = `### 📞 Client Call — ${nowStr}\n- **Client:** ${targetDeal?.contactName || targetDeal?.company || 'Client'}\n- **Key Decisions:**\n  • `
+        } else if (cmd === '/scope') {
+          snippet = `### 📋 Project Scope: ${targetDeal?.title || 'Scope'}\n- [ ] Phase 1: Wireframes\n- [ ] Phase 2: Design\n- [ ] Phase 3: Build`
+        } else if (cmd === '/quote') {
+          snippet = `### 💰 Commercial Quote\n- **Project Fee:** ${targetDeal?.value || '30 000 Kč'}\n- **Deposit (50%):** Due upon kickoff\n- **Balance (50%):** Due upon delivery`
+        } else if (cmd === '/todo') {
+          snippet = `- [ ] Follow up on next milestone with ${targetDeal?.contactName || targetDeal?.company || 'client'} tomorrow`
+        }
+        setScratchpadNotes((prev) => (prev ? `${prev}\n\n${snippet}` : snippet))
+      }
+      return
+    }
     onClose()
     onSelectAction(item.actionType, item.payload)
   }
@@ -369,7 +536,8 @@ export function CommandPalette({
   if (!isOpen) return null
 
   // Group items by category for rendering headers
-  const categories = ['Actions', 'Navigation', 'Deals', 'Companies', 'Contacts'] as const
+  const categories = ['Notes', 'Actions', 'Navigation', 'Deals', 'Companies', 'Contacts'] as const
+  const activeDeal = deals.find((d) => d.id === targetDealId)
 
   return (
     <div
@@ -377,60 +545,155 @@ export function CommandPalette({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-2xl bg-white rounded-[12px] shadow-xl border border-[#e4e7ec] overflow-hidden flex flex-col max-h-[75vh] animate-in fade-in zoom-in-95 duration-150"
+        className="w-full max-w-2xl bg-white rounded-[12px] shadow-xl border border-[#e4e7ec] overflow-hidden flex flex-col max-h-[78vh] animate-in fade-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
       >
-        {/* Search Input Bar */}
-        <div className="flex items-center px-4 py-3.5 border-b border-[#edf0f3] bg-white gap-3">
-          <Search size={18} className="text-[#9fa1a7] shrink-0" />
-          <input
-            ref={inputRef}
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Type a command, search deals, contacts, companies, or > for actions..."
-            className="flex-1 bg-transparent text-[14px] text-[#1c1d1f] placeholder:text-[#9fa1a7] focus:outline-none font-medium"
-          />
-          {query && (
-            <button
-              onClick={() => setQuery('')}
-              className="text-[#9fa1a7] hover:text-[#1c1d1f] p-1 rounded-[6px] text-xs"
-              title="Clear"
-            >
-              <X size={14} />
-            </button>
-          )}
-          <div className="flex items-center gap-1.5 shrink-0 pl-2 border-l border-[#f0f1f3]">
-            <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-medium text-[#8f99a8] bg-[#f4f5f6] border border-[#e4e7ec] rounded-[5px]">
-              ESC
-            </kbd>
-          </div>
-        </div>
+        {/* SUBPAGE: SCRATCHPAD & NOTES */}
+        {subpage === 'scratchpad' ? (
+          <div className="flex flex-col h-full animate-in fade-in duration-100">
+            {/* Subpage Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-[#edf0f3] bg-[#fafbfc]">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSubpage('main')}
+                  className="flex items-center gap-1 px-2 py-1 rounded-[6px] text-[11px] font-medium text-[#505967] hover:bg-[#edf0f3] hover:text-[#1c1d1f] transition-colors cursor-pointer"
+                >
+                  <ArrowLeft size={13} />
+                  <span>Commands</span>
+                </button>
+                <span className="text-[#cad0d9]">/</span>
+                <span className="text-[12px] font-semibold text-[#1c1d1f] flex items-center gap-1.5">
+                  <FileText size={14} className="text-[#266df0]" />
+                  Scratchpad & Notes
+                </span>
+              </div>
 
-        {/* Filter Category Chips */}
-        <div className="flex items-center gap-1.5 px-4 py-2 border-b border-[#f0f1f3] bg-[#fafbfc] overflow-x-auto text-[11px] scrollbar-none">
-          {['All', 'Actions', 'Deals', 'Contacts', 'Companies', 'Navigation'].map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`px-2.5 py-1 rounded-[7px] font-medium transition-colors ${
-                selectedCategory === cat
-                  ? 'bg-[#232529] text-white shadow-xs'
-                  : 'text-[#6f7988] hover:bg-[#edf0f3] hover:text-[#1c1d1f]'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-          <div className="ml-auto text-[10px] text-[#9fa1a7] hidden sm:flex items-center gap-1">
-            <span>Press</span>
-            <kbd className="px-1 py-0.2 text-[9px] bg-white border border-[#e4e7ec] rounded-[4px] font-mono">
-              Tab
-            </kbd>
-            <span>to cycle</span>
+              {/* Target Deal Selector */}
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-[#8f99a8] hidden sm:inline">Target:</span>
+                <select
+                  value={targetDealId}
+                  onChange={(e) => handleSelectTargetDeal(e.target.value)}
+                  className="px-2.5 py-1 text-[11px] font-medium bg-white border border-[#e4e7ec] rounded-[7px] text-[#1c1d1f] focus:outline-none focus:border-[#266df0] max-w-[200px] truncate"
+                >
+                  <option value="general">Workspace General Note</option>
+                  {deals.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.company}: {d.title}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={onClose}
+                  className="w-7 h-7 rounded-[7px] flex items-center justify-center text-[#9fa1a7] hover:text-[#1c1d1f] hover:bg-[#edf0f3] transition-colors"
+                >
+                  <X size={15} />
+                </button>
+              </div>
+            </div>
+
+            {/* Subpage Editor Body */}
+            <div className="p-4 space-y-3 max-h-[58vh] overflow-y-auto">
+              <ScratchpadEditor
+                notes={scratchpadNotes}
+                onChangeNotes={setScratchpadNotes}
+                onSyncTodos={handleSyncTodosFromScratchpad}
+                dealContext={
+                  activeDeal
+                    ? {
+                        title: activeDeal.title,
+                        company: activeDeal.company,
+                        contactName: activeDeal.contactName,
+                        value: activeDeal.value,
+                      }
+                    : undefined
+                }
+              />
+            </div>
+
+            {/* Subpage Footer */}
+            <div className="flex items-center justify-between px-4 py-2.5 bg-[#fafbfc] border-t border-[#edf0f3] text-[11px]">
+              <div className="flex items-center gap-3 text-[#8f99a8]">
+                <span>
+                  <kbd className="px-1 py-0.2 font-mono bg-white border border-[#e4e7ec] rounded">Esc</kbd> Back to commands
+                </span>
+                <span>
+                  <kbd className="px-1 py-0.2 font-mono bg-white border border-[#e4e7ec] rounded">Ctrl+S</kbd> Save
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSubpage('main')}
+                  className="px-2.5 py-1 text-[#6f7988] hover:text-[#1c1d1f] font-medium rounded-[6px] cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveNotes}
+                  className="px-3 py-1 bg-[#232529] hover:bg-[#101113] text-white font-medium rounded-[7px] shadow-xs transition-colors cursor-pointer"
+                >
+                  {isSavedToast ? 'Saved to Deal!' : 'Save Note'}
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
+        ) : (
+          <>
+            {/* Search Input Bar */}
+            <div className="flex items-center px-4 py-3.5 border-b border-[#edf0f3] bg-white gap-3">
+              <Search size={18} className="text-[#9fa1a7] shrink-0" />
+              <input
+                ref={inputRef}
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Type a command, search deals, or /call, /scope, /quote, /todo..."
+                className="flex-1 bg-transparent text-[14px] text-[#1c1d1f] placeholder:text-[#9fa1a7] focus:outline-none font-medium"
+              />
+              {query && (
+                <button
+                  onClick={() => setQuery('')}
+                  className="text-[#9fa1a7] hover:text-[#1c1d1f] p-1 rounded-[6px] text-xs"
+                  title="Clear"
+                >
+                  <X size={14} />
+                </button>
+              )}
+              <div className="flex items-center gap-1.5 shrink-0 pl-2 border-l border-[#f0f1f3]">
+                <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-medium text-[#8f99a8] bg-[#f4f5f6] border border-[#e4e7ec] rounded-[5px]">
+                  ESC
+                </kbd>
+              </div>
+            </div>
+
+            {/* Filter Category Chips */}
+            <div className="flex items-center gap-1.5 px-4 py-2 border-b border-[#f0f1f3] bg-[#fafbfc] overflow-x-auto text-[11px] scrollbar-none">
+              {['All', 'Notes', 'Actions', 'Deals', 'Contacts', 'Companies', 'Navigation'].map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`px-2.5 py-1 rounded-[7px] font-medium transition-colors ${
+                    selectedCategory === cat
+                      ? 'bg-[#232529] text-white shadow-xs'
+                      : 'text-[#6f7988] hover:bg-[#edf0f3] hover:text-[#1c1d1f]'
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+              <div className="ml-auto text-[10px] text-[#9fa1a7] hidden sm:flex items-center gap-1">
+                <span>Press</span>
+                <kbd className="px-1 py-0.2 text-[9px] bg-white border border-[#e4e7ec] rounded-[4px] font-mono">
+                  Tab
+                </kbd>
+                <span>to cycle</span>
+              </div>
+            </div>
 
         {/* Results List */}
         <div
@@ -579,7 +842,9 @@ export function CommandPalette({
             </span>
           </div>
         </div>
-      </div>
-    </div>
-  )
+      </>
+    )}
+  </div>
+</div>
+)
 }

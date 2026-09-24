@@ -84,6 +84,8 @@ export default function Page() {
   const [companySearch, setCompanySearch] = useState('')
   const [contactSearch, setContactSearch] = useState('')
   const [activitySearch, setActivitySearch] = useState('')
+  const [dealSearch, setDealSearch] = useState('')
+  const [isDealSearchOpen, setIsDealSearchOpen] = useState(false)
 
   // Modals & Drawers State
   const [isPaletteOpen, setIsPaletteOpen] = useState(false)
@@ -362,14 +364,7 @@ export default function Page() {
             ...d,
             stage: newStage,
             probability: newStage === 'Won' ? '100%' : d.probability,
-            color:
-              newStage === 'Won'
-                ? 'green'
-                : newStage === 'Qualified'
-                ? 'amber'
-                : newStage === 'Scope' || newStage === 'Negotiation'
-                ? 'violet'
-                : 'blue',
+            color: 'blue',
           }
         }
         return d
@@ -962,7 +957,7 @@ export default function Page() {
                         <p className="section-kicker">Operator Velocity</p>
                         <h2>Keyboard Shortcuts</h2>
                       </div>
-                      <span className="px-2 py-0.5 text-[10px] font-mono font-bold rounded-md bg-[#e9f0ff] text-[#266df0]">
+                      <span className="px-2 py-0.5 text-[10px] font-mono font-semibold rounded-[7px] bg-[#e9f0ff] text-[#266df0]">
                         Top 10 Core
                       </span>
                     </div>
@@ -974,31 +969,25 @@ export default function Page() {
                     {/* Top 10 Compact List */}
                     <div className="space-y-1">
                       {[
-                        { label: 'Universal Command Palette', keys: ['⌘K'], tag: 'Global', color: 'blue' },
-                        { label: 'Quick-add new deal drawer', keys: ['N'], tag: 'Capture', color: 'amber' },
-                        { label: 'Quick-add new contact drawer', keys: ['C'], tag: 'Capture', color: 'violet' },
-                        { label: 'Quick-log call / meeting note', keys: ['L'], tag: 'Capture', color: 'green' },
-                        { label: 'Navigate Kanban stage columns', keys: ['H', 'L'], tag: 'Kanban', color: 'blue' },
-                        { label: 'Select deal card in column', keys: ['J', 'K'], tag: 'Kanban', color: 'blue' },
-                        { label: 'Inspect deal (slide-over drawer)', keys: ['↵'], tag: 'Kanban', color: 'blue' },
-                        { label: 'Shift deal stage left / right', keys: ['[', ']'], tag: 'Kanban', color: 'amber' },
-                        { label: 'Jump to Dashboard view', keys: ['G', 'D'], tag: 'Nav', color: 'violet' },
-                        { label: 'Jump to Deals & Pipeline', keys: ['G', 'P'], tag: 'Nav', color: 'violet' },
+                        { label: 'Universal Command Palette', keys: ['⌘K'], tag: 'Global', primary: true },
+                        { label: 'Quick-add new deal drawer', keys: ['N'], tag: 'Capture', primary: false },
+                        { label: 'Quick-add new contact drawer', keys: ['C'], tag: 'Capture', primary: false },
+                        { label: 'Quick-log call / meeting note', keys: ['L'], tag: 'Capture', primary: false },
+                        { label: 'Navigate Kanban stage columns', keys: ['H', 'L'], tag: 'Kanban', primary: false },
+                        { label: 'Select deal card in column', keys: ['J', 'K'], tag: 'Kanban', primary: false },
+                        { label: 'Inspect deal (slide-over drawer)', keys: ['↵'], tag: 'Kanban', primary: false },
+                        { label: 'Shift deal stage left / right', keys: ['[', ']'], tag: 'Kanban', primary: false },
+                        { label: 'Jump to Dashboard view', keys: ['G', 'D'], tag: 'Nav', primary: false },
+                        { label: 'Jump to Deals & Pipeline', keys: ['G', 'P'], tag: 'Nav', primary: false },
                       ].map((item, idx) => (
                         <div
                           key={idx}
-                          className="flex items-center justify-between py-1.5 px-2.5 rounded-lg text-[12px] hover:bg-[#fafbfc] transition-colors border-b border-[#f7f8fa] last:border-b-0"
+                          className="flex items-center justify-between py-1.5 px-2.5 rounded-[10px] text-[12px] hover:bg-[#fafbfc] transition-colors border-b border-[#f7f8fa] last:border-b-0"
                         >
                           <div className="flex items-center gap-2 min-w-0">
                             <span
                               className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                                item.color === 'violet'
-                                  ? 'bg-[#805ad5]'
-                                  : item.color === 'amber'
-                                  ? 'bg-[#c4882b]'
-                                  : item.color === 'green'
-                                  ? 'bg-[#43a878]'
-                                  : 'bg-[#266df0]'
+                                item.primary ? 'bg-[#266df0]' : 'bg-[#9fa1a7]'
                               }`}
                             />
                             <span className="text-[#232529] font-medium truncate">{item.label}</span>
@@ -1007,7 +996,7 @@ export default function Page() {
                             {item.keys.map((k, kIdx) => (
                               <kbd
                                 key={kIdx}
-                                className="px-1.5 py-0.5 min-w-[20px] text-center text-[10px] font-mono font-semibold text-[#505967] bg-[#f4f5f6] border border-[#dce0e8] rounded shadow-2xs"
+                                className="px-1.5 py-0.5 min-w-[20px] text-center text-[10px] font-mono font-semibold text-[#505967] bg-[#f4f5f6] border border-[#dce0e8] rounded-[5px] shadow-2xs"
                               >
                                 {k}
                               </kbd>
@@ -1217,19 +1206,43 @@ export default function Page() {
                     <h2>Active deals</h2>
                   </div>
                   <div className="panel-heading-actions">
-                    <button
-                      className="icon-button"
-                      onClick={() => setIsPaletteOpen(true)}
-                      title="Search (⌘K)"
-                    >
-                      <Search size={16} />
-                    </button>
-                    <button
-                      className="select-button"
-                      onClick={() => setActiveView('Deals')}
-                    >
-                      All stages <ChevronDown size={14} />
-                    </button>
+                    {isDealSearchOpen ? (
+                      <label className="search-field animate-in fade-in duration-150">
+                        <Search size={14} />
+                        <input
+                          autoFocus
+                          value={dealSearch}
+                          onChange={(e) => setDealSearch(e.target.value)}
+                          placeholder="Search deals..."
+                          onKeyDown={(e) => {
+                            if (e.key === 'Escape') {
+                              setDealSearch('')
+                              setIsDealSearchOpen(false)
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDealSearch('')
+                            setIsDealSearchOpen(false)
+                          }}
+                          className="text-xs text-[#8f99a8] hover:text-[#1c1d1f] ml-0.5 px-0.5"
+                          aria-label="Close search"
+                        >
+                          ×
+                        </button>
+                      </label>
+                    ) : (
+                      <button
+                        className="icon-button"
+                        onClick={() => setIsDealSearchOpen(true)}
+                        title="Search active deals"
+                        aria-label="Search active deals"
+                      >
+                        <Search size={16} />
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -1254,39 +1267,83 @@ export default function Page() {
                     <span>Next action</span>
                     <span />
                   </div>
-                  {deals.map((deal) => (
-                    <div
-                      className="deal-row cursor-pointer hover:bg-[#fafbfc] transition-colors"
-                      key={deal.id}
-                      onClick={() => {
-                        setSelectedDeal(deal)
-                        setIsDealDrawerOpen(true)
-                      }}
-                    >
-                      <div className="deal-title">
-                        <span className={`deal-avatar ${deal.color}`}>
-                          {deal.company.charAt(0)}
-                        </span>
-                        <div>
-                          <strong>{deal.title}</strong>
-                          <span>{deal.company}</span>
-                        </div>
-                      </div>
-                      <span className="stage-pill">{deal.stage}</span>
-                      <strong className="font-mono tabular-nums">{deal.value}</strong>
-                      <span className="probability font-mono">{deal.probability}</span>
-                      <span className="next-action flex items-center gap-1">
-                        <Clock size={12} className="text-[#266df0]" />
-                        <span>{deal.next}</span>
-                      </span>
-                      <button
-                        className="more-button"
-                        aria-label={`More options for ${deal.title}`}
+                  {deals
+                    .filter((deal) => {
+                      if (dealSearch.trim()) {
+                        const q = dealSearch.toLowerCase().trim()
+                        const matches =
+                          deal.title.toLowerCase().includes(q) ||
+                          deal.company.toLowerCase().includes(q) ||
+                          deal.stage.toLowerCase().includes(q) ||
+                          (deal.next && deal.next.toLowerCase().includes(q)) ||
+                          deal.value.toLowerCase().includes(q)
+                        if (!matches) return false
+                      }
+                      if (activeTab === 'Closing soon') {
+                        return (
+                          deal.stage === 'Quote sent' ||
+                          deal.stage === 'Negotiation' ||
+                          parseInt(deal.probability) >= 70
+                        )
+                      }
+                      if (activeTab === 'Recently added') {
+                        return (
+                          deal.id === 'deal-6' ||
+                          deal.id === 'deal-5' ||
+                          deal.id === 'deal-7' ||
+                          deal.stage === 'Lead'
+                        )
+                      }
+                      return true
+                    })
+                    .map((deal) => (
+                      <div
+                        className="deal-row cursor-pointer hover:bg-[#fafbfc] transition-colors"
+                        key={deal.id}
+                        onClick={() => {
+                          setSelectedDeal(deal)
+                          setIsDealDrawerOpen(true)
+                        }}
                       >
-                        <MoreHorizontal size={17} />
-                      </button>
-                    </div>
-                  ))}
+                        <div className="deal-title">
+                          <span className={`deal-avatar ${deal.color}`}>
+                            {deal.company.charAt(0)}
+                          </span>
+                          <div>
+                            <strong>{deal.title}</strong>
+                            <span>{deal.company}</span>
+                          </div>
+                        </div>
+                        <span className="stage-pill">{deal.stage}</span>
+                        <strong className="font-mono tabular-nums">{deal.value}</strong>
+                        <span className="probability font-mono">{deal.probability}</span>
+                        <span className="next-action flex items-center gap-1">
+                          <Clock size={12} className="text-[#266df0]" />
+                          <span>{deal.next}</span>
+                        </span>
+                        <button
+                          className="more-button"
+                          aria-label={`More options for ${deal.title}`}
+                        >
+                          <MoreHorizontal size={17} />
+                        </button>
+                      </div>
+                    ))}
+                  {dealSearch.trim() &&
+                    deals.filter((deal) => {
+                      const q = dealSearch.toLowerCase().trim()
+                      return (
+                        deal.title.toLowerCase().includes(q) ||
+                        deal.company.toLowerCase().includes(q) ||
+                        deal.stage.toLowerCase().includes(q) ||
+                        (deal.next && deal.next.toLowerCase().includes(q)) ||
+                        deal.value.toLowerCase().includes(q)
+                      )
+                    }).length === 0 && (
+                      <div className="py-8 text-center text-[#8f99a8] text-[12px]">
+                        No deals matching &ldquo;{dealSearch}&rdquo;
+                      </div>
+                    )}
                 </div>
               </section>
             </>

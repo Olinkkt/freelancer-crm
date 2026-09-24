@@ -21,16 +21,16 @@ export function ToastHUD({ toasts, onDismiss }: ToastHUDProps) {
       {toasts.map((toast) => (
         <div
           key={toast.id}
-          className="pointer-events-auto flex items-center gap-2.5 px-3.5 py-2.5 bg-[#1c1d1f] text-white rounded-xl shadow-xl border border-[#33383f] text-[12px] font-medium animate-in slide-in-from-bottom-2 fade-in duration-150"
+          className="pointer-events-auto flex items-center gap-2.5 px-3.5 py-2.5 bg-[#232529] text-white rounded-[12px] shadow-[0_12px_30px_rgba(0,0,0,0.18)] border border-[#343840] text-[12px] font-medium animate-in slide-in-from-bottom-2 fade-in duration-150"
         >
           {toast.type === 'warning' ? (
-            <AlertCircle size={15} className="text-[#c4882b] shrink-0" />
+            <AlertCircle size={15} className="text-[#d99b38] shrink-0" />
           ) : (
-            <CheckCircle2 size={15} className="text-[#43a878] shrink-0" />
+            <CheckCircle2 size={15} className="text-[#266df0] shrink-0" />
           )}
           <span>{toast.message}</span>
           {toast.shortcut && (
-            <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-semibold bg-[#2e3238] text-[#bad0fa] rounded border border-[#444a53]">
+            <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-semibold bg-[#2e3238] text-[#bad0fa] rounded-[5px] border border-[#444a53]">
               {toast.shortcut}
             </kbd>
           )}

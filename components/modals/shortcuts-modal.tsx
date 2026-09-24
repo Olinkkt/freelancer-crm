@@ -34,7 +34,7 @@ export function ShortcutsModal({ isOpen, onClose }: ShortcutsModalProps) {
     },
     {
       title: 'Instant Quick Actions (Operator Hotkeys)',
-      icon: <Sparkles size={15} className="text-[#c4882b]" />,
+      icon: <Sparkles size={15} className="text-[#6f7988]" />,
       items: [
         { keys: ['N'], label: 'Quick-add new deal drawer' },
         { keys: ['C'], label: 'Quick-add new contact drawer' },
@@ -44,7 +44,7 @@ export function ShortcutsModal({ isOpen, onClose }: ShortcutsModalProps) {
     },
     {
       title: 'Kanban Board Deals Navigation (No Mouse)',
-      icon: <LayoutGrid size={15} className="text-[#805ad5]" />,
+      icon: <LayoutGrid size={15} className="text-[#6f7988]" />,
       items: [
         { keys: ['H'], label: 'Move focus left to previous stage' },
         { keys: ['L'], label: 'Move focus right to next stage' },
@@ -58,7 +58,7 @@ export function ShortcutsModal({ isOpen, onClose }: ShortcutsModalProps) {
     },
     {
       title: 'Rapid View Navigation',
-      icon: <Navigation size={15} className="text-[#43a878]" />,
+      icon: <Navigation size={15} className="text-[#6f7988]" />,
       items: [
         { keys: ['G', 'D'], label: 'Go to Dashboard' },
         { keys: ['G', 'P'], label: 'Go to Deals & Pipeline' },
@@ -73,21 +73,21 @@ export function ShortcutsModal({ isOpen, onClose }: ShortcutsModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#10141c]/50 backdrop-blur-sm transition-all"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#10141c]/30 backdrop-blur-xs transition-all"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-[#e4e7ec] overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+        className="w-full max-w-2xl bg-white rounded-[12px] shadow-xl border border-[#e4e7ec] overflow-hidden animate-in fade-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#edf0f3] bg-[#fafbfc]">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-[#e7efff] text-[#266df0] flex items-center justify-center font-bold">
+            <div className="w-8 h-8 rounded-[8px] bg-[#e7efff] text-[#266df0] flex items-center justify-center font-bold">
               <Keyboard size={17} />
             </div>
             <div>
-              <h2 className="text-[16px] font-bold text-[#1c1d1f] tracking-tight">
+              <h2 className="text-[16px] font-semibold text-[#1c1d1f] tracking-tight">
                 Keyboard Shortcuts
               </h2>
               <p className="text-[11px] text-[#6f7988]">
@@ -97,7 +97,7 @@ export function ShortcutsModal({ isOpen, onClose }: ShortcutsModalProps) {
           </div>
           <button
             onClick={onClose}
-            className="w-7 h-7 rounded-md flex items-center justify-center text-[#9fa1a7] hover:text-[#1c1d1f] hover:bg-[#edf0f3] transition-colors"
+            className="w-7 h-7 rounded-[10px] flex items-center justify-center text-[#9fa1a7] hover:text-[#1c1d1f] hover:bg-[#edf0f3] transition-colors"
           >
             <X size={16} />
           </button>
@@ -117,14 +117,14 @@ export function ShortcutsModal({ isOpen, onClose }: ShortcutsModalProps) {
                 {section.items.map((item, i) => (
                   <div
                     key={i}
-                    className="flex items-center justify-between py-1 px-1 rounded-md text-[12px] hover:bg-[#fafbfc]"
+                    className="flex items-center justify-between py-1.5 px-2 rounded-[8px] text-[12px] hover:bg-[#fafbfc]"
                   >
                     <span className="text-[#33383f] font-medium">{item.label}</span>
                     <div className="flex items-center gap-1 shrink-0 ml-2">
                       {item.keys.map((k, kIdx) => (
                         <kbd
                           key={kIdx}
-                          className="px-1.5 py-0.5 min-w-[20px] text-center text-[10px] font-mono font-semibold text-[#505967] bg-[#f4f5f6] border border-[#dce0e8] rounded shadow-2xs"
+                          className="px-1.5 py-0.5 min-w-[20px] text-center text-[10px] font-mono font-medium text-[#505967] bg-[#f4f5f6] border border-[#dce0e8] rounded-[5px]"
                         >
                           {k}
                         </kbd>
@@ -140,7 +140,7 @@ export function ShortcutsModal({ isOpen, onClose }: ShortcutsModalProps) {
         {/* Footer */}
         <div className="px-6 py-3 border-t border-[#edf0f3] bg-[#fafbfc] flex items-center justify-between text-[11px] text-[#8f99a8]">
           <span>Tip: Press any single key hotkey when outside an input field.</span>
-          <kbd className="px-2 py-0.5 text-[10px] bg-white border border-[#e4e7ec] rounded font-mono font-semibold text-[#505967]">
+          <kbd className="px-2 py-0.5 text-[10px] bg-white border border-[#e4e7ec] rounded-[5px] font-mono font-medium text-[#505967]">
             Press ESC to exit
           </kbd>
         </div>

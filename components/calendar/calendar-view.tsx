@@ -9,7 +9,6 @@ import {
   Users,
   Check,
   FileText,
-  GripVertical,
 } from 'lucide-react'
 import { CalendarEvent, DayColumn } from './types'
 import { INITIAL_DAYS, INITIAL_EVENTS, TOP_FEATURED_EVENTS } from './mock-data'
@@ -468,8 +467,8 @@ export function CalendarView() {
     <div className="w-full">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-[#232529] text-white px-4 py-2.5 rounded-xl shadow-lg text-xs font-semibold animate-fade-in border border-gray-700">
-          <Check size={14} className="text-[#50b884]" />
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 bg-[#232529] text-white px-3.5 py-2.5 rounded-[12px] shadow-[0_12px_30px_rgba(0,0,0,0.18)] text-[12px] font-medium animate-in slide-in-from-bottom-2 fade-in duration-150 border border-[#343840]">
+          <Check size={14} className="text-[#266df0]" />
           <span>{toastMessage}</span>
         </div>
       )}
@@ -551,7 +550,7 @@ export function CalendarView() {
                       <span
                         key={attendee.id}
                         title={attendee.name}
-                        className="w-6 h-6 rounded-md text-[9px] font-bold flex items-center justify-center ring-2 ring-white"
+                        className="w-6 h-6 rounded-[6px] text-[9px] font-bold flex items-center justify-center ring-2 ring-white"
                         style={{
                           backgroundColor: aTheme.avatarBg,
                           color: aTheme.avatarText,
@@ -571,8 +570,8 @@ export function CalendarView() {
       {/* WEEKLY SCHEDULE GRID (Panel styled with integrated search toolbar) */}
       <div className="panel p-0 overflow-hidden" style={{ padding: 0 }}>
         {/* Integrated Calendar Search Toolbar */}
-        <div className="flex items-center justify-end px-3.5 py-2.5 border-b border-[#edf0f3] bg-white">
-          <label className="search-field" style={{ height: '30px' }}>
+        <div className="flex items-center justify-end px-4 py-2.5 border-b border-[#edf0f3] bg-white">
+          <label className="search-field">
             <Search size={14} />
             <input
               placeholder="Search schedule..."
@@ -668,8 +667,9 @@ export function CalendarView() {
                     <div
                       key={hour}
                       style={{ height: `${HOUR_HEIGHT}px` }}
-                      className={`border-b border-[#edf0f3] last:border-b-0 transition-colors relative ${
-                        isBlocked ? 'calendar-hatched' : ''
+                      onClick={() => !isBlocked && handleSlotClick(dayIndex, hour)}
+                      className={`border-b border-[#edf0f3] last:border-b-0 transition-colors relative group/slot ${
+                        isBlocked ? 'calendar-hatched' : 'cursor-pointer hover:bg-[#f8faff]/60'
                       }`}
                     >
                       {/* Subtle 15-minute snap division guidelines (:15, :30, :45) - only shown when dragging */}
@@ -679,6 +679,14 @@ export function CalendarView() {
                           <div className="border-b border-[#edf0f3] border-dashed" />
                           <div className="border-b border-[#edf0f3]/60 border-dotted" />
                           <div />
+                        </div>
+                      )}
+
+                      {/* Hover + Add indicator */}
+                      {!isBlocked && !isDragging && (
+                        <div className="absolute inset-x-2 top-2 h-7 rounded-[7px] border border-dashed border-[#266df0]/40 bg-[#f1f5ff]/70 text-[#266df0] text-[11px] font-medium flex items-center justify-center gap-1 opacity-0 group-hover/slot:opacity-100 transition-opacity pointer-events-none">
+                          <CirclePlus size={13} />
+                          <span>+ Add</span>
                         </div>
                       )}
                     </div>
@@ -698,7 +706,7 @@ export function CalendarView() {
                         ? 'rgba(254, 226, 226, 0.5)'
                         : `${(THEME_STYLES[dragState.event.colorTheme] || THEME_STYLES.blue).accent}14`,
                     }}
-                    className={`absolute left-1.5 right-1.5 rounded-[9px] border-2 border-dashed pointer-events-none z-20 flex flex-col justify-between p-2.5 transition-all duration-75 shadow-xs ${
+                    className={`absolute left-1.5 right-1.5 rounded-[8px] border-2 border-dashed pointer-events-none z-20 flex flex-col justify-between p-2.5 transition-all duration-75 shadow-xs ${
                       dragState.isBlocked ? 'border-red-500 calendar-hatched' : ''
                     }`}
                   >
@@ -757,7 +765,7 @@ export function CalendarView() {
                         opacity: isBeingDragged ? 0.3 : 1,
                         touchAction: 'none',
                       }}
-                      className={`absolute left-1.5 right-1.5 rounded-[9px] p-2.5 border shadow-2xs hover:shadow-md transition-[box-shadow,border-color] flex flex-col justify-start gap-1 z-10 overflow-hidden select-none group cursor-grab active:cursor-grabbing ${
+                      className={`absolute left-1.5 right-1.5 rounded-[8px] p-2.5 border shadow-2xs hover:shadow-md transition-[box-shadow,border-color] flex flex-col justify-start gap-1 z-10 overflow-hidden select-none group cursor-grab active:cursor-grabbing ${
                         isBeingDragged ? 'border-dashed !cursor-grabbing' : ''
                       } ${isBeingResized ? 'ring-2 ring-[#266df0]/30 shadow-md' : ''}`}
                     >
@@ -821,7 +829,7 @@ export function CalendarView() {
             transformOrigin: 'top left',
             boxShadow: '0 20px 35px -5px rgba(0, 0, 0, 0.22), 0 10px 15px -5px rgba(0, 0, 0, 0.12)',
           }}
-          className="rounded-[9px] p-2.5 border-2 flex flex-col justify-start gap-1 overflow-hidden opacity-95 transition-transform"
+          className="rounded-[8px] p-2.5 border-2 flex flex-col justify-start gap-1 overflow-hidden opacity-95 transition-transform"
         >
           {/* Floating Header with Live Snapped Time & Day badge */}
           <div>

@@ -62,14 +62,7 @@ export function DealDetailDrawer({
       ...currentDeal,
       stage: newStage,
       probability: newStage === 'Won' ? '100%' : currentDeal.probability,
-      color:
-        newStage === 'Won'
-          ? 'green'
-          : newStage === 'Qualified'
-          ? 'amber'
-          : newStage === 'Scope' || newStage === 'Negotiation'
-          ? 'violet'
-          : 'blue',
+      color: 'blue',
     }
     setCurrentDeal(updated)
     onUpdateDeal(updated)
@@ -84,7 +77,7 @@ export function DealDetailDrawer({
 
   return (
     <div
-      className="fixed inset-0 z-50 overflow-hidden bg-[#10141c]/40 backdrop-blur-xs transition-opacity animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 overflow-hidden bg-[#10141c]/30 backdrop-blur-xs transition-opacity animate-in fade-in duration-150"
       onClick={onClose}
     >
       <div
@@ -94,37 +87,27 @@ export function DealDetailDrawer({
         <div className="w-screen max-w-md bg-white border-l border-[#e4e7ec] shadow-2xl flex flex-col h-full animate-in slide-in-from-right duration-200">
           {/* Topbar of Drawer */}
           <div className="p-5 border-b border-[#edf0f3] flex items-center justify-between bg-[#fafbfc]">
-            <div className="flex items-center gap-2">
-              <span
-                className={`w-7 h-7 rounded-lg flex items-center justify-center text-[12px] font-bold ${
-                  currentDeal.color === 'violet'
-                    ? 'bg-[#f0eaff] text-[#805ad5]'
-                    : currentDeal.color === 'amber'
-                    ? 'bg-[#fff3df] text-[#c4882b]'
-                    : currentDeal.color === 'green'
-                    ? 'bg-[#e7f6ee] text-[#43a878]'
-                    : 'bg-[#e9f0ff] text-[#266df0]'
-                }`}
-              >
+            <div className="flex items-center gap-2.5">
+              <span className="w-7 h-7 rounded-[8px] flex items-center justify-center text-[12px] font-semibold bg-[#e9f0ff] text-[#266df0] shrink-0">
                 {currentDeal.company.charAt(0)}
               </span>
               <div>
                 <span className="text-[10px] uppercase font-bold tracking-wider text-[#8f99a8] block">
                   Opportunity Drawer
                 </span>
-                <span className="text-[12px] font-semibold text-[#1c1d1f]">
+                <span className="text-[13px] font-semibold text-[#1c1d1f]">
                   {currentDeal.company}
                 </span>
               </div>
             </div>
 
             <div className="flex items-center gap-1">
-              <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono text-[#8f99a8] bg-[#f4f5f6] border border-[#e4e7ec] rounded mr-1">
+              <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono text-[#8f99a8] bg-[#f4f5f6] border border-[#e4e7ec] rounded-[5px] mr-1">
                 ESC
               </kbd>
               <button
                 onClick={onClose}
-                className="w-7 h-7 rounded-md flex items-center justify-center text-[#9fa1a7] hover:text-[#1c1d1f] hover:bg-[#edf0f3] transition-colors"
+                className="w-7 h-7 rounded-[10px] flex items-center justify-center text-[#9fa1a7] hover:text-[#1c1d1f] hover:bg-[#edf0f3] transition-colors"
                 aria-label="Close"
               >
                 <X size={16} />
@@ -140,10 +123,10 @@ export function DealDetailDrawer({
                 {currentDeal.title}
               </h1>
               <div className="mt-3 flex items-baseline gap-3">
-                <span className="text-[28px] font-bold font-mono tabular-nums text-[#1c1d1f] tracking-tight">
+                <span className="text-[26px] font-bold font-mono tabular-nums text-[#1c1d1f] tracking-tight">
                   {currentDeal.value}
                 </span>
-                <span className="px-2 py-0.5 text-[11px] font-bold rounded-md bg-[#e7f6ee] text-[#43a878] font-mono">
+                <span className="px-2 py-0.5 text-[11px] font-medium rounded-[7px] bg-[#f0f2f5] text-[#232529] font-mono">
                   {currentDeal.probability} prob.
                 </span>
               </div>
@@ -159,9 +142,9 @@ export function DealDetailDrawer({
                   <button
                     key={s}
                     onClick={() => handleStageChange(s)}
-                    className={`py-1.5 px-2 rounded-lg text-[11px] font-semibold transition-all border text-center ${
+                    className={`py-1.5 px-2 rounded-[10px] text-[11px] font-medium transition-all border text-center ${
                       currentDeal.stage === s
-                        ? 'bg-[#1c1d1f] text-white border-[#1c1d1f] shadow-xs'
+                        ? 'bg-[#232529] text-white border-[#232529] shadow-xs'
                         : 'bg-white text-[#505967] border-[#e4e7ec] hover:bg-[#f7f8fa]'
                     }`}
                   >
@@ -172,13 +155,13 @@ export function DealDetailDrawer({
             </div>
 
             {/* Mandatory Next Action (GTD Rule) */}
-            <div className="p-4 bg-[#f8faff] border border-[#d6e3fc] rounded-xl space-y-2">
+            <div className="p-4 bg-[#f8faff] border border-[#d6e3fc] rounded-[12px] space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#266df0] uppercase tracking-wider">
                   <AlertCircle size={14} />
                   <span>Mandatory Next Action</span>
                 </div>
-                <span className="text-[10px] font-semibold text-[#266df0] bg-[#e9f0ff] px-2 py-0.5 rounded">
+                <span className="text-[10px] font-medium text-[#266df0] bg-[#e9f0ff] px-2 py-0.5 rounded-[7px]">
                   {currentDeal.nextDueDate || 'Scheduled'}
                 </span>
               </div>
@@ -190,7 +173,7 @@ export function DealDetailDrawer({
               <span className="block text-[10px] font-bold uppercase tracking-wider text-[#8f99a8]">
                 Primary Contact
               </span>
-              <div className="p-3 bg-[#fafbfc] border border-[#edf0f3] rounded-xl flex items-center justify-between">
+              <div className="p-3 bg-[#fafbfc] border border-[#edf0f3] rounded-[12px] flex items-center justify-between">
                 <div>
                   <div className="text-[13px] font-semibold text-[#1c1d1f]">
                     {currentDeal.contactName || currentDeal.company}
@@ -201,7 +184,7 @@ export function DealDetailDrawer({
                 </div>
                 <a
                   href={`mailto:${currentDeal.contactEmail || 'client@example.cz'}`}
-                  className="w-8 h-8 rounded-lg bg-white border border-[#e4e7ec] text-[#266df0] hover:bg-[#e9f0ff] flex items-center justify-center transition-colors"
+                  className="w-8 h-8 rounded-[10px] bg-white border border-[#e4e7ec] text-[#266df0] hover:bg-[#e9f0ff] flex items-center justify-center transition-colors"
                   title="Send email"
                 >
                   <Mail size={15} />
@@ -231,26 +214,26 @@ export function DealDetailDrawer({
                     rows={5}
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    className="w-full p-3 border border-[#e4e7ec] rounded-lg text-[12px] text-[#1c1d1f] focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15 resize-none leading-relaxed"
+                    className="w-full p-3 border border-[#e4e7ec] rounded-[10px] text-[12px] text-[#1c1d1f] focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15 resize-none leading-relaxed"
                     placeholder="Enter call notes or scope requirements..."
                   />
                   <div className="flex justify-end gap-2">
                     <button
                       onClick={() => setIsEditingNotes(false)}
-                      className="px-2.5 py-1 text-[11px] text-[#6f7988]"
+                      className="px-2.5 py-1 text-[11px] text-[#6f7988] rounded-[10px]"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleSaveNotes}
-                      className="px-3 py-1 bg-[#1c1d1f] text-white text-[11px] font-semibold rounded-md shadow-xs"
+                      className="px-3 py-1 bg-[#232529] hover:bg-[#101113] text-white text-[11px] font-medium rounded-[10px] shadow-xs"
                     >
                       Save Notes
                     </button>
                   </div>
                 </div>
               ) : (
-                <div className="p-3.5 bg-[#fafbfc] border border-[#edf0f3] rounded-xl text-[12px] text-[#505967] leading-relaxed whitespace-pre-wrap">
+                <div className="p-3.5 bg-[#fafbfc] border border-[#edf0f3] rounded-[12px] text-[12px] text-[#505967] leading-relaxed whitespace-pre-wrap">
                   {currentDeal.notes || (
                     <span className="text-[#9fa1a7] italic">
                       No scratchpad notes logged yet. Click edit to log meeting notes or scope items.
@@ -269,7 +252,7 @@ export function DealDetailDrawer({
                   onDeleteDeal(currentDeal.id)
                   onClose()
                 }}
-                className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#d73a49] hover:text-[#b31d28] p-1.5 rounded"
+                className="inline-flex items-center gap-1 text-[11px] font-medium text-[#d73a49] hover:text-[#b31d28] p-1.5 rounded-[8px]"
               >
                 <Trash2 size={13} />
                 <span>Delete</span>
@@ -279,14 +262,14 @@ export function DealDetailDrawer({
               <button
                 onClick={() => handleStageChange('Won')}
                 disabled={currentDeal.stage === 'Won'}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#e7f6ee] hover:bg-[#d5eedf] text-[#43a878] text-[11px] font-bold rounded-lg transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#f0f2f5] hover:bg-[#e4e7ec] text-[#232529] text-[11px] font-medium rounded-[10px] transition-colors disabled:opacity-50"
               >
-                <CheckCircle2 size={14} />
+                <CheckCircle2 size={14} className="text-[#3b9b6d]" />
                 <span>{currentDeal.stage === 'Won' ? 'Won' : 'Mark as Won'}</span>
               </button>
               <button
                 onClick={onClose}
-                className="px-3.5 py-1.5 bg-[#1c1d1f] text-white text-[11px] font-semibold rounded-lg shadow-xs hover:bg-[#000] transition-colors"
+                className="px-3.5 py-1.5 bg-[#232529] hover:bg-[#101113] text-white text-[11px] font-medium rounded-[10px] shadow-xs transition-colors"
               >
                 Done
               </button>

@@ -52,11 +52,11 @@ export function NewDealModal({ isOpen, onClose, onAddDeal, companies }: NewDealM
 
     const colorMap: Record<DealStage, Deal['color']> = {
       Lead: 'blue',
-      Qualified: 'amber',
-      Scope: 'violet',
+      Qualified: 'blue',
+      Scope: 'blue',
       'Quote sent': 'blue',
-      Negotiation: 'violet',
-      Won: 'green',
+      Negotiation: 'blue',
+      Won: 'blue',
     }
 
     onAddDeal({
@@ -87,27 +87,27 @@ export function NewDealModal({ isOpen, onClose, onAddDeal, companies }: NewDealM
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#10141c]/50 backdrop-blur-sm transition-all"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#10141c]/30 backdrop-blur-xs transition-all"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-[#e4e7ec] overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+        className="w-full max-w-lg bg-white rounded-[12px] shadow-xl border border-[#e4e7ec] overflow-hidden animate-in fade-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#edf0f3] bg-[#fafbfc]">
           <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 text-[10px] font-mono font-bold bg-[#e9f0ff] text-[#266df0] rounded border border-[#d6e3fc]">
+            <span className="px-2 py-0.5 text-[10px] font-mono font-medium bg-[#e9f0ff] text-[#266df0] rounded-[7px] border border-[#d6e3fc]">
               Hotkey: N
             </span>
-            <h2 className="text-[16px] font-bold text-[#1c1d1f] tracking-tight">
+            <h2 className="text-[16px] font-semibold text-[#1c1d1f] tracking-tight">
               Create New Deal
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="w-7 h-7 rounded-md flex items-center justify-center text-[#9fa1a7] hover:text-[#1c1d1f] hover:bg-[#edf0f3] transition-colors"
+            className="w-7 h-7 rounded-[10px] flex items-center justify-center text-[#9fa1a7] hover:text-[#1c1d1f] hover:bg-[#edf0f3] transition-colors"
           >
             <X size={16} />
           </button>
@@ -126,7 +126,7 @@ export function NewDealModal({ isOpen, onClose, onAddDeal, companies }: NewDealM
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Brand Identity & CMS Build"
-              className="w-full h-10 px-3 border border-[#e4e7ec] rounded-lg text-[13px] text-[#1c1d1f] placeholder:text-[#9fa1a7] focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
+              className="w-full h-10 px-3 border border-[#e4e7ec] rounded-[10px] text-[13px] text-[#1c1d1f] placeholder:text-[#9fa1a7] focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
             />
           </div>
 
@@ -141,7 +141,7 @@ export function NewDealModal({ isOpen, onClose, onAddDeal, companies }: NewDealM
                 value={company}
                 onChange={(e) => setCompany(e.target.value)}
                 placeholder="Select or enter company"
-                className="w-full h-10 px-3 border border-[#e4e7ec] rounded-lg text-[13px] text-[#1c1d1f] placeholder:text-[#9fa1a7] focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
+                className="w-full h-10 px-3 border border-[#e4e7ec] rounded-[10px] text-[13px] text-[#1c1d1f] placeholder:text-[#9fa1a7] focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
               />
               <datalist id="company-list">
                 {companies.map((c) => (
@@ -159,7 +159,7 @@ export function NewDealModal({ isOpen, onClose, onAddDeal, companies }: NewDealM
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
                 placeholder="25 000 Kč"
-                className="w-full h-10 px-3 border border-[#e4e7ec] rounded-lg text-[13px] font-mono tabular-nums text-[#1c1d1f] placeholder:text-[#9fa1a7] focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
+                className="w-full h-10 px-3 border border-[#e4e7ec] rounded-[10px] text-[13px] font-mono tabular-nums text-[#1c1d1f] placeholder:text-[#9fa1a7] focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
               />
             </div>
           </div>
@@ -172,7 +172,7 @@ export function NewDealModal({ isOpen, onClose, onAddDeal, companies }: NewDealM
               <select
                 value={stage}
                 onChange={(e) => setStage(e.target.value as DealStage)}
-                className="w-full h-10 px-3 border border-[#e4e7ec] rounded-lg text-[13px] text-[#1c1d1f] bg-white focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
+                className="w-full h-10 px-3 border border-[#e4e7ec] rounded-[10px] text-[13px] text-[#1c1d1f] bg-white focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
               >
                 {STAGES.map((s) => (
                   <option key={s} value={s}>
@@ -189,7 +189,7 @@ export function NewDealModal({ isOpen, onClose, onAddDeal, companies }: NewDealM
               <select
                 value={probability}
                 onChange={(e) => setProbability(e.target.value)}
-                className="w-full h-10 px-3 border border-[#e4e7ec] rounded-lg text-[13px] text-[#1c1d1f] bg-white focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
+                className="w-full h-10 px-3 border border-[#e4e7ec] rounded-[10px] text-[13px] text-[#1c1d1f] bg-white focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
               >
                 <option value="20%">20% — Low</option>
                 <option value="40%">40% — Qualified</option>
@@ -202,7 +202,7 @@ export function NewDealModal({ isOpen, onClose, onAddDeal, companies }: NewDealM
           </div>
 
           {/* Mandatory Next Action GTD Prompt */}
-          <div className="p-3.5 bg-[#f8faff] border border-[#d6e3fc] rounded-xl space-y-2">
+          <div className="p-3.5 bg-[#f8faff] border border-[#d6e3fc] rounded-[12px] space-y-2">
             <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#266df0] uppercase tracking-wider">
               <AlertCircle size={14} />
               <span>Mandatory Next Action (GTD Rule)</span>
@@ -213,14 +213,14 @@ export function NewDealModal({ isOpen, onClose, onAddDeal, companies }: NewDealM
                 value={nextAction}
                 onChange={(e) => setNextAction(e.target.value)}
                 placeholder="e.g. Send revised scope"
-                className="w-full h-9 px-2.5 bg-white border border-[#dbe6fe] rounded-lg text-[12px] text-[#1c1d1f] focus:outline-none focus:border-[#266df0]"
+                className="w-full h-9 px-2.5 bg-white border border-[#dbe6fe] rounded-[10px] text-[12px] text-[#1c1d1f] focus:outline-none focus:border-[#266df0]"
               />
               <input
                 type="text"
                 value={nextDueDate}
                 onChange={(e) => setNextDueDate(e.target.value)}
                 placeholder="e.g. Tomorrow 14:30"
-                className="w-full h-9 px-2.5 bg-white border border-[#dbe6fe] rounded-lg text-[12px] text-[#1c1d1f] focus:outline-none focus:border-[#266df0]"
+                className="w-full h-9 px-2.5 bg-white border border-[#dbe6fe] rounded-[10px] text-[12px] text-[#1c1d1f] focus:outline-none focus:border-[#266df0]"
               />
             </div>
           </div>
@@ -234,27 +234,27 @@ export function NewDealModal({ isOpen, onClose, onAddDeal, companies }: NewDealM
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Initial requirements, key contacts, or budget parameters..."
-              className="w-full p-3 border border-[#e4e7ec] rounded-lg text-[12px] text-[#1c1d1f] placeholder:text-[#9fa1a7] focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15 resize-none"
+              className="w-full p-3 border border-[#e4e7ec] rounded-[10px] text-[12px] text-[#1c1d1f] placeholder:text-[#9fa1a7] focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15 resize-none"
             />
           </div>
 
           <div className="pt-2 flex items-center justify-between">
             <span className="text-[11px] text-[#9fa1a7] font-mono">
-              Press <kbd className="px-1 bg-[#f4f5f6] border rounded text-[10px]">⌘</kbd> +{' '}
-              <kbd className="px-1 bg-[#f4f5f6] border rounded text-[10px]">↵</kbd> to save
+              Press <kbd className="px-1 bg-[#f4f5f6] border border-[#e4e7ec] rounded-[5px] text-[10px]">⌘</kbd> +{' '}
+              <kbd className="px-1 bg-[#f4f5f6] border border-[#e4e7ec] rounded-[5px] text-[10px]">↵</kbd> to save
             </span>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-3.5 py-2 text-[12px] font-semibold text-[#6f7988] hover:text-[#1c1d1f] rounded-lg"
+                className="px-3.5 py-2 text-[12px] font-medium text-[#6f7988] hover:text-[#1c1d1f] rounded-[10px]"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={!title.trim() || !company.trim()}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#232529] hover:bg-[#101113] text-white text-[12px] font-semibold rounded-lg shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#232529] hover:bg-[#101113] text-white text-[12px] font-medium rounded-[10px] shadow-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <CirclePlus size={15} />
                 <span>Save Deal</span>

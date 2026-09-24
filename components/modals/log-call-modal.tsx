@@ -59,10 +59,10 @@ export function LogCallModal({
 
     const colorMap: Record<Activity['type'], Activity['color']> = {
       Call: 'blue',
-      Meeting: 'amber',
-      Email: 'violet',
+      Meeting: 'blue',
+      Email: 'blue',
       'Follow-up': 'blue',
-      Note: 'green',
+      Note: 'blue',
     }
 
     const activityData: Omit<Activity, 'id'> = {
@@ -107,27 +107,27 @@ export function LogCallModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#10141c]/50 backdrop-blur-sm transition-all"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#10141c]/30 backdrop-blur-xs transition-all"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-[#e4e7ec] overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+        className="w-full max-w-lg bg-white rounded-[12px] shadow-xl border border-[#e4e7ec] overflow-hidden animate-in fade-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#edf0f3] bg-[#fafbfc]">
           <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 text-[10px] font-mono font-bold bg-[#fff3df] text-[#c4882b] rounded border border-[#f6e5bf]">
+            <span className="px-2 py-0.5 text-[10px] font-mono font-medium bg-[#e9f0ff] text-[#266df0] rounded-[7px] border border-[#d6e3fc]">
               Hotkey: L
             </span>
-            <h2 className="text-[16px] font-bold text-[#1c1d1f] tracking-tight">
+            <h2 className="text-[16px] font-semibold text-[#1c1d1f] tracking-tight">
               Quick Log Call / Meeting Note
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="w-7 h-7 rounded-md flex items-center justify-center text-[#9fa1a7] hover:text-[#1c1d1f] hover:bg-[#edf0f3] transition-colors"
+            className="w-7 h-7 rounded-[10px] flex items-center justify-center text-[#9fa1a7] hover:text-[#1c1d1f] hover:bg-[#edf0f3] transition-colors"
           >
             <X size={16} />
           </button>
@@ -146,9 +146,9 @@ export function LogCallModal({
                   key={t}
                   type="button"
                   onClick={() => setType(t)}
-                  className={`py-1.5 px-2 rounded-lg text-[12px] font-semibold transition-all border ${
+                  className={`py-1.5 px-2 rounded-[10px] text-[12px] font-medium transition-all border ${
                     type === t
-                      ? 'bg-[#1c1d1f] text-white border-[#1c1d1f] shadow-xs'
+                      ? 'bg-[#232529] text-white border-[#232529] shadow-xs'
                       : 'bg-white text-[#505967] border-[#e4e7ec] hover:bg-[#f7f8fa]'
                   }`}
                 >
@@ -172,7 +172,7 @@ export function LogCallModal({
                   if (matched) setCompany(matched.company)
                 }}
                 placeholder="Client name"
-                className="w-full h-10 px-3 border border-[#e4e7ec] rounded-lg text-[13px] text-[#1c1d1f] placeholder:text-[#9fa1a7] focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
+                className="w-full h-10 px-3 border border-[#e4e7ec] rounded-[10px] text-[13px] text-[#1c1d1f] placeholder:text-[#9fa1a7] focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
               />
               <datalist id="contacts-list">
                 {contacts.map((c) => (
@@ -190,7 +190,7 @@ export function LogCallModal({
                 value={company}
                 onChange={(e) => setCompany(e.target.value)}
                 placeholder="Company name"
-                className="w-full h-10 px-3 border border-[#e4e7ec] rounded-lg text-[13px] text-[#1c1d1f] placeholder:text-[#9fa1a7] focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
+                className="w-full h-10 px-3 border border-[#e4e7ec] rounded-[10px] text-[13px] text-[#1c1d1f] placeholder:text-[#9fa1a7] focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
               />
               <datalist id="companies-list">
                 {companies.map((c) => (
@@ -209,21 +209,21 @@ export function LogCallModal({
                 <button
                   type="button"
                   onClick={() => insertTemplate('• Decision: ')}
-                  className="px-1.5 py-0.5 bg-[#f0f2f5] hover:bg-[#e4e7ec] rounded text-[#505967] font-medium"
+                  className="px-2 py-0.5 bg-[#f0f2f5] hover:bg-[#e4e7ec] rounded-[6px] text-[#505967] font-medium"
                 >
                   + Decision
                 </button>
                 <button
                   type="button"
                   onClick={() => insertTemplate('• Budget: ')}
-                  className="px-1.5 py-0.5 bg-[#f0f2f5] hover:bg-[#e4e7ec] rounded text-[#505967] font-medium"
+                  className="px-2 py-0.5 bg-[#f0f2f5] hover:bg-[#e4e7ec] rounded-[6px] text-[#505967] font-medium"
                 >
                   + Budget
                 </button>
                 <button
                   type="button"
                   onClick={() => insertTemplate('• Action Item: ')}
-                  className="px-1.5 py-0.5 bg-[#f0f2f5] hover:bg-[#e4e7ec] rounded text-[#505967] font-medium"
+                  className="px-2 py-0.5 bg-[#f0f2f5] hover:bg-[#e4e7ec] rounded-[6px] text-[#505967] font-medium"
                 >
                   + Action
                 </button>
@@ -235,12 +235,12 @@ export function LogCallModal({
               value={summary}
               onChange={(e) => setSummary(e.target.value)}
               placeholder="Jot down quick key takeaways, budget mentions, objections, or deliverables discussed..."
-              className="w-full p-3 border border-[#e4e7ec] rounded-lg text-[12px] text-[#1c1d1f] placeholder:text-[#9fa1a7] focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15 resize-none leading-relaxed"
+              className="w-full p-3 border border-[#e4e7ec] rounded-[10px] text-[12px] text-[#1c1d1f] placeholder:text-[#9fa1a7] focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15 resize-none leading-relaxed"
             />
           </div>
 
           {/* Mandatory Next Action GTD Prompt */}
-          <div className="p-3.5 bg-[#fffaf1] border border-[#f6e5bf] rounded-xl space-y-2">
+          <div className="p-3.5 bg-[#fffaf1] border border-[#f6e5bf] rounded-[12px] space-y-2">
             <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#c4882b] uppercase tracking-wider">
               <AlertCircle size={14} />
               <span>Mandatory Next Step (Auto-adds to Follow-ups)</span>
@@ -251,34 +251,34 @@ export function LogCallModal({
                 value={nextAction}
                 onChange={(e) => setNextAction(e.target.value)}
                 placeholder="e.g. Send revised scope quote"
-                className="w-full h-9 px-2.5 bg-white border border-[#f2ddad] rounded-lg text-[12px] text-[#1c1d1f] focus:outline-none focus:border-[#c4882b]"
+                className="w-full h-9 px-2.5 bg-white border border-[#f2ddad] rounded-[10px] text-[12px] text-[#1c1d1f] focus:outline-none focus:border-[#c4882b]"
               />
               <input
                 type="text"
                 value={nextDue}
                 onChange={(e) => setNextDue(e.target.value)}
                 placeholder="e.g. Today, 17:00"
-                className="w-full h-9 px-2.5 bg-white border border-[#f2ddad] rounded-lg text-[12px] text-[#1c1d1f] focus:outline-none focus:border-[#c4882b]"
+                className="w-full h-9 px-2.5 bg-white border border-[#f2ddad] rounded-[10px] text-[12px] text-[#1c1d1f] focus:outline-none focus:border-[#c4882b]"
               />
             </div>
           </div>
 
           <div className="pt-2 flex items-center justify-between">
             <span className="text-[11px] text-[#9fa1a7] font-mono">
-              Press <kbd className="px-1 bg-[#f4f5f6] border rounded text-[10px]">⌘</kbd> +{' '}
-              <kbd className="px-1 bg-[#f4f5f6] border rounded text-[10px]">↵</kbd>
+              Press <kbd className="px-1 bg-[#f4f5f6] border border-[#e4e7ec] rounded-[5px] text-[10px]">⌘</kbd> +{' '}
+              <kbd className="px-1 bg-[#f4f5f6] border border-[#e4e7ec] rounded-[5px] text-[10px]">↵</kbd>
             </span>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-3.5 py-2 text-[12px] font-semibold text-[#6f7988] hover:text-[#1c1d1f] rounded-lg"
+                className="px-3.5 py-2 text-[12px] font-medium text-[#6f7988] hover:text-[#1c1d1f] rounded-[10px]"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#232529] hover:bg-[#101113] text-white text-[12px] font-semibold rounded-lg shadow-sm transition-all"
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#232529] hover:bg-[#101113] text-white text-[12px] font-medium rounded-[10px] shadow-xs transition-all"
               >
                 <PhoneCall size={15} />
                 <span>Log Interaction</span>

@@ -48,9 +48,11 @@ For a solo freelancer, the daily bottlenecks are:
 
 ---
 
-### 📝 3. Fast Meeting & Scope Scratchpad (Internal Notes)
-* When talking to a client, click on the deal/company to open a side drawer with a rich Markdown editor.
-* Quick slash-commands:
+### 📝 3. Fast Meeting & Scope Scratchpad (Internal Notes & Command Bar)
+* Accessible directly from:
+  * **Deal / Company Side Drawer:** Click any deal or contact to open the scratchpad markdown editor.
+  * **Command Palette (`Cmd+K` / Command Bar):** Quick-trigger note scratchpad actions and templates directly from the global search bar without leaving the keyboard.
+* Quick slash-commands & palette actions:
   * `/call`: Inserts call log header with today's date & time.
   * `/scope`: Inserts bulleted deliverables list.
   * `/quote`: Inserts budget calculations (e.g., `Base build: 25 000 Kč + CMS: 7 000 Kč = 32 000 Kč`).
@@ -107,7 +109,7 @@ flowchart TD
         C["Slide-over Deal / Contact Inspection Drawer"]
     end
     subgraph S2 ["Sprint 2: Scoping & Meeting Notes"]
-        D["Meeting Notes Scratchpad (/call, /scope, /quote, /todo)"]
+        D["Meeting Notes Scratchpad & Command Bar (/call, /scope, /quote, /todo)"]
         E["Inline Editable Table & Kanban Card Quick Actions"]
     end
     subgraph S3 ["Sprint 3: Calendar & Milestone Sync"]

@@ -68,27 +68,27 @@ export function NewContactModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#10141c]/50 backdrop-blur-sm transition-all"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#10141c]/30 backdrop-blur-xs transition-all"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-[#e4e7ec] overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+        className="w-full max-w-md bg-white rounded-[12px] shadow-xl border border-[#e4e7ec] overflow-hidden animate-in fade-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#edf0f3] bg-[#fafbfc]">
           <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 text-[10px] font-mono font-bold bg-[#f0eaff] text-[#805ad5] rounded border border-[#eadfff]">
+            <span className="px-2 py-0.5 text-[10px] font-mono font-medium bg-[#e9f0ff] text-[#266df0] rounded-[7px] border border-[#d6e3fc]">
               Hotkey: C
             </span>
-            <h2 className="text-[16px] font-bold text-[#1c1d1f] tracking-tight">
+            <h2 className="text-[16px] font-semibold text-[#1c1d1f] tracking-tight">
               Add New Contact
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="w-7 h-7 rounded-md flex items-center justify-center text-[#9fa1a7] hover:text-[#1c1d1f] hover:bg-[#edf0f3] transition-colors"
+            className="w-7 h-7 rounded-[10px] flex items-center justify-center text-[#9fa1a7] hover:text-[#1c1d1f] hover:bg-[#edf0f3] transition-colors"
           >
             <X size={16} />
           </button>
@@ -107,7 +107,7 @@ export function NewContactModal({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Tomáš Dvořák"
-              className="w-full h-10 px-3 border border-[#e4e7ec] rounded-lg text-[13px] text-[#1c1d1f] placeholder:text-[#9fa1a7] focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
+              className="w-full h-10 px-3 border border-[#e4e7ec] rounded-[10px] text-[13px] text-[#1c1d1f] placeholder:text-[#9fa1a7] focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
             />
           </div>
 
@@ -121,7 +121,7 @@ export function NewContactModal({
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
                 placeholder="e.g. Creative Director"
-                className="w-full h-10 px-3 border border-[#e4e7ec] rounded-lg text-[13px] text-[#1c1d1f] placeholder:text-[#9fa1a7] focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
+                className="w-full h-10 px-3 border border-[#e4e7ec] rounded-[10px] text-[13px] text-[#1c1d1f] placeholder:text-[#9fa1a7] focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
               />
             </div>
 
@@ -134,7 +134,7 @@ export function NewContactModal({
                 value={company}
                 onChange={(e) => setCompany(e.target.value)}
                 placeholder="Select company"
-                className="w-full h-10 px-3 border border-[#e4e7ec] rounded-lg text-[13px] text-[#1c1d1f] placeholder:text-[#9fa1a7] focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
+                className="w-full h-10 px-3 border border-[#e4e7ec] rounded-[10px] text-[13px] text-[#1c1d1f] placeholder:text-[#9fa1a7] focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
               />
               <datalist id="contact-companies">
                 {companies.map((c) => (
@@ -153,7 +153,7 @@ export function NewContactModal({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="tomas@studio.cz"
-              className="w-full h-10 px-3 border border-[#e4e7ec] rounded-lg text-[13px] text-[#1c1d1f] placeholder:text-[#9fa1a7] focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
+              className="w-full h-10 px-3 border border-[#e4e7ec] rounded-[10px] text-[13px] text-[#1c1d1f] placeholder:text-[#9fa1a7] focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
             />
           </div>
 
@@ -166,27 +166,27 @@ export function NewContactModal({
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="+420 777 000 000"
-              className="w-full h-10 px-3 border border-[#e4e7ec] rounded-lg text-[13px] text-[#1c1d1f] placeholder:text-[#9fa1a7] focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
+              className="w-full h-10 px-3 border border-[#e4e7ec] rounded-[10px] text-[13px] text-[#1c1d1f] placeholder:text-[#9fa1a7] focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
             />
           </div>
 
           <div className="pt-2 flex items-center justify-between">
             <span className="text-[11px] text-[#9fa1a7] font-mono">
-              Press <kbd className="px-1 bg-[#f4f5f6] border rounded text-[10px]">⌘</kbd> +{' '}
-              <kbd className="px-1 bg-[#f4f5f6] border rounded text-[10px]">↵</kbd>
+              Press <kbd className="px-1 bg-[#f4f5f6] border border-[#e4e7ec] rounded-[5px] text-[10px]">⌘</kbd> +{' '}
+              <kbd className="px-1 bg-[#f4f5f6] border border-[#e4e7ec] rounded-[5px] text-[10px]">↵</kbd>
             </span>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-3.5 py-2 text-[12px] font-semibold text-[#6f7988] hover:text-[#1c1d1f] rounded-lg"
+                className="px-3.5 py-2 text-[12px] font-medium text-[#6f7988] hover:text-[#1c1d1f] rounded-[10px]"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={!name.trim()}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#232529] hover:bg-[#101113] text-white text-[12px] font-semibold rounded-lg shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#232529] hover:bg-[#101113] text-white text-[12px] font-medium rounded-[10px] shadow-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <UserPlus size={15} />
                 <span>Save Contact</span>

@@ -95,14 +95,14 @@ export function NextActionModal({
     <div className="modal-backdrop" onClick={onClose} role="dialog" aria-modal="true">
       <div
         className="composer"
-        style={{ width: 'min(100%, 480px)', padding: '24px 26px' }}
+        style={{ width: 'min(100%, 480px)', padding: '24px 26px', borderRadius: '12px' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top Header */}
         <div className="composer-top" style={{ marginBottom: '18px' }}>
           <div>
             <p className="section-kicker" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Zap size={13} className="text-[#c4882b]" />
+              <Zap size={13} className="text-[#266df0]" />
               GTD Mandatory Next Action
             </p>
             <h2 style={{ fontSize: '20px' }}>
@@ -131,7 +131,7 @@ export function NextActionModal({
             justifyContent: 'space-between',
             gap: '12px',
             padding: '10px 14px',
-            borderRadius: '9px',
+            borderRadius: '10px',
             background: '#fafbfc',
             border: '1px solid #edf0f3',
             marginBottom: '16px',
@@ -139,8 +139,7 @@ export function NextActionModal({
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
             <span
-              className={`deal-avatar ${deal.color}`}
-              style={{ width: '28px', height: '28px', fontSize: '11px', flexShrink: 0 }}
+              className="w-7 h-7 rounded-[7px] flex items-center justify-center text-[11px] font-semibold bg-[#e9f0ff] text-[#266df0] shrink-0"
             >
               {deal.company.charAt(0)}
             </span>
@@ -148,7 +147,8 @@ export function NextActionModal({
               <strong
                 style={{
                   display: 'block',
-                  fontSize: '12px',
+                  fontSize: '13px',
+                  fontWeight: 600,
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
@@ -157,14 +157,14 @@ export function NextActionModal({
               >
                 {deal.title}
               </strong>
-              <span style={{ fontSize: '10px', color: '#9fa1a7' }}>{deal.company}</span>
+              <span style={{ fontSize: '11px', color: '#9fa1a7' }}>{deal.company}</span>
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-            <span className="stage-pill" style={{ fontSize: '9.5px', padding: '3px 7px' }}>
+            <span className="stage-pill" style={{ fontSize: '10px', padding: '3px 8px', borderRadius: '7px' }}>
               {deal.stage}
             </span>
-            <strong style={{ fontSize: '12px', color: '#1c1d1f' }}>{deal.value}</strong>
+            <strong style={{ fontSize: '12px', color: '#1c1d1f' }} className="font-mono tabular-nums">{deal.value}</strong>
           </div>
         </div>
 
@@ -254,7 +254,7 @@ export function NextActionModal({
                     borderColor: action === preset ? '#bad0fa' : '#e4e7ec',
                     color: action === preset ? '#266df0' : '#505967',
                     fontWeight: action === preset ? 600 : 500,
-                    borderRadius: '6px',
+                    borderRadius: '7px',
                     padding: '4px 8px',
                     fontSize: '11px',
                     cursor: 'pointer',
@@ -329,7 +329,7 @@ export function NextActionModal({
                     borderColor: dueDate === preset.label ? '#fae8c3' : '#e4e7ec',
                     color: dueDate === preset.label ? '#c4882b' : '#505967',
                     fontWeight: dueDate === preset.label ? 600 : 500,
-                    borderRadius: '6px',
+                    borderRadius: '7px',
                     padding: '4px 8px',
                     fontSize: '11px',
                     cursor: 'pointer',

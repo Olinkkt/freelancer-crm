@@ -116,7 +116,7 @@ export function EventModal({
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="composer" onClick={(e) => e.stopPropagation()} style={{ width: 'min(100%, 450px)' }}>
+      <div className="composer" onClick={(e) => e.stopPropagation()} style={{ width: 'min(100%, 450px)', borderRadius: '12px' }}>
         {/* Header */}
         <div className="composer-top">
           <div>
@@ -191,12 +191,12 @@ export function EventModal({
                 display: 'block',
                 width: '100%',
                 marginTop: '7px',
-                padding: '9px 11px',
+                padding: '9px 12px',
                 border: '1px solid var(--border)',
-                borderRadius: '9px',
+                borderRadius: '10px',
                 outline: 0,
                 color: '#1c1d1f',
-                fontSize: '12px',
+                fontSize: '13px',
                 fontFamily: 'inherit',
                 resize: 'none',
               }}

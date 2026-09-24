@@ -106,7 +106,7 @@ export function CommandPalette({
         title: 'Add new contact',
         subtitle: 'Create a stakeholder or lead in directory',
         shortcut: 'C',
-        icon: <UserPlus size={15} className="text-[#805ad5]" />,
+        icon: <UserPlus size={15} className="text-[#6f7988]" />,
         actionType: 'new_contact',
       },
       {
@@ -115,7 +115,7 @@ export function CommandPalette({
         title: 'Log call or meeting note',
         subtitle: 'Fast GTD interaction & next action scratchpad',
         shortcut: 'L',
-        icon: <PhoneCall size={15} className="text-[#c4882b]" />,
+        icon: <PhoneCall size={15} className="text-[#6f7988]" />,
         actionType: 'log_call',
       },
       {
@@ -172,7 +172,7 @@ export function CommandPalette({
         title: 'Go to Companies',
         subtitle: 'Client accounts, industry types & accounts',
         shortcut: 'G C',
-        icon: <Building2 size={15} className="text-[#805ad5]" />,
+        icon: <Building2 size={15} className="text-[#6f7988]" />,
         actionType: 'navigate',
         payload: 'Companies',
       },
@@ -182,7 +182,7 @@ export function CommandPalette({
         title: 'Go to Contacts',
         subtitle: 'Client stakeholders, founders & emails',
         shortcut: 'G U',
-        icon: <Users size={15} className="text-[#43a878]" />,
+        icon: <Users size={15} className="text-[#6f7988]" />,
         actionType: 'navigate',
         payload: 'Contacts',
       },
@@ -202,7 +202,7 @@ export function CommandPalette({
         title: 'Go to Activities',
         subtitle: 'Call logs, touch history & timeline',
         shortcut: 'G A',
-        icon: <FileText size={15} className="text-[#c4882b]" />,
+        icon: <FileText size={15} className="text-[#6f7988]" />,
         actionType: 'navigate',
         payload: 'Activities',
       },
@@ -228,17 +228,7 @@ export function CommandPalette({
         badge: deal.value,
         color: deal.color,
         icon: (
-          <span
-            className={`w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-bold ${
-              deal.color === 'violet'
-                ? 'bg-[#f0eaff] text-[#805ad5]'
-                : deal.color === 'amber'
-                ? 'bg-[#fff3df] text-[#c4882b]'
-                : deal.color === 'green'
-                ? 'bg-[#e7f6ee] text-[#43a878]'
-                : 'bg-[#e9f0ff] text-[#266df0]'
-            }`}
-          >
+          <span className="w-5 h-5 rounded-[6px] flex items-center justify-center text-[10px] font-semibold bg-[#e9f0ff] text-[#266df0] shrink-0">
             {deal.company.charAt(0)}
           </span>
         ),
@@ -257,17 +247,7 @@ export function CommandPalette({
         badge: comp.status,
         color: comp.color,
         icon: (
-          <span
-            className={`w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-bold ${
-              comp.color === 'violet'
-                ? 'bg-[#f0eaff] text-[#805ad5]'
-                : comp.color === 'amber'
-                ? 'bg-[#fff3df] text-[#c4882b]'
-                : comp.color === 'green'
-                ? 'bg-[#e7f6ee] text-[#43a878]'
-                : 'bg-[#e9f0ff] text-[#266df0]'
-            }`}
-          >
+          <span className="w-5 h-5 rounded-[6px] flex items-center justify-center text-[10px] font-semibold bg-[#f0f2f5] text-[#232529] shrink-0">
             {comp.name.charAt(0)}
           </span>
         ),
@@ -286,17 +266,7 @@ export function CommandPalette({
         badge: contact.lastTouch,
         color: contact.color,
         icon: (
-          <span
-            className={`w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-bold ${
-              contact.color === 'violet'
-                ? 'bg-[#f0eaff] text-[#805ad5]'
-                : contact.color === 'amber'
-                ? 'bg-[#fff3df] text-[#c4882b]'
-                : contact.color === 'green'
-                ? 'bg-[#e7f6ee] text-[#43a878]'
-                : 'bg-[#e9f0ff] text-[#266df0]'
-            }`}
-          >
+          <span className="w-5 h-5 rounded-[6px] flex items-center justify-center text-[10px] font-semibold bg-[#f0f2f5] text-[#232529] shrink-0">
             {contact.name.charAt(0)}
           </span>
         ),
@@ -403,11 +373,11 @@ export function CommandPalette({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh] px-4 bg-[#10141c]/45 backdrop-blur-sm transition-all"
+      className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh] px-4 bg-[#10141c]/30 backdrop-blur-xs transition-all"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-2xl bg-white rounded-xl shadow-2xl border border-[#e4e7ec] overflow-hidden flex flex-col max-h-[75vh] animate-in fade-in zoom-in-95 duration-150"
+        className="w-full max-w-2xl bg-white rounded-[12px] shadow-xl border border-[#e4e7ec] overflow-hidden flex flex-col max-h-[75vh] animate-in fade-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
       >
@@ -425,14 +395,14 @@ export function CommandPalette({
           {query && (
             <button
               onClick={() => setQuery('')}
-              className="text-[#9fa1a7] hover:text-[#1c1d1f] p-1 rounded-md text-xs"
+              className="text-[#9fa1a7] hover:text-[#1c1d1f] p-1 rounded-[6px] text-xs"
               title="Clear"
             >
               <X size={14} />
             </button>
           )}
           <div className="flex items-center gap-1.5 shrink-0 pl-2 border-l border-[#f0f1f3]">
-            <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-semibold text-[#8f99a8] bg-[#f4f5f6] border border-[#e4e7ec] rounded shadow-2xs">
+            <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-medium text-[#8f99a8] bg-[#f4f5f6] border border-[#e4e7ec] rounded-[5px]">
               ESC
             </kbd>
           </div>
@@ -444,9 +414,9 @@ export function CommandPalette({
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`px-2.5 py-1 rounded-md font-semibold transition-colors ${
+              className={`px-2.5 py-1 rounded-[7px] font-medium transition-colors ${
                 selectedCategory === cat
-                  ? 'bg-[#1c1d1f] text-white shadow-xs'
+                  ? 'bg-[#232529] text-white shadow-xs'
                   : 'text-[#6f7988] hover:bg-[#edf0f3] hover:text-[#1c1d1f]'
               }`}
             >
@@ -455,7 +425,7 @@ export function CommandPalette({
           ))}
           <div className="ml-auto text-[10px] text-[#9fa1a7] hidden sm:flex items-center gap-1">
             <span>Press</span>
-            <kbd className="px-1 py-0.2 text-[9px] bg-white border border-[#e4e7ec] rounded font-mono">
+            <kbd className="px-1 py-0.2 text-[9px] bg-white border border-[#e4e7ec] rounded-[4px] font-mono">
               Tab
             </kbd>
             <span>to cycle</span>
@@ -504,7 +474,7 @@ export function CommandPalette({
                               data-active={isSelected}
                               onClick={() => executeItem(item)}
                               onMouseEnter={() => setSelectedIndex(thisIndex)}
-                              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-all duration-75 group ${
+                              className={`w-full flex items-center justify-between px-3 py-2 rounded-[10px] text-left transition-all duration-75 group ${
                                 isSelected
                                   ? 'bg-[#f1f5ff] text-[#1c1d1f] shadow-2xs'
                                   : 'text-[#33383f] hover:bg-[#f8f9fa]'
@@ -517,7 +487,7 @@ export function CommandPalette({
                                 <div className="min-w-0 flex-1">
                                   <div className="flex items-center gap-2">
                                     <span
-                                      className={`text-[13px] font-semibold truncate ${
+                                      className={`text-[13px] font-medium truncate ${
                                         isSelected ? 'text-[#266df0]' : 'text-[#1c1d1f]'
                                       }`}
                                     >
@@ -525,11 +495,9 @@ export function CommandPalette({
                                     </span>
                                     {item.badge && (
                                       <span
-                                        className={`px-1.5 py-0.5 text-[10px] rounded font-mono font-medium ${
+                                        className={`px-1.5 py-0.5 text-[10px] rounded-[7px] font-mono font-medium ${
                                           item.category === 'Deals'
-                                            ? 'bg-[#e9f0ff] text-[#266df0] font-semibold'
-                                            : item.badge === 'Active'
-                                            ? 'bg-[#e7f6ee] text-[#43a878]'
+                                            ? 'bg-[#e9f0ff] text-[#266df0]'
                                             : 'bg-[#f0f1f3] text-[#6f7988]'
                                         }`}
                                       >
@@ -548,7 +516,7 @@ export function CommandPalette({
                               <div className="flex items-center gap-2 shrink-0 ml-3">
                                 {item.shortcut && (
                                   <kbd
-                                    className={`px-1.5 py-0.5 text-[10px] font-mono font-semibold rounded ${
+                                    className={`px-1.5 py-0.5 text-[10px] font-mono font-medium rounded-[5px] ${
                                       isSelected
                                         ? 'bg-white text-[#266df0] border border-[#d6e3fc]'
                                         : 'bg-[#f4f5f6] text-[#8f99a8] border border-[#e4e7ec]'

@@ -233,7 +233,7 @@ export function DealKanban({
   return (
     <div className="space-y-4" ref={boardRef}>
       {/* Toolbar: Search, View Switch */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-[#e9ebef] shadow-xs">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 rounded-[12px] border border-[#e4e7ec] shadow-xs">
         <div className="flex items-center gap-3">
           <label className="search-field">
             <Search size={14} />
@@ -246,10 +246,10 @@ export function DealKanban({
           </label>
 
           {/* View mode toggle: Kanban vs Table */}
-          <div className="flex items-center p-0.5 bg-[#f0f2f5] rounded-lg border border-[#e4e7ec]">
+          <div className="flex items-center p-0.5 bg-[#f0f2f5] rounded-[10px] border border-[#e4e7ec]">
             <button
               onClick={() => setViewMode('kanban')}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all ${
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[7px] text-[11px] font-medium transition-all ${
                 viewMode === 'kanban'
                   ? 'bg-white text-[#1c1d1f] shadow-xs'
                   : 'text-[#6f7988] hover:text-[#1c1d1f]'
@@ -260,7 +260,7 @@ export function DealKanban({
             </button>
             <button
               onClick={() => setViewMode('table')}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all ${
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[7px] text-[11px] font-medium transition-all ${
                 viewMode === 'table'
                   ? 'bg-white text-[#1c1d1f] shadow-xs'
                   : 'text-[#6f7988] hover:text-[#1c1d1f]'
@@ -288,7 +288,7 @@ export function DealKanban({
                   setFocusedColIndex(colIdx)
                   setIsBoardFocused(true)
                 }}
-                className={`bg-[#f9fafb] border rounded-xl p-2.5 transition-all min-h-[580px] flex flex-col ${
+                className={`bg-[#f9fafb] border rounded-[12px] p-2.5 transition-all min-h-[580px] flex flex-col ${
                   isColumnFocused
                     ? 'border-[#266df0]/60 ring-1 ring-[#266df0]/20 bg-[#f8faff]'
                     : 'border-[#edf0f3]'
@@ -304,16 +304,16 @@ export function DealKanban({
                           : stage === 'Qualified'
                           ? 'bg-[#6f94e6]'
                           : stage === 'Scope'
-                          ? 'bg-[#805ad5]'
+                          ? 'bg-[#538bf3]'
                           : stage === 'Quote sent'
-                          ? 'bg-[#266df0]'
+                          ? 'bg-[#407ff2]'
                           : stage === 'Negotiation'
-                          ? 'bg-[#c4882b]'
-                          : 'bg-[#43a878]'
+                          ? 'bg-[#266df0]'
+                          : 'bg-[#232529]'
                       }`}
                     />
-                    <h3 className="text-[12px] font-bold text-[#1c1d1f] tracking-tight">{stage}</h3>
-                    <span className="w-4 h-4 rounded-full bg-[#e9ebef] text-[#6f7988] text-[10px] font-mono font-bold flex items-center justify-center">
+                    <h3 className="text-[12px] font-semibold text-[#1c1d1f] tracking-tight">{stage}</h3>
+                    <span className="w-4 h-4 rounded-full bg-[#e9ebef] text-[#6f7988] text-[10px] font-mono font-medium flex items-center justify-center">
                       {stageDeals.length}
                     </span>
                   </div>
@@ -325,7 +325,7 @@ export function DealKanban({
                 {/* Cards in Column */}
                 <div className="flex-1 space-y-2.5 overflow-y-auto">
                   {stageDeals.length === 0 ? (
-                    <div className="py-10 text-center border-2 border-dashed border-[#edf0f3] rounded-lg">
+                    <div className="py-10 text-center border-2 border-dashed border-[#edf0f3] rounded-[10px]">
                       <p className="text-[11px] text-[#9fa1a7]">Empty stage</p>
                     </div>
                   ) : (
@@ -342,26 +342,16 @@ export function DealKanban({
                             setIsBoardFocused(true)
                             onOpenDeal(deal)
                           }}
-                          className={`relative p-3.5 bg-white rounded-xl border transition-all cursor-pointer group select-none ${
+                          className={`relative p-3.5 bg-white rounded-[12px] border transition-all cursor-pointer group select-none ${
                             isCardFocused
-                              ? 'border-[#266df0] ring-2 ring-[#266df0] shadow-md z-10 translate-y-[-1px]'
+                              ? 'border-[#266df0] ring-2 ring-[#266df0]/30 shadow-md z-10 translate-y-[-1px]'
                               : 'border-[#e4e7ec] shadow-2xs hover:border-[#cbd0d8] hover:shadow-xs'
                           }`}
                         >
                           {/* Card Top: Avatar, Company, Stage Actions */}
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex items-center gap-2 min-w-0">
-                              <span
-                                className={`w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold shrink-0 ${
-                                  deal.color === 'violet'
-                                    ? 'bg-[#f0eaff] text-[#805ad5]'
-                                    : deal.color === 'amber'
-                                    ? 'bg-[#fff3df] text-[#c4882b]'
-                                    : deal.color === 'green'
-                                    ? 'bg-[#e7f6ee] text-[#43a878]'
-                                    : 'bg-[#e9f0ff] text-[#266df0]'
-                                }`}
-                              >
+                              <span className="w-6 h-6 rounded-[6px] flex items-center justify-center text-[10px] font-semibold bg-[#e9f0ff] text-[#266df0] shrink-0">
                                 {deal.company.charAt(0)}
                               </span>
                               <span className="text-[11px] font-semibold text-[#6f7988] truncate">
@@ -399,7 +389,7 @@ export function DealKanban({
                           </div>
 
                           {/* Deal Title */}
-                          <h4 className="mt-2 text-[12px] font-bold text-[#1c1d1f] leading-snug line-clamp-2">
+                          <h4 className="mt-2 text-[12px] font-semibold text-[#1c1d1f] leading-snug line-clamp-2">
                             {deal.title}
                           </h4>
 
@@ -408,18 +398,16 @@ export function DealKanban({
                             <span className="text-[13px] font-bold font-mono tabular-nums text-[#1c1d1f]">
                               {deal.value}
                             </span>
-                            <span className="text-[10px] font-mono font-semibold text-[#43a878]">
+                            <span className="text-[10px] font-mono font-medium text-[#6f7988]">
                               {deal.probability}
                             </span>
                           </div>
 
                           {/* Mandatory Next Action Pill (GTD) */}
-                          <div className="mt-2 flex items-center gap-1.5 text-[10px] text-[#6f7988] bg-[#f8faff] p-1.5 rounded-md border border-[#edf3fe]">
+                          <div className="mt-2 flex items-center gap-1.5 text-[10px] text-[#232529] bg-[#f8faff] p-1.5 rounded-[7px] border border-[#edf3fe]">
                             <Clock size={11} className="text-[#266df0] shrink-0" />
                             <span className="truncate font-medium">{deal.next}</span>
                           </div>
-
-
                         </div>
                       )
                     })
@@ -431,7 +419,7 @@ export function DealKanban({
         </div>
       ) : (
         /* DENSE TABLE VIEW */
-        <div className="bg-white rounded-xl border border-[#e9ebef] shadow-xs overflow-hidden">
+        <div className="bg-white rounded-[12px] border border-[#e4e7ec] shadow-xs overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-[12px]">
               <thead className="bg-[#fafbfc] border-b border-[#edf0f3] text-[9px] uppercase tracking-wider font-bold text-[#9fa1a7]">
@@ -454,17 +442,7 @@ export function DealKanban({
                   >
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2.5">
-                        <span
-                          className={`w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-bold shrink-0 ${
-                            deal.color === 'violet'
-                              ? 'bg-[#f0eaff] text-[#805ad5]'
-                              : deal.color === 'amber'
-                              ? 'bg-[#fff3df] text-[#c4882b]'
-                              : deal.color === 'green'
-                              ? 'bg-[#e7f6ee] text-[#43a878]'
-                              : 'bg-[#e9f0ff] text-[#266df0]'
-                          }`}
-                        >
+                        <span className="w-7 h-7 rounded-[8px] flex items-center justify-center text-[11px] font-semibold bg-[#e9f0ff] text-[#266df0] shrink-0">
                           {deal.company.charAt(0)}
                         </span>
                         <div>
@@ -476,14 +454,14 @@ export function DealKanban({
                       </div>
                     </td>
                     <td className="py-3 px-3">
-                      <span className="px-2 py-0.5 text-[10px] font-semibold rounded-md bg-[#f1f5ff] text-[#266df0]">
+                      <span className="px-2 py-0.5 text-[10px] font-medium rounded-[7px] bg-[#f1f5ff] text-[#266df0]">
                         {deal.stage}
                       </span>
                     </td>
                     <td className="py-3 px-3 text-right font-mono tabular-nums font-bold text-[#1c1d1f]">
                       {deal.value}
                     </td>
-                    <td className="py-3 px-3 font-mono text-[#43a878] font-semibold">
+                    <td className="py-3 px-3 font-mono text-[#6f7988] font-medium">
                       {deal.probability}
                     </td>
                     <td className="py-3 px-3 text-[#6f7988]">
@@ -501,7 +479,7 @@ export function DealKanban({
                           e.stopPropagation()
                           onOpenDeal(deal)
                         }}
-                        className="text-[#9fa1a7] hover:text-[#1c1d1f] p-1 rounded-md"
+                        className="text-[#9fa1a7] hover:text-[#1c1d1f] p-1 rounded-[6px]"
                       >
                         <MoreHorizontal size={16} />
                       </button>

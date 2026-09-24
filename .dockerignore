@@ -1,0 +1,16 @@
+Dockerfile*
+docker-compose*
+.dockerignore
+node_modules
+npm-debug.log
+yarn-error.log
+pnpm-debug.log
+.next
+.git
+.gitignore
+.env*.local
+*.md
+!README.md
+calendar_component_idea.png
+.DS_Store
+*.tsbuildinfo

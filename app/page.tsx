@@ -1019,18 +1019,16 @@ export default function Page() {
                   </div>
 
                   {/* Read More Trigger Bar */}
-                  <div className="pt-3.5 mt-3 border-t border-[#edf0f3] flex items-center justify-between">
+                  <div className="pt-6 mt-4 border-t border-[#f0f1f3] flex items-center justify-between">
                     <button
                       onClick={() => setIsShortcutsOpen(true)}
-                      className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#266df0] hover:text-[#1754c5] transition-colors group cursor-pointer"
+                      className="select-button"
                     >
-                      <Keyboard size={14} className="text-[#266df0]" />
-                      <span>Read more & view all shortcuts (24+)...</span>
-                      <ArrowUpRight size={13} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                      Read more <ArrowUpRight size={14} />
                     </button>
-                    <span className="text-[11px] text-[#9fa1a7] hidden sm:inline-flex items-center gap-1">
+                    <span className="text-[10px] text-[#9fa1a7] hidden sm:inline-flex items-center gap-1">
                       <span>Or press</span>
-                      <kbd className="px-1.5 py-0.2 bg-white border border-[#e4e7ec] rounded font-mono text-[10px] text-[#505967]">
+                      <kbd className="px-1.5 py-0.5 bg-[#f4f5f6] border border-[#e4e7ec] rounded font-mono text-[10px] text-[#6f7988]">
                         ?
                       </kbd>
                       <span>anywhere</span>

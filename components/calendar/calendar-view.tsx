@@ -569,10 +569,10 @@ export function CalendarView() {
       </div>
 
       {/* WEEKLY SCHEDULE GRID (Panel styled with integrated search toolbar) */}
-      <div className="panel p-0 overflow-hidden">
+      <div className="panel p-0 overflow-hidden" style={{ padding: 0 }}>
         {/* Integrated Calendar Search Toolbar */}
-        <div className="flex items-center justify-end px-3 py-2 border-b border-[#edf0f3] bg-white">
-          <label className="search-field" style={{ height: '28px' }}>
+        <div className="flex items-center justify-end px-3.5 py-2.5 border-b border-[#edf0f3] bg-white">
+          <label className="search-field" style={{ height: '30px' }}>
             <Search size={14} />
             <input
               placeholder="Search schedule..."

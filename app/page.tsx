@@ -333,13 +333,16 @@ export default function Page() {
     addToast(`Added contact "${newContact.name}"`, 'C')
   }
 
-  // Log Activity Handler
+  // Log Activity Handler with unified Deal and Scratchpad sync
   const handleLogActivity = (
     activityData: Omit<Activity, 'id'>,
-    followUpData?: Omit<FollowUpItem, 'id'>
+    followUpData?: Omit<FollowUpItem, 'id'>,
+    dealId?: string
   ) => {
+    const targetDealId = dealId || activityData.dealId
     const newActivity: Activity = {
       ...activityData,
+      dealId: targetDealId,
       id: `act-${Date.now()}`,
     }
     setActivities((prev) => [newActivity, ...prev])
@@ -352,7 +355,48 @@ export default function Page() {
       setFollowUps((prev) => [newFollowUp, ...prev])
     }
 
-    addToast(`Logged ${newActivity.type} with ${newActivity.person}`, 'L')
+    // Sync to linked deal notes & next action
+    if (targetDealId) {
+      const now = new Date()
+      const timeStr = now.toLocaleDateString('cs-CZ', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+      const noteHeading = `\n\n### 📞 ${newActivity.type}: ${newActivity.title} (${timeStr})\n`
+      const noteBody = newActivity.summary ? `${noteHeading}${newActivity.summary}` : ''
+
+      setDeals((prev) =>
+        prev.map((d) => {
+          if (d.id !== targetDealId) return d
+          return {
+            ...d,
+            notes: d.notes ? `${d.notes}${noteBody}` : (newActivity.summary || ''),
+            next: followUpData?.action || d.next,
+            nextDueDate: followUpData?.time || d.nextDueDate,
+          }
+        })
+      )
+
+      if (selectedDeal?.id === targetDealId) {
+        setSelectedDeal((prev) => {
+          if (!prev) return null
+          return {
+            ...prev,
+            notes: prev.notes ? `${prev.notes}${noteBody}` : (newActivity.summary || ''),
+            next: followUpData?.action || prev.next,
+            nextDueDate: followUpData?.time || prev.nextDueDate,
+          }
+        })
+      }
+    }
+
+    const linkedDeal = deals.find((d) => d.id === targetDealId)
+    const toastMsg = linkedDeal
+      ? `Logged ${newActivity.type} & synced to ${linkedDeal.title}`
+      : `Logged ${newActivity.type} with ${newActivity.person}`
+    addToast(toastMsg, 'L')
   }
 
   // Update Deal in list
@@ -1503,6 +1547,8 @@ export default function Page() {
         onLogActivity={handleLogActivity}
         companies={companies}
         contacts={contacts}
+        deals={deals}
+        initialDealId={selectedDeal?.id}
       />
 
       {/* SLIDE-OVER DEAL DETAIL DRAWER */}
@@ -1515,6 +1561,7 @@ export default function Page() {
         onSyncTodos={handleSyncTodos}
         activities={activities}
         onAddActivity={(act) => handleLogActivity(act)}
+        onOpenLogCallModal={() => setIsLogCallOpen(true)}
       />
 
       {/* FLOATING TOAST HUD */}

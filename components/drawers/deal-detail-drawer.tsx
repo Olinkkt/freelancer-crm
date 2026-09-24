@@ -36,6 +36,7 @@ interface DealDetailDrawerProps {
   onSyncTodos?: (todos: string[], companyName?: string) => void
   activities?: Activity[]
   onAddActivity?: (activity: Omit<Activity, 'id'>) => void
+  onOpenLogCallModal?: () => void
 }
 
 const STAGES: DealStage[] = ['Lead', 'Qualified', 'Scope', 'Quote sent', 'Negotiation', 'Won']
@@ -49,6 +50,7 @@ export function DealDetailDrawer({
   onSyncTodos,
   activities = [],
   onAddActivity,
+  onOpenLogCallModal,
 }: DealDetailDrawerProps) {
   const [currentDeal, setCurrentDeal] = useState<Deal | null>(deal)
   const [activeTab, setActiveTab] = useState<'overview' | 'deliverables'>('overview')
@@ -170,7 +172,18 @@ export function DealDetailDrawer({
               </div>
             </div>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
+              {onOpenLogCallModal && (
+                <button
+                  type="button"
+                  onClick={onOpenLogCallModal}
+                  title="Quick Log Call or Meeting Note (L)"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-[#266df0] bg-[#e9f0ff] hover:bg-[#d8e5ff] rounded-[7px] border border-[#d6e3fc] transition-colors cursor-pointer mr-1"
+                >
+                  <PhoneCall size={12} />
+                  <span>Log (L)</span>
+                </button>
+              )}
               <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono text-[#8f99a8] bg-[#f4f5f6] border border-[#e4e7ec] rounded-[5px] mr-1">
                 ESC
               </kbd>
@@ -314,23 +327,35 @@ export function DealDetailDrawer({
                       </span>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!isDraftingNote) {
-                          setNewMeetingTitle(`${currentDeal.company} sync`)
-                          setNotes('')
-                          setIsDraftingNote(true)
-                        } else {
-                          setIsDraftingNote(false)
-                          setNotes('')
-                        }
-                      }}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-[#266df0] bg-[#e9f0ff] hover:bg-[#d8e5ff] rounded-[7px] transition-colors cursor-pointer"
-                    >
-                      <Plus size={12} />
-                      <span>{isDraftingNote ? 'Cancel' : 'Log New Note'}</span>
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      {onOpenLogCallModal && (
+                        <button
+                          type="button"
+                          onClick={onOpenLogCallModal}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-[#505967] hover:text-[#1c1d1f] bg-[#f0f2f5] hover:bg-[#e4e7ec] rounded-[7px] transition-colors cursor-pointer"
+                        >
+                          <PhoneCall size={11} />
+                          <span>Quick Log (L)</span>
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!isDraftingNote) {
+                            setNewMeetingTitle(`${currentDeal.company} sync`)
+                            setNotes('')
+                            setIsDraftingNote(true)
+                          } else {
+                            setIsDraftingNote(false)
+                            setNotes('')
+                          }
+                        }}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-[#266df0] bg-[#e9f0ff] hover:bg-[#d8e5ff] rounded-[7px] transition-colors cursor-pointer"
+                      >
+                        <Plus size={12} />
+                        <span>{isDraftingNote ? 'Cancel' : 'Scratchpad'}</span>
+                      </button>
+                    </div>
                   </div>
 
                   {/* Active Drafting Scratchpad */}

@@ -19,6 +19,7 @@ import {
   Sparkles,
   PhoneCall,
   UserPlus,
+  Keyboard,
 } from 'lucide-react'
 import { CalendarView } from '@/components/calendar/calendar-view'
 import { Deal, Contact, Company, Activity, FollowUpItem, DealStage } from '@/lib/crm-types'
@@ -893,33 +894,150 @@ export default function Page() {
               </section>
             </>
           ) : activeView === 'Settings' ? (
+            /* SETTINGS VIEW */
             <>
               <section className="page-heading">
                 <div>
                   <p className="eyebrow">Workspace preferences</p>
-                  <h1>Settings</h1>
-                  <p className="subcopy">Manage your workspace details and personal preferences.</p>
+                  <h1>Settings & System</h1>
+                  <p className="subcopy">
+                    Personal operator cockpit preferences, account details, and high-velocity keyboard controls.
+                  </p>
                 </div>
               </section>
-              <section className="settings-grid">
-                <div className="panel settings-panel">
-                  <div className="panel-heading">
-                    <div>
-                      <p className="section-kicker">Your account</p>
-                      <h2>Oliver Seidl</h2>
+
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 max-w-5xl">
+                {/* CARD 1: YOUR PROFILE */}
+                <div className="panel lg:col-span-5 flex flex-col justify-between">
+                  <div>
+                    <div className="panel-heading">
+                      <div>
+                        <p className="section-kicker">Operator Account</p>
+                        <h2>Your Profile</h2>
+                      </div>
+                      <span className="status-pill active">Active</span>
                     </div>
-                    <span className="status-pill active">Active</span>
-                  </div>
-                  <div className="settings-profile">
-                    <span className="avatar large">OS</span>
-                    <div>
-                      <strong>Oliver Seidl</strong>
-                      <span>oliver@seidltech.cz</span>
+
+                    <div className="settings-profile mt-4">
+                      <span className="avatar large">OS</span>
+                      <div>
+                        <strong>Oliver Seidl</strong>
+                        <span>oliver@seidltech.cz</span>
+                      </div>
+                    </div>
+
+                    <div className="mt-5 space-y-3 text-[12px]">
+                      <div className="flex items-center justify-between py-1.5 border-b border-[#f0f1f3]">
+                        <span className="text-[#6f7988]">Operator Role</span>
+                        <strong className="text-[#1c1d1f]">Creative & Tech Operator</strong>
+                      </div>
+                      <div className="flex items-center justify-between py-1.5 border-b border-[#f0f1f3]">
+                        <span className="text-[#6f7988]">Default Currency</span>
+                        <strong className="font-mono text-[#1c1d1f]">CZK (Kč)</strong>
+                      </div>
+                      <div className="flex items-center justify-between py-1.5 border-b border-[#f0f1f3]">
+                        <span className="text-[#6f7988]">Timezone</span>
+                        <span className="text-[#505967]">Europe/Prague (CET)</span>
+                      </div>
+                      <div className="flex items-center justify-between py-1.5 border-b border-[#f0f1f3]">
+                        <span className="text-[#6f7988]">Workflow Engine</span>
+                        <span className="text-[#266df0] font-semibold">GTD Mandatory Next Action</span>
+                      </div>
                     </div>
                   </div>
-                  <button className="select-button">Change password <ArrowUpRight size={14} /></button>
+
+                  <div className="pt-6 mt-4 border-t border-[#f0f1f3] flex items-center justify-between">
+                    <button className="select-button">
+                      Change password <ArrowUpRight size={14} />
+                    </button>
+                    <span className="text-[10px] text-[#9fa1a7]">v1.0.4 • Personal Cockpit</span>
+                  </div>
                 </div>
-              </section>
+
+                {/* CARD 2: KEYBOARD SHORTCUTS (TOP 10 + READ MORE) */}
+                <div className="panel lg:col-span-7 flex flex-col justify-between">
+                  <div>
+                    <div className="panel-heading">
+                      <div>
+                        <p className="section-kicker">Operator Velocity</p>
+                        <h2>Keyboard Shortcuts</h2>
+                      </div>
+                      <span className="px-2 py-0.5 text-[10px] font-mono font-bold rounded-md bg-[#e9f0ff] text-[#266df0]">
+                        Top 10 Core
+                      </span>
+                    </div>
+
+                    <p className="text-[12px] text-[#6f7988] mt-2 mb-3">
+                      Superhuman & Linear speed. Execute actions with single keystrokes without reaching for your mouse.
+                    </p>
+
+                    {/* Top 10 Compact List */}
+                    <div className="space-y-1">
+                      {[
+                        { label: 'Universal Command Palette', keys: ['⌘K'], tag: 'Global', color: 'blue' },
+                        { label: 'Quick-add new deal drawer', keys: ['N'], tag: 'Capture', color: 'amber' },
+                        { label: 'Quick-add new contact drawer', keys: ['C'], tag: 'Capture', color: 'violet' },
+                        { label: 'Quick-log call / meeting note', keys: ['L'], tag: 'Capture', color: 'green' },
+                        { label: 'Navigate Kanban stage columns', keys: ['H', 'L'], tag: 'Kanban', color: 'blue' },
+                        { label: 'Select deal card in column', keys: ['J', 'K'], tag: 'Kanban', color: 'blue' },
+                        { label: 'Inspect deal (slide-over drawer)', keys: ['↵'], tag: 'Kanban', color: 'blue' },
+                        { label: 'Shift deal stage left / right', keys: ['[', ']'], tag: 'Kanban', color: 'amber' },
+                        { label: 'Jump to Dashboard view', keys: ['G', 'D'], tag: 'Nav', color: 'violet' },
+                        { label: 'Jump to Deals & Pipeline', keys: ['G', 'P'], tag: 'Nav', color: 'violet' },
+                      ].map((item, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between py-1.5 px-2.5 rounded-lg text-[12px] hover:bg-[#fafbfc] transition-colors border-b border-[#f7f8fa] last:border-b-0"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                                item.color === 'violet'
+                                  ? 'bg-[#805ad5]'
+                                  : item.color === 'amber'
+                                  ? 'bg-[#c4882b]'
+                                  : item.color === 'green'
+                                  ? 'bg-[#43a878]'
+                                  : 'bg-[#266df0]'
+                              }`}
+                            />
+                            <span className="text-[#232529] font-medium truncate">{item.label}</span>
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0 ml-3">
+                            {item.keys.map((k, kIdx) => (
+                              <kbd
+                                key={kIdx}
+                                className="px-1.5 py-0.5 min-w-[20px] text-center text-[10px] font-mono font-semibold text-[#505967] bg-[#f4f5f6] border border-[#dce0e8] rounded shadow-2xs"
+                              >
+                                {k}
+                              </kbd>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Read More Trigger Bar */}
+                  <div className="pt-3.5 mt-3 border-t border-[#edf0f3] flex items-center justify-between">
+                    <button
+                      onClick={() => setIsShortcutsOpen(true)}
+                      className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#266df0] hover:text-[#1754c5] transition-colors group cursor-pointer"
+                    >
+                      <Keyboard size={14} className="text-[#266df0]" />
+                      <span>Read more & view all shortcuts (24+)...</span>
+                      <ArrowUpRight size={13} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                    </button>
+                    <span className="text-[11px] text-[#9fa1a7] hidden sm:inline-flex items-center gap-1">
+                      <span>Or press</span>
+                      <kbd className="px-1.5 py-0.2 bg-white border border-[#e4e7ec] rounded font-mono text-[10px] text-[#505967]">
+                        ?
+                      </kbd>
+                      <span>anywhere</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
             </>
           ) : (
             /* DASHBOARD / OVERVIEW VIEW */

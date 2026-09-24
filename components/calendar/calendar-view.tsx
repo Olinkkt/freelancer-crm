@@ -568,30 +568,29 @@ export function CalendarView() {
         })}
       </div>
 
-      {/* 3. TOOLBAR */}
-      <div className="panel flex items-center justify-end p-2.5 mb-4">
-        {/* CRM Styled Search Input */}
-        <label className="search-field">
-          <Search size={15} />
-          <input
-            placeholder="Search schedule..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery('')}
-              className="text-xs text-gray-400 hover:text-gray-600 ml-1"
-            >
-              ×
-            </button>
-          )}
-        </label>
-      </div>
-
-      {/* 4. WEEKLY SCHEDULE GRID (Panel styled) */}
+      {/* WEEKLY SCHEDULE GRID (Panel styled with integrated search toolbar) */}
       <div className="panel p-0 overflow-hidden">
+        {/* Integrated Calendar Search Toolbar */}
+        <div className="flex items-center justify-end px-3 py-2 border-b border-[#edf0f3] bg-white">
+          <label className="search-field" style={{ height: '28px' }}>
+            <Search size={14} />
+            <input
+              placeholder="Search schedule..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="text-xs text-gray-400 hover:text-gray-600 ml-1"
+              >
+                ×
+              </button>
+            )}
+          </label>
+        </div>
+
         {/* Days Header Row */}
         <div className="grid grid-cols-[68px_repeat(5,minmax(0,1fr))] bg-[#fafbfc] border-b border-[#edf0f3]">
           {/* Clean corner cell without arrows */}

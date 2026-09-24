@@ -15,6 +15,7 @@ import {
   Clock,
   Sparkles,
   Command,
+  WalletCards,
 } from 'lucide-react'
 import { Deal, DealStage } from '@/lib/crm-types'
 
@@ -420,75 +421,122 @@ export function DealKanban({
       ) : (
         /* DENSE TABLE VIEW */
         <div className="bg-white rounded-[12px] border border-[#e4e7ec] shadow-xs overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-[12px]">
-              <thead className="bg-[#fafbfc] border-b border-[#edf0f3] text-[9px] uppercase tracking-wider font-bold text-[#9fa1a7]">
-                <tr>
-                  <th className="py-3 px-4">Deal & Company</th>
-                  <th className="py-3 px-3">Stage</th>
-                  <th className="py-3 px-3 text-right">Value (Kč)</th>
-                  <th className="py-3 px-3">Probability</th>
-                  <th className="py-3 px-3">Mandatory Next Action</th>
-                  <th className="py-3 px-3">Primary Contact</th>
-                  <th className="py-3 px-3 text-center">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#f0f1f3]">
-                {deals.map((deal) => (
-                  <tr
-                    key={deal.id}
-                    onClick={() => onOpenDeal(deal)}
-                    className="hover:bg-[#f8faff] cursor-pointer transition-colors"
-                  >
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2.5">
-                        <span className="w-7 h-7 rounded-[8px] flex items-center justify-center text-[11px] font-semibold bg-[#e9f0ff] text-[#266df0] shrink-0">
-                          {deal.company.charAt(0)}
-                        </span>
-                        <div>
-                          <strong className="text-[13px] font-semibold text-[#1c1d1f] block">
-                            {deal.title}
-                          </strong>
-                          <span className="text-[11px] text-[#8f99a8]">{deal.company}</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-3">
-                      <span className="px-2 py-0.5 text-[10px] font-medium rounded-[7px] bg-[#f1f5ff] text-[#266df0]">
-                        {deal.stage}
-                      </span>
-                    </td>
-                    <td className="py-3 px-3 text-right font-mono tabular-nums font-bold text-[#1c1d1f]">
-                      {deal.value}
-                    </td>
-                    <td className="py-3 px-3 font-mono text-[#6f7988] font-medium">
-                      {deal.probability}
-                    </td>
-                    <td className="py-3 px-3 text-[#6f7988]">
-                      <div className="flex items-center gap-1.5">
-                        <Clock size={12} className="text-[#266df0]" />
-                        <span>{deal.next}</span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-3 text-[#6f7988]">
-                      {deal.contactName || deal.company}
-                    </td>
-                    <td className="py-3 px-3 text-center">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onOpenDeal(deal)
-                        }}
-                        className="text-[#9fa1a7] hover:text-[#1c1d1f] p-1 rounded-[6px]"
-                      >
-                        <MoreHorizontal size={16} />
-                      </button>
-                    </td>
+          {deals.length === 0 ? (
+            <div className="py-12 px-4 text-center">
+              <div className="w-10 h-10 rounded-full bg-[#f4f5f6] text-[#8f99a8] flex items-center justify-center mx-auto mb-2.5">
+                <WalletCards size={18} />
+              </div>
+              <h3 className="text-[13px] font-semibold text-[#1c1d1f] mb-1">No deals in pipeline</h3>
+              <p className="text-[11px] text-[#8f99a8] max-w-xs mx-auto mb-3">
+                Track client scopes, estimated value, and GTD next steps.
+              </p>
+              <button
+                type="button"
+                onClick={onAddDealClick}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#232529] hover:bg-[#101113] text-white text-[11px] font-medium rounded-[8px] transition-colors cursor-pointer"
+              >
+                <CirclePlus size={13} />
+                <span>Add first deal (N)</span>
+              </button>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-[12px]">
+                <thead className="bg-[#fafbfc] border-b border-[#edf0f3] text-[9px] uppercase tracking-wider font-bold text-[#9fa1a7]">
+                  <tr>
+                    <th className="py-3 px-4">Deal & Company</th>
+                    <th className="py-3 px-3">Stage</th>
+                    <th className="py-3 px-3 text-right">Value (Kč)</th>
+                    <th className="py-3 px-3">Probability</th>
+                    <th className="py-3 px-3">Mandatory Next Action</th>
+                    <th className="py-3 px-3">Primary Contact</th>
+                    <th className="py-3 px-3 text-center">Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-[#f0f1f3]">
+                  {deals
+                    .filter((d) => {
+                      if (!searchFilter.trim()) return true
+                      const q = searchFilter.toLowerCase().trim()
+                      return (
+                        d.title.toLowerCase().includes(q) ||
+                        d.company.toLowerCase().includes(q) ||
+                        d.stage.toLowerCase().includes(q) ||
+                        d.value.toLowerCase().includes(q)
+                      )
+                    })
+                    .map((deal) => (
+                      <tr
+                        key={deal.id}
+                        onClick={() => onOpenDeal(deal)}
+                        className="hover:bg-[#f8faff] cursor-pointer transition-colors"
+                      >
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2.5">
+                            <span className="w-7 h-7 rounded-[8px] flex items-center justify-center text-[11px] font-semibold bg-[#e9f0ff] text-[#266df0] shrink-0">
+                              {deal.company.charAt(0)}
+                            </span>
+                            <div>
+                              <strong className="text-[13px] font-semibold text-[#1c1d1f] block">
+                                {deal.title}
+                              </strong>
+                              <span className="text-[11px] text-[#8f99a8]">{deal.company}</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-3 px-3">
+                          <span className="px-2 py-0.5 text-[10px] font-medium rounded-[7px] bg-[#f1f5ff] text-[#266df0]">
+                            {deal.stage}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 text-right font-mono tabular-nums font-bold text-[#1c1d1f]">
+                          {deal.value}
+                        </td>
+                        <td className="py-3 px-3 font-mono text-[#6f7988] font-medium">
+                          {deal.probability}
+                        </td>
+                        <td className="py-3 px-3 text-[#6f7988]">
+                          <div className="flex items-center gap-1.5">
+                            <Clock size={12} className="text-[#266df0]" />
+                            <span>{deal.next}</span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-3 text-[#6f7988]">
+                          {deal.contactName || deal.company}
+                        </td>
+                        <td className="py-3 px-3 text-center">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onOpenDeal(deal)
+                            }}
+                            className="text-[#9fa1a7] hover:text-[#1c1d1f] p-1 rounded-[6px]"
+                          >
+                            <MoreHorizontal size={16} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+
+              {deals.length > 0 &&
+                searchFilter.trim() &&
+                deals.filter((d) => {
+                  const q = searchFilter.toLowerCase().trim()
+                  return (
+                    d.title.toLowerCase().includes(q) ||
+                    d.company.toLowerCase().includes(q) ||
+                    d.stage.toLowerCase().includes(q) ||
+                    d.value.toLowerCase().includes(q)
+                  )
+                }).length === 0 && (
+                  <div className="py-8 text-center text-[#8f99a8] text-[12px]">
+                    No deals matching &ldquo;{searchFilter}&rdquo;
+                  </div>
+                )}
+            </div>
+          )}
         </div>
       )}
     </div>

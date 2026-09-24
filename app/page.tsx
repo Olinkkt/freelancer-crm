@@ -459,6 +459,19 @@ export default function Page() {
     0
   )
   const openDealsCount = deals.filter((d) => d.stage !== 'Won').length
+  const closingDeals = deals.filter((d) => d.stage === 'Quote sent' || d.stage === 'Negotiation')
+  const expectedCloseAmount = closingDeals.reduce(
+    (sum, d) => sum + (d.rawAmount || parseInt(d.value.replace(/[^0-9]/g, '')) || 0),
+    0
+  )
+  const activeProjectsCount = deals.filter((d) => d.stage !== 'Lead' && d.stage !== 'Won').length
+  const dueTodayFollowUpsCount = followUps.filter(
+    (f) => f.day.toLowerCase() === 'today' && !completedFollowUps.includes(f.id)
+  ).length
+  const winRate =
+    deals.length > 0
+      ? `${Math.round((deals.filter((d) => d.stage === 'Won').length / deals.length) * 100)}%`
+      : '0%'
 
   const pipelineStagesSummary: { label: DealStage; count: number; amount: string }[] = [
     'Lead',
@@ -608,13 +621,17 @@ export default function Page() {
                 </div>
                 <div>
                   <span className="metric-label">Expected close</span>
-                  <strong className="font-mono tabular-nums">86 000 Kč</strong>
-                  <small>3 deals closing this month</small>
+                  <strong className="font-mono tabular-nums">
+                    {expectedCloseAmount.toLocaleString('cs-CZ').replace(/\s/g, ' ')} Kč
+                  </strong>
+                  <small>
+                    {closingDeals.length} deal{closingDeals.length === 1 ? '' : 's'} closing soon
+                  </small>
                 </div>
                 <div>
                   <span className="metric-label">Win rate</span>
-                  <strong>68%</strong>
-                  <small>Last 90 days</small>
+                  <strong>{winRate}</strong>
+                  <small>Closed won / total</small>
                 </div>
               </section>
 
@@ -709,14 +726,33 @@ export default function Page() {
                     <span>Status</span>
                     <span />
                   </div>
-                  {activities
-                    .filter(
-                      (a) =>
-                        a.title.toLowerCase().includes(activitySearch.toLowerCase()) ||
-                        a.person.toLowerCase().includes(activitySearch.toLowerCase()) ||
-                        a.company.toLowerCase().includes(activitySearch.toLowerCase())
-                    )
-                    .map((activity) => {
+                  {activities.length === 0 ? (
+                    <div className="py-12 px-4 text-center">
+                      <div className="w-10 h-10 rounded-full bg-[#f4f5f6] text-[#8f99a8] flex items-center justify-center mx-auto mb-2.5">
+                        <PhoneCall size={18} />
+                      </div>
+                      <h3 className="text-[13px] font-semibold text-[#1c1d1f] mb-1">No activities logged yet</h3>
+                      <p className="text-[11px] text-[#8f99a8] max-w-xs mx-auto mb-3">
+                        Keep a running timeline of discovery calls, meeting minutes, and notes.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setIsLogCallOpen(true)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#232529] hover:bg-[#101113] text-white text-[11px] font-medium rounded-[8px] transition-colors cursor-pointer"
+                      >
+                        <PhoneCall size={13} />
+                        <span>Quick-log call / note (L)</span>
+                      </button>
+                    </div>
+                  ) : (
+                    activities
+                      .filter(
+                        (a) =>
+                          a.title.toLowerCase().includes(activitySearch.toLowerCase()) ||
+                          a.person.toLowerCase().includes(activitySearch.toLowerCase()) ||
+                          a.company.toLowerCase().includes(activitySearch.toLowerCase())
+                      )
+                      .map((activity) => {
                       const isExpanded = !!expandedActivityIds[activity.id]
                       const associatedDeal = deals.find(
                         (d) => d.id === activity.dealId || d.company === activity.company
@@ -818,18 +854,20 @@ export default function Page() {
                           )}
                         </div>
                       )
-                    })}
-
-                  {activities.filter(
-                    (a) =>
-                      a.title.toLowerCase().includes(activitySearch.toLowerCase()) ||
-                      a.person.toLowerCase().includes(activitySearch.toLowerCase()) ||
-                      a.company.toLowerCase().includes(activitySearch.toLowerCase())
-                  ).length === 0 && (
-                    <div className="py-8 text-center text-[#8f99a8] text-[12px]">
-                      No activities matching &ldquo;{activitySearch}&rdquo;
-                    </div>
+                    })
                   )}
+
+                  {activities.length > 0 &&
+                    activities.filter(
+                      (a) =>
+                        a.title.toLowerCase().includes(activitySearch.toLowerCase()) ||
+                        a.person.toLowerCase().includes(activitySearch.toLowerCase()) ||
+                        a.company.toLowerCase().includes(activitySearch.toLowerCase())
+                    ).length === 0 && (
+                      <div className="py-8 text-center text-[#8f99a8] text-[12px]">
+                        No activities matching &ldquo;{activitySearch}&rdquo;
+                      </div>
+                    )}
                 </div>
               </section>
             </>
@@ -901,39 +939,71 @@ export default function Page() {
                     <span>Email</span>
                     <span />
                   </div>
-                  {contacts
-                    .filter(
+                  {contacts.length === 0 ? (
+                    <div className="py-12 px-4 text-center">
+                      <div className="w-10 h-10 rounded-full bg-[#f4f5f6] text-[#8f99a8] flex items-center justify-center mx-auto mb-2.5">
+                        <Users size={18} />
+                      </div>
+                      <h3 className="text-[13px] font-semibold text-[#1c1d1f] mb-1">No contacts yet</h3>
+                      <p className="text-[11px] text-[#8f99a8] max-w-xs mx-auto mb-3">
+                        Save client founders, project stakeholders, and creative partners.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setIsNewContactOpen(true)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#232529] hover:bg-[#101113] text-white text-[11px] font-medium rounded-[8px] transition-colors cursor-pointer"
+                      >
+                        <UserPlus size={13} />
+                        <span>Add contact (C)</span>
+                      </button>
+                    </div>
+                  ) : (
+                    contacts
+                      .filter(
+                        (c) =>
+                          c.name.toLowerCase().includes(contactSearch.toLowerCase()) ||
+                          c.company.toLowerCase().includes(contactSearch.toLowerCase()) ||
+                          c.email.toLowerCase().includes(contactSearch.toLowerCase())
+                      )
+                      .map((contact) => (
+                        <div className="company-row" key={contact.id}>
+                          <div className="company-name">
+                            <span className={`company-avatar ${contact.color}`}>
+                              {contact.name.charAt(0)}
+                            </span>
+                            <div>
+                              <strong>{contact.name}</strong>
+                              <span>{contact.role}</span>
+                            </div>
+                          </div>
+                          <div className="company-contact">
+                            <strong>{contact.company}</strong>
+                            <span>{contact.email}</span>
+                          </div>
+                          <strong>{contact.deals}</strong>
+                          <span className="last-touch">{contact.lastTouch}</span>
+                          <span className="contact-email">{contact.email}</span>
+                          <button
+                            className="more-button"
+                            aria-label={`More options for ${contact.name}`}
+                          >
+                            <MoreHorizontal size={17} />
+                          </button>
+                        </div>
+                      ))
+                  )}
+
+                  {contacts.length > 0 &&
+                    contacts.filter(
                       (c) =>
                         c.name.toLowerCase().includes(contactSearch.toLowerCase()) ||
                         c.company.toLowerCase().includes(contactSearch.toLowerCase()) ||
                         c.email.toLowerCase().includes(contactSearch.toLowerCase())
-                    )
-                    .map((contact) => (
-                      <div className="company-row" key={contact.id}>
-                        <div className="company-name">
-                          <span className={`company-avatar ${contact.color}`}>
-                            {contact.name.charAt(0)}
-                          </span>
-                          <div>
-                            <strong>{contact.name}</strong>
-                            <span>{contact.role}</span>
-                          </div>
-                        </div>
-                        <div className="company-contact">
-                          <strong>{contact.company}</strong>
-                          <span>{contact.email}</span>
-                        </div>
-                        <strong>{contact.deals}</strong>
-                        <span className="last-touch">{contact.lastTouch}</span>
-                        <span className="contact-email">{contact.email}</span>
-                        <button
-                          className="more-button"
-                          aria-label={`More options for ${contact.name}`}
-                        >
-                          <MoreHorizontal size={17} />
-                        </button>
+                    ).length === 0 && (
+                      <div className="py-8 text-center text-[#8f99a8] text-[12px]">
+                        No contacts matching &ldquo;{contactSearch}&rdquo;
                       </div>
-                    ))}
+                    )}
                 </div>
               </section>
             </>
@@ -960,7 +1030,7 @@ export default function Page() {
                 <div>
                   <span className="metric-label">Total companies</span>
                   <strong>{companies.length}</strong>
-                  <small>+2 added this month</small>
+                  <small>Accounts tracked</small>
                 </div>
                 <div>
                   <span className="metric-label">Active accounts</span>
@@ -1005,40 +1075,71 @@ export default function Page() {
                     <span>Status</span>
                     <span />
                   </div>
-                  {companies
-                    .filter(
+                  {companies.length === 0 ? (
+                    <div className="py-12 px-4 text-center">
+                      <div className="w-10 h-10 rounded-full bg-[#f4f5f6] text-[#8f99a8] flex items-center justify-center mx-auto mb-2.5">
+                        <Building2 size={18} />
+                      </div>
+                      <h3 className="text-[13px] font-semibold text-[#1c1d1f] mb-1">No company accounts yet</h3>
+                      <p className="text-[11px] text-[#8f99a8] max-w-xs mx-auto mb-3">
+                        Companies are registered automatically as you log deals and contacts.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setIsNewDealOpen(true)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#232529] hover:bg-[#101113] text-white text-[11px] font-medium rounded-[8px] transition-colors cursor-pointer"
+                      >
+                        <CirclePlus size={13} />
+                        <span>Add opportunity (N)</span>
+                      </button>
+                    </div>
+                  ) : (
+                    companies
+                      .filter(
+                        (c) =>
+                          c.name.toLowerCase().includes(companySearch.toLowerCase()) ||
+                          c.contact.toLowerCase().includes(companySearch.toLowerCase())
+                      )
+                      .map((comp) => (
+                        <div className="company-row" key={comp.id}>
+                          <div className="company-name">
+                            <span className={`company-avatar ${comp.color}`}>
+                              {comp.name.charAt(0)}
+                            </span>
+                            <div>
+                              <strong>{comp.name}</strong>
+                              <span>{comp.type}</span>
+                            </div>
+                          </div>
+                          <div className="company-contact">
+                            <strong>{comp.contact}</strong>
+                            <span>{comp.email}</span>
+                          </div>
+                          <strong>{comp.deals}</strong>
+                          <strong className="font-mono tabular-nums">{comp.value}</strong>
+                          <span className={`status-pill ${comp.status.toLowerCase()}`}>
+                            {comp.status}
+                          </span>
+                          <button
+                            className="more-button"
+                            aria-label={`More options for ${comp.name}`}
+                          >
+                            <MoreHorizontal size={17} />
+                          </button>
+                        </div>
+                      ))
+                  )}
+
+                  {companies.length > 0 &&
+                    companies.filter(
                       (c) =>
                         c.name.toLowerCase().includes(companySearch.toLowerCase()) ||
                         c.contact.toLowerCase().includes(companySearch.toLowerCase())
-                    )
-                    .map((comp) => (
-                      <div className="company-row" key={comp.id}>
-                        <div className="company-name">
-                          <span className={`company-avatar ${comp.color}`}>
-                            {comp.name.charAt(0)}
-                          </span>
-                          <div>
-                            <strong>{comp.name}</strong>
-                            <span>{comp.type}</span>
-                          </div>
-                        </div>
-                        <div className="company-contact">
-                          <strong>{comp.contact}</strong>
-                          <span>{comp.email}</span>
-                        </div>
-                        <strong>{comp.deals}</strong>
-                        <strong className="font-mono tabular-nums">{comp.value}</strong>
-                        <span className={`status-pill ${comp.status.toLowerCase()}`}>
-                          {comp.status}
-                        </span>
-                        <button
-                          className="more-button"
-                          aria-label={`More options for ${comp.name}`}
-                        >
-                          <MoreHorizontal size={17} />
-                        </button>
+                    ).length === 0 && (
+                      <div className="py-8 text-center text-[#8f99a8] text-[12px]">
+                        No companies matching &ldquo;{companySearch}&rdquo;
                       </div>
-                    ))}
+                    )}
                 </div>
               </section>
             </>
@@ -1202,7 +1303,7 @@ export default function Page() {
                     {totalPipelineAmount.toLocaleString('cs-CZ').replace(/\s/g, ' ')} Kč
                   </strong>
                   <small>
-                    <span className="positive">+12.4%</span> vs last month
+                    {deals.length === 0 ? 'No active deals' : `${deals.length} total deals`}
                   </small>
                 </div>
 
@@ -1211,9 +1312,13 @@ export default function Page() {
                     <CalendarDays size={18} />
                   </div>
                   <span className="metric-label">This month</span>
-                  <strong className="font-mono tabular-nums">86 000 Kč</strong>
+                  <strong className="font-mono tabular-nums">
+                    {expectedCloseAmount.toLocaleString('cs-CZ').replace(/\s/g, ' ')} Kč
+                  </strong>
                   <small>
-                    <span className="positive">+8.2%</span> expected close
+                    {closingDeals.length > 0
+                      ? `${closingDeals.length} deal${closingDeals.length === 1 ? '' : 's'} closing soon`
+                      : 'Expected close'}
                   </small>
                 </div>
 
@@ -1222,8 +1327,12 @@ export default function Page() {
                     <Building2 size={18} />
                   </div>
                   <span className="metric-label">Active projects</span>
-                  <strong>4</strong>
-                  <small>2 launching this month</small>
+                  <strong>{activeProjectsCount}</strong>
+                  <small>
+                    {activeProjectsCount === 0
+                      ? 'No active client projects'
+                      : `${activeProjectsCount} active project${activeProjectsCount === 1 ? '' : 's'}`}
+                  </small>
                 </div>
 
                 <div className="metric-card">
@@ -1233,7 +1342,13 @@ export default function Page() {
                   <span className="metric-label">Follow-ups</span>
                   <strong>{followUps.length}</strong>
                   <small>
-                    <span className="warning">2 due today</span> keep momentum
+                    {dueTodayFollowUpsCount > 0 ? (
+                      <>
+                        <span className="warning">{dueTodayFollowUpsCount} due today</span> keep momentum
+                      </>
+                    ) : (
+                      'All caught up'
+                    )}
                   </small>
                 </div>
               </section>
@@ -1256,34 +1371,44 @@ export default function Page() {
                   </div>
 
                   <div className="followup-list">
-                    {followUps.map((item, index) => {
-                      const done = completedFollowUps.includes(item.id)
-                      return (
-                        <div
-                          className={`followup-row ${done ? 'done' : ''}`}
-                          key={item.id}
-                        >
-                          <button
-                            className="check-button"
-                            onClick={() => toggleFollowUp(item.id)}
-                            aria-label={`Mark ${item.action} complete`}
-                          >
-                            {done && <Check size={13} />}
-                          </button>
-                          <div className="followup-copy">
-                            <span className="followup-day">
-                              {index === 0 || followUps[index - 1].day !== item.day
-                                ? item.day
-                                : ''}
-                            </span>
-                            <strong>{item.company}</strong>
-                            <span>{item.action}</span>
-                          </div>
-                          <time>{item.time}</time>
-                          <MoreHorizontal size={17} className="muted-icon" />
+                    {followUps.length === 0 ? (
+                      <div className="py-8 px-4 text-center">
+                        <div className="w-8 h-8 rounded-full bg-[#f4f5f6] text-[#8f99a8] flex items-center justify-center mx-auto mb-2">
+                          <Check size={16} className="text-[#43a878]" />
                         </div>
-                      )
-                    })}
+                        <h4 className="text-[12px] font-semibold text-[#1c1d1f] mb-0.5">All caught up</h4>
+                        <p className="text-[11px] text-[#8f99a8]">No pending follow-ups or next actions.</p>
+                      </div>
+                    ) : (
+                      followUps.map((item, index) => {
+                        const done = completedFollowUps.includes(item.id)
+                        return (
+                          <div
+                            className={`followup-row ${done ? 'done' : ''}`}
+                            key={item.id}
+                          >
+                            <button
+                              className="check-button"
+                              onClick={() => toggleFollowUp(item.id)}
+                              aria-label={`Mark ${item.action} complete`}
+                            >
+                              {done && <Check size={13} />}
+                            </button>
+                            <div className="followup-copy">
+                              <span className="followup-day">
+                                {index === 0 || followUps[index - 1].day !== item.day
+                                  ? item.day
+                                  : ''}
+                              </span>
+                              <strong>{item.company}</strong>
+                              <span>{item.action}</span>
+                            </div>
+                            <time>{item.time}</time>
+                            <MoreHorizontal size={17} className="muted-icon" />
+                          </div>
+                        )
+                      })
+                    )}
                   </div>
 
                   <button
@@ -1325,10 +1450,10 @@ export default function Page() {
                         <div className="pipeline-bar">
                           <span
                             style={{
-                              width: `${Math.min(
-                                100,
-                                Math.max(15, (item.count / deals.length) * 100)
-                              )}%`,
+                              width:
+                                deals.length > 0 && item.count > 0
+                                  ? `${Math.min(100, Math.max(12, (item.count / deals.length) * 100))}%`
+                                  : '0%',
                             }}
                           />
                         </div>
@@ -1421,69 +1546,85 @@ export default function Page() {
                     <span>Next action</span>
                     <span />
                   </div>
-                  {deals
-                    .filter((deal) => {
-                      if (dealSearch.trim()) {
-                        const q = dealSearch.toLowerCase().trim()
-                        const matches =
-                          deal.title.toLowerCase().includes(q) ||
-                          deal.company.toLowerCase().includes(q) ||
-                          deal.stage.toLowerCase().includes(q) ||
-                          (deal.next && deal.next.toLowerCase().includes(q)) ||
-                          deal.value.toLowerCase().includes(q)
-                        if (!matches) return false
-                      }
-                      if (activeTab === 'Closing soon') {
-                        return (
-                          deal.stage === 'Quote sent' ||
-                          deal.stage === 'Negotiation' ||
-                          parseInt(deal.probability) >= 70
-                        )
-                      }
-                      if (activeTab === 'Recently added') {
-                        return (
-                          deal.id === 'deal-6' ||
-                          deal.id === 'deal-5' ||
-                          deal.id === 'deal-7' ||
-                          deal.stage === 'Lead'
-                        )
-                      }
-                      return true
-                    })
-                    .map((deal) => (
-                      <div
-                        className="deal-row cursor-pointer hover:bg-[#fafbfc] transition-colors"
-                        key={deal.id}
-                        onClick={() => {
-                          setSelectedDeal(deal)
-                          setIsDealDrawerOpen(true)
-                        }}
-                      >
-                        <div className="deal-title">
-                          <span className={`deal-avatar ${deal.color}`}>
-                            {deal.company.charAt(0)}
-                          </span>
-                          <div>
-                            <strong>{deal.title}</strong>
-                            <span>{deal.company}</span>
-                          </div>
-                        </div>
-                        <span className="stage-pill">{deal.stage}</span>
-                        <strong className="font-mono tabular-nums">{deal.value}</strong>
-                        <span className="probability font-mono">{deal.probability}</span>
-                        <span className="next-action flex items-center gap-1">
-                          <Clock size={12} className="text-[#266df0]" />
-                          <span>{deal.next}</span>
-                        </span>
-                        <button
-                          className="more-button"
-                          aria-label={`More options for ${deal.title}`}
-                        >
-                          <MoreHorizontal size={17} />
-                        </button>
+                  {deals.length === 0 ? (
+                    <div className="py-12 px-4 text-center">
+                      <div className="w-10 h-10 rounded-full bg-[#f4f5f6] text-[#8f99a8] flex items-center justify-center mx-auto mb-2.5">
+                        <WalletCards size={18} />
                       </div>
-                    ))}
-                  {dealSearch.trim() &&
+                      <h3 className="text-[13px] font-semibold text-[#1c1d1f] mb-1">No deals in pipeline</h3>
+                      <p className="text-[11px] text-[#8f99a8] max-w-xs mx-auto mb-3">
+                        Track client scopes, estimated value, and GTD next steps.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setIsNewDealOpen(true)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#232529] hover:bg-[#101113] text-white text-[11px] font-medium rounded-[8px] transition-colors cursor-pointer"
+                      >
+                        <CirclePlus size={13} />
+                        <span>Add first deal (N)</span>
+                      </button>
+                    </div>
+                  ) : (
+                    deals
+                      .filter((deal) => {
+                        if (dealSearch.trim()) {
+                          const q = dealSearch.toLowerCase().trim()
+                          const matches =
+                            deal.title.toLowerCase().includes(q) ||
+                            deal.company.toLowerCase().includes(q) ||
+                            deal.stage.toLowerCase().includes(q) ||
+                            (deal.next && deal.next.toLowerCase().includes(q)) ||
+                            deal.value.toLowerCase().includes(q)
+                          if (!matches) return false
+                        }
+                        if (activeTab === 'Closing soon') {
+                          return (
+                            deal.stage === 'Quote sent' ||
+                            deal.stage === 'Negotiation' ||
+                            parseInt(deal.probability) >= 70
+                          )
+                        }
+                        if (activeTab === 'Recently added') {
+                          return deal.stage === 'Lead'
+                        }
+                        return true
+                      })
+                      .map((deal) => (
+                        <div
+                          className="deal-row cursor-pointer hover:bg-[#fafbfc] transition-colors"
+                          key={deal.id}
+                          onClick={() => {
+                            setSelectedDeal(deal)
+                            setIsDealDrawerOpen(true)
+                          }}
+                        >
+                          <div className="deal-title">
+                            <span className={`deal-avatar ${deal.color}`}>
+                              {deal.company.charAt(0)}
+                            </span>
+                            <div>
+                              <strong>{deal.title}</strong>
+                              <span>{deal.company}</span>
+                            </div>
+                          </div>
+                          <span className="stage-pill">{deal.stage}</span>
+                          <strong className="font-mono tabular-nums">{deal.value}</strong>
+                          <span className="probability font-mono">{deal.probability}</span>
+                          <span className="next-action flex items-center gap-1">
+                            <Clock size={12} className="text-[#266df0]" />
+                            <span>{deal.next}</span>
+                          </span>
+                          <button
+                            className="more-button"
+                            aria-label={`More options for ${deal.title}`}
+                          >
+                            <MoreHorizontal size={17} />
+                          </button>
+                        </div>
+                      ))
+                  )}
+                  {deals.length > 0 &&
+                    dealSearch.trim() &&
                     deals.filter((deal) => {
                       const q = dealSearch.toLowerCase().trim()
                       return (

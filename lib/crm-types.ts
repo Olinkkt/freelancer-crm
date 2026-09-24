@@ -93,3 +93,12 @@ export interface FollowUpItem {
   tone: 'urgent' | 'normal'
   completed?: boolean
 }
+
+export interface WorkspaceData {
+  deals: Deal[]
+  companies: Company[]
+  contacts: Contact[]
+  activities: Activity[]
+  followUps: FollowUpItem[]
+}
+

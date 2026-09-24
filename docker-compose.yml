@@ -11,14 +11,19 @@ services:
       - NODE_ENV=production
       - PORT=3000
       - HOSTNAME=0.0.0.0
-      # Uncomment when wiring a database
+      - DATABASE_URL=file:/app/data/crm.db
+      # - AUTH_SECRET=your_32_char_hex_secret_here
+      # Or PostgreSQL:
       # - DATABASE_URL=postgresql://${POSTGRES_USER:-crm}:${POSTGRES_PASSWORD:-crm_secret}@db:5432/${POSTGRES_DB:-crm_db}?schema=public
+    volumes:
+      - crm_data:/app/data
     healthcheck:
       test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://127.0.0.1:3000/api/health']
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 10s
+
 
   # Optional PostgreSQL service for unified Coolify Stack deployment
   # db:
@@ -37,5 +42,7 @@ services:
   #     timeout: 5s
   #     retries: 5
 
-# volumes:
-#   crm_db_data:
+volumes:
+  crm_data:
+  # crm_db_data:
+

@@ -39,11 +39,27 @@ import {
 import { ShortcutsModal } from '@/components/modals/shortcuts-modal'
 import { NewDealModal } from '@/components/modals/new-deal-modal'
 import { NewContactModal } from '@/components/modals/new-contact-modal'
+import { NewCompanyModal } from '@/components/modals/new-company-modal'
 import { LogCallModal } from '@/components/modals/log-call-modal'
 import { DealDetailDrawer } from '@/components/drawers/deal-detail-drawer'
 import { DealKanban } from '@/components/deals/deal-kanban'
 import { ToastHUD, ToastHUDItem } from '@/components/ui/toast-hud'
 import { MarkdownFormatter } from '@/components/ui/markdown-formatter'
+import { OperatorGate } from '@/components/auth/operator-gate'
+import {
+  fetchWorkspaceData,
+  createDealAction,
+  updateDealAction,
+  deleteDealAction,
+  moveDealStageAction,
+  createContactAction,
+  createCompanyAction,
+  logActivityAction,
+  toggleFollowUpAction,
+  syncTodosAction,
+} from '@/app/actions/crm'
+import { getAuthStatus, logoutOperator } from '@/app/actions/auth'
+
 
 function NavItem({
   icon: Icon,
@@ -103,6 +119,7 @@ export default function Page() {
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false)
   const [isNewDealOpen, setIsNewDealOpen] = useState(false)
   const [isNewContactOpen, setIsNewContactOpen] = useState(false)
+  const [isNewCompanyOpen, setIsNewCompanyOpen] = useState(false)
   const [isLogCallOpen, setIsLogCallOpen] = useState(false)
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null)
   const [isDealDrawerOpen, setIsDealDrawerOpen] = useState(false)
@@ -121,6 +138,44 @@ export default function Page() {
   const dismissToast = (id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id))
   }
+
+  // Auth & Backend Loading State
+  const [isLoading, setIsLoading] = useState(true)
+  const [authRequired, setAuthRequired] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(true)
+  const [dbStatus, setDbStatus] = useState<'checking' | 'connected' | 'error'>('checking')
+
+  const loadData = useCallback(async () => {
+    try {
+      const auth = await getAuthStatus()
+      setAuthRequired(auth.required)
+      setIsAuthenticated(auth.authenticated)
+
+      if (auth.authenticated || !auth.required) {
+        const data = await fetchWorkspaceData()
+        setDeals(data.deals)
+        setCompanies(data.companies)
+        setContacts(data.contacts)
+        setActivities(data.activities)
+        setFollowUps(data.followUps)
+        setCompletedFollowUps(
+          data.followUps.filter((f) => f.completed).map((f) => f.id)
+        )
+        setDbStatus('connected')
+      }
+    } catch (err: any) {
+      console.error('Failed to load workspace data:', err)
+      setDbStatus('error')
+      addToast('Error loading workspace data', undefined, 'warning')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [addToast])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
+
 
   // Two-key chord navigation state ("G" then another key)
   const pendingChordRef = useRef<string | null>(null)
@@ -314,122 +369,123 @@ export default function Page() {
   }
 
   // Create Deal Handler
-  const handleAddDeal = (dealData: Omit<Deal, 'id'>) => {
-    const newDeal: Deal = {
-      ...dealData,
-      id: `deal-${Date.now()}`,
+  const handleAddDeal = async (dealData: Omit<Deal, 'id'>) => {
+    try {
+      const newDeal = await createDealAction(dealData)
+      setDeals((prev) => [newDeal, ...prev])
+      const workspace = await fetchWorkspaceData()
+      setCompanies(workspace.companies)
+      addToast(`Added deal "${newDeal.title}"`, 'N')
+    } catch (err: any) {
+      addToast(err?.message || 'Failed to create deal', undefined, 'warning')
     }
-    setDeals((prev) => [newDeal, ...prev])
-    addToast(`Added deal "${newDeal.title}"`, 'N')
   }
 
   // Create Contact Handler
-  const handleAddContact = (contactData: Omit<Contact, 'id'>) => {
-    const newContact: Contact = {
-      ...contactData,
-      id: `cont-${Date.now()}`,
+  const handleAddContact = async (contactData: Omit<Contact, 'id'>) => {
+    try {
+      const newContact = await createContactAction(contactData)
+      setContacts((prev) => [newContact, ...prev])
+      const workspace = await fetchWorkspaceData()
+      setCompanies(workspace.companies)
+      addToast(`Added contact "${newContact.name}"`, 'C')
+    } catch (err: any) {
+      addToast(err?.message || 'Failed to create contact', undefined, 'warning')
     }
-    setContacts((prev) => [newContact, ...prev])
-    addToast(`Added contact "${newContact.name}"`, 'C')
+  }
+
+  // Create Company Handler
+  const handleAddCompany = async (companyData: Omit<Company, 'id'>) => {
+    try {
+      const newCompany = await createCompanyAction(companyData)
+      setCompanies((prev) => [newCompany, ...prev])
+      addToast(`Added company "${newCompany.name}"`)
+    } catch (err: any) {
+      addToast(err?.message || 'Failed to create company', undefined, 'warning')
+    }
   }
 
   // Log Activity Handler with unified Deal and Scratchpad sync
-  const handleLogActivity = (
+  const handleLogActivity = async (
     activityData: Omit<Activity, 'id'>,
     followUpData?: Omit<FollowUpItem, 'id'>,
     dealId?: string
   ) => {
     const targetDealId = dealId || activityData.dealId
-    const newActivity: Activity = {
-      ...activityData,
-      dealId: targetDealId,
-      id: `act-${Date.now()}`,
-    }
-    setActivities((prev) => [newActivity, ...prev])
+    try {
+      const result = await logActivityAction(activityData, followUpData, targetDealId)
+      setActivities((prev) => [result.activity, ...prev])
 
-    if (followUpData) {
-      const newFollowUp: FollowUpItem = {
-        ...followUpData,
-        id: `fu-${Date.now()}`,
+      if (result.followUp) {
+        setFollowUps((prev) => [result.followUp!, ...prev])
       }
-      setFollowUps((prev) => [newFollowUp, ...prev])
-    }
 
-    // Sync to linked deal notes & next action
-    if (targetDealId) {
-      const now = new Date()
-      const timeStr = now.toLocaleDateString('cs-CZ', {
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      })
-      const noteHeading = `\n\n### 📞 ${newActivity.type}: ${newActivity.title} (${timeStr})\n`
-      const noteBody = newActivity.summary ? `${noteHeading}${newActivity.summary}` : ''
-
-      setDeals((prev) =>
-        prev.map((d) => {
-          if (d.id !== targetDealId) return d
-          return {
-            ...d,
-            notes: d.notes ? `${d.notes}${noteBody}` : (newActivity.summary || ''),
-            next: followUpData?.action || d.next,
-            nextDueDate: followUpData?.time || d.nextDueDate,
-          }
-        })
-      )
-
-      if (selectedDeal?.id === targetDealId) {
-        setSelectedDeal((prev) => {
-          if (!prev) return null
-          return {
-            ...prev,
-            notes: prev.notes ? `${prev.notes}${noteBody}` : (newActivity.summary || ''),
-            next: followUpData?.action || prev.next,
-            nextDueDate: followUpData?.time || prev.nextDueDate,
-          }
-        })
+      if (result.updatedDeal) {
+        setDeals((prev) =>
+          prev.map((d) => (d.id === result.updatedDeal!.id ? result.updatedDeal! : d))
+        )
+        if (selectedDeal?.id === result.updatedDeal.id) {
+          setSelectedDeal(result.updatedDeal)
+        }
       }
-    }
 
-    const linkedDeal = deals.find((d) => d.id === targetDealId)
-    const toastMsg = linkedDeal
-      ? `Logged ${newActivity.type} & synced to ${linkedDeal.title}`
-      : `Logged ${newActivity.type} with ${newActivity.person}`
-    addToast(toastMsg, 'L')
+      const linkedDeal = deals.find((d) => d.id === targetDealId)
+      const toastMsg = linkedDeal
+        ? `Logged ${result.activity.type} & synced to ${linkedDeal.title}`
+        : `Logged ${result.activity.type} with ${result.activity.person}`
+      addToast(toastMsg, 'L')
+    } catch (err: any) {
+      addToast(err?.message || 'Failed to log activity', undefined, 'warning')
+    }
   }
 
   // Update Deal in list
-  const handleUpdateDeal = (updated: Deal) => {
+  const handleUpdateDeal = async (updated: Deal) => {
     setDeals((prev) => prev.map((d) => (d.id === updated.id ? updated : d)))
     if (selectedDeal?.id === updated.id) {
       setSelectedDeal(updated)
     }
+    try {
+      const saved = await updateDealAction(updated)
+      setDeals((prev) => prev.map((d) => (d.id === saved.id ? saved : d)))
+      if (selectedDeal?.id === saved.id) {
+        setSelectedDeal(saved)
+      }
+    } catch (err: any) {
+      addToast(err?.message || 'Failed to update deal', undefined, 'warning')
+    }
   }
 
   // Sync action items from Scratchpad to Dashboard Follow-ups
-  const handleSyncTodos = (todos: string[], companyName: string = 'Workspace') => {
-    const newItems: FollowUpItem[] = todos.map((todo, idx) => ({
-      id: `fu-${Date.now()}-${idx}`,
-      day: 'Today',
-      company: companyName,
-      action: todo,
-      time: '14:00',
-      tone: 'urgent',
-      completed: false,
-    }))
-    setFollowUps((prev) => [...newItems, ...prev])
-    addToast(`Synced ${todos.length} action item${todos.length > 1 ? 's' : ''} to Follow-ups`, 'GTD')
+  const handleSyncTodos = async (todos: string[], companyName: string = 'Workspace') => {
+    try {
+      const newItems = await syncTodosAction(todos, companyName, selectedDeal?.id)
+      setFollowUps((prev) => [...newItems, ...prev])
+      addToast(`Synced ${todos.length} action item${todos.length > 1 ? 's' : ''} to Follow-ups`, 'GTD')
+    } catch (err: any) {
+      addToast(err?.message || 'Failed to sync follow-up items', undefined, 'warning')
+    }
   }
 
   // Delete Deal
-  const handleDeleteDeal = (id: string) => {
+  const handleDeleteDeal = async (id: string) => {
     setDeals((prev) => prev.filter((d) => d.id !== id))
-    addToast('Deal deleted')
+    if (selectedDeal?.id === id) {
+      setIsDealDrawerOpen(false)
+      setSelectedDeal(null)
+    }
+    try {
+      await deleteDealAction(id)
+      const workspace = await fetchWorkspaceData()
+      setCompanies(workspace.companies)
+      addToast('Deal deleted')
+    } catch (err: any) {
+      addToast(err?.message || 'Failed to delete deal', undefined, 'warning')
+    }
   }
 
   // Move deal stage in Kanban
-  const handleMoveDealStage = (dealId: string, newStage: DealStage) => {
+  const handleMoveDealStage = async (dealId: string, newStage: DealStage) => {
     setDeals((prev) =>
       prev.map((d) => {
         if (d.id === dealId) {
@@ -444,14 +500,35 @@ export default function Page() {
       })
     )
     addToast(`Moved deal to ${newStage}`)
+    try {
+      const updated = await moveDealStageAction(dealId, newStage)
+      if (updated) {
+        setDeals((prev) => prev.map((d) => (d.id === updated.id ? updated : d)))
+      }
+    } catch (err: any) {
+      addToast(err?.message || 'Failed to move deal stage', undefined, 'warning')
+    }
   }
 
   // Follow-up toggle complete
-  const toggleFollowUp = (id: string) => {
+  const toggleFollowUp = async (id: string) => {
     setCompletedFollowUps((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     )
+    try {
+      await toggleFollowUpAction(id)
+    } catch (err: any) {
+      addToast(err?.message || 'Failed to update follow-up', undefined, 'warning')
+    }
   }
+
+  // Operator Lock Action
+  const handleLockWorkspace = async () => {
+    await logoutOperator()
+    setIsAuthenticated(false)
+    addToast('Workspace locked')
+  }
+
 
   // Compute metrics
   const totalPipelineAmount = deals.reduce(
@@ -493,10 +570,33 @@ export default function Page() {
     }
   })
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen w-full bg-[#0d0f12] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 rounded-full border-2 border-[#2563eb] border-t-transparent animate-spin" />
+          <p className="text-xs text-[#8f99a8] font-mono">Initializing workspace...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (authRequired && !isAuthenticated) {
+    return (
+      <OperatorGate
+        onAuthenticated={() => {
+          setIsAuthenticated(true)
+          loadData()
+        }}
+      />
+    )
+  }
+
   return (
     <div className="app-shell">
       {/* SIDEBAR */}
       <aside className="sidebar">
+
         <div className="brand">
           <span className="brand-mark">S</span>
           <span>Oliver Seidl</span>
@@ -1020,7 +1120,7 @@ export default function Page() {
                 </div>
                 <button
                   className="primary-button"
-                  onClick={() => setIsNewDealOpen(true)}
+                  onClick={() => setIsNewCompanyOpen(true)}
                 >
                   <CirclePlus size={17} /> Add company
                 </button>
@@ -1082,16 +1182,26 @@ export default function Page() {
                       </div>
                       <h3 className="text-[13px] font-semibold text-[#1c1d1f] mb-1">No company accounts yet</h3>
                       <p className="text-[11px] text-[#8f99a8] max-w-xs mx-auto mb-3">
-                        Companies are registered automatically as you log deals and contacts.
+                        Companies are registered automatically as you log deals and contacts, or you can add one directly.
                       </p>
-                      <button
-                        type="button"
-                        onClick={() => setIsNewDealOpen(true)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#232529] hover:bg-[#101113] text-white text-[11px] font-medium rounded-[8px] transition-colors cursor-pointer"
-                      >
-                        <CirclePlus size={13} />
-                        <span>Add opportunity (N)</span>
-                      </button>
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setIsNewCompanyOpen(true)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#232529] hover:bg-[#101113] text-white text-[11px] font-medium rounded-[8px] transition-colors cursor-pointer"
+                        >
+                          <Building2 size={13} />
+                          <span>Add company</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIsNewDealOpen(true)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#dce0e5] hover:bg-[#f5f7fa] text-[#1c1d1f] text-[11px] font-medium rounded-[8px] transition-colors cursor-pointer"
+                        >
+                          <CirclePlus size={13} />
+                          <span>Add opportunity (N)</span>
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     companies
@@ -1197,9 +1307,18 @@ export default function Page() {
                   </div>
 
                   <div className="pt-6 mt-4 border-t border-[#f0f1f3] flex items-center justify-between">
-                    <button className="select-button">
-                      Change password <ArrowUpRight size={14} />
-                    </button>
+                    {authRequired ? (
+                      <button
+                        onClick={handleLockWorkspace}
+                        className="px-3 py-1.5 bg-[#1c1d1f] hover:bg-[#101113] text-white text-[11px] font-medium rounded-[7px] transition-colors cursor-pointer flex items-center gap-1.5"
+                      >
+                        Lock Workspace
+                      </button>
+                    ) : (
+                      <span className="text-[11px] text-[#6f7988]">
+                        Operator Gate: <strong className="text-[#505967] font-medium">Dev / Open</strong>
+                      </span>
+                    )}
                     <span className="text-[10px] text-[#9fa1a7]">v1.0.4 • Personal Cockpit</span>
                   </div>
                 </div>
@@ -1279,8 +1398,48 @@ export default function Page() {
                     </span>
                   </div>
                 </div>
+
+                {/* CARD 3: BACKEND INFRASTRUCTURE & PERSISTENCE */}
+                <div className="panel lg:col-span-12">
+                  <div className="panel-heading">
+                    <div>
+                      <p className="section-kicker">Deployment & Persistence</p>
+                      <h2>Backend Infrastructure</h2>
+                    </div>
+                    <span className={`px-2 py-0.5 text-[10px] font-mono font-semibold rounded-[7px] ${
+                      dbStatus === 'connected' ? 'bg-[#e6f9ed] text-[#137a38]' : 'bg-[#fff1f1] text-[#c02b2b]'
+                    }`}>
+                      {dbStatus === 'connected' ? '● Database Online' : '○ Checking Connection'}
+                    </span>
+                  </div>
+                  <p className="text-[12px] text-[#6f7988] mt-2 mb-4">
+                    Unified Next.js 16 full-stack architecture running standalone on Coolify. Zero external latency, minimal RAM footprint.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-[12px]">
+                    <div className="p-3 rounded-[9px] bg-[#f8f9fa] border border-[#edf0f3]">
+                      <span className="text-[#6f7988] text-[11px] block mb-1">Database Engine</span>
+                      <strong className="text-[#1c1d1f]">PostgreSQL / SQLite</strong>
+                      <small className="block text-[#8f99a8] text-[10px] mt-0.5">Persistent disk volume</small>
+                    </div>
+                    <div className="p-3 rounded-[9px] bg-[#f8f9fa] border border-[#edf0f3]">
+                      <span className="text-[#6f7988] text-[11px] block mb-1">Healthcheck Endpoint</span>
+                      <a href="/api/health" target="_blank" rel="noreferrer" className="text-[#266df0] hover:underline inline-flex items-center gap-1 font-mono">
+                        /api/health <ArrowUpRight size={12} />
+                      </a>
+                      <small className="block text-[#8f99a8] text-[10px] mt-0.5">Rolling zero-downtime</small>
+                    </div>
+                    <div className="p-3 rounded-[9px] bg-[#f8f9fa] border border-[#edf0f3]">
+                      <span className="text-[#6f7988] text-[11px] block mb-1">Security Gate</span>
+                      <strong className={authRequired ? 'text-[#137a38]' : 'text-amber-600'}>
+                        {authRequired ? 'Active (AUTH_SECRET)' : 'Inactive (Set AUTH_SECRET)'}
+                      </strong>
+                      <small className="block text-[#8f99a8] text-[10px] mt-0.5">HMAC-SHA256 session token</small>
+                    </div>
+                  </div>
+                </div>
               </div>
             </>
+
           ) : (
             /* DASHBOARD / OVERVIEW VIEW */
             <>
@@ -1680,6 +1839,14 @@ export default function Page() {
         onAddContact={handleAddContact}
         companies={companies}
       />
+
+      {/* QUICK ADD COMPANY MODAL */}
+      <NewCompanyModal
+        isOpen={isNewCompanyOpen}
+        onClose={() => setIsNewCompanyOpen(false)}
+        onAddCompany={handleAddCompany}
+      />
+
 
       {/* QUICK LOG CALL / MEETING NOTE MODAL (L) */}
       <LogCallModal

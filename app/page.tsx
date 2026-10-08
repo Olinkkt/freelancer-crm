@@ -12,7 +12,6 @@ import {
   FileText,
   LayoutDashboard,
   MessageSquare,
-  MoreHorizontal,
   Search,
   Settings2,
   Users,
@@ -22,7 +21,18 @@ import {
   PhoneCall,
   UserPlus,
   Keyboard,
+  Download,
+  Trash2,
+  Mail,
 } from 'lucide-react'
+import {
+  exportDealsCSV,
+  exportCompaniesCSV,
+  exportContactsCSV,
+  exportActivitiesCSV,
+  exportFollowUpsCSV,
+} from '@/lib/csv-export'
+import { getFormattedToday, getDynamicGreeting } from '@/lib/date-utils'
 import { CalendarView } from '@/components/calendar/calendar-view'
 import { Deal, Contact, Company, Activity, FollowUpItem, DealStage } from '@/lib/crm-types'
 import {
@@ -46,6 +56,7 @@ import { DealKanban } from '@/components/deals/deal-kanban'
 import { ToastHUD, ToastHUDItem } from '@/components/ui/toast-hud'
 import { MarkdownFormatter } from '@/components/ui/markdown-formatter'
 import { OperatorGate } from '@/components/auth/operator-gate'
+import { RowActionMenu } from '@/components/ui/row-action-menu'
 import {
   fetchWorkspaceData,
   createDealAction,
@@ -54,6 +65,10 @@ import {
   moveDealStageAction,
   createContactAction,
   createCompanyAction,
+  deleteContactAction,
+  deleteCompanyAction,
+  deleteActivityAction,
+  deleteFollowUpAction,
   logActivityAction,
   toggleFollowUpAction,
   syncTodosAction,
@@ -91,6 +106,15 @@ export default function Page() {
   const [activeView, setActiveView] = useState<string>('Dashboard')
   const [activeTab, setActiveTab] = useState<string>('Overview')
 
+  // Dynamic Dashboard Date & Greeting
+  const [formattedToday, setFormattedToday] = useState<string>('')
+  const [greeting, setGreeting] = useState<string>('Good morning, Oliver.')
+
+  useEffect(() => {
+    setFormattedToday(getFormattedToday())
+    setGreeting(getDynamicGreeting('Oliver'))
+  }, [])
+
   // CRM Data State
   const [deals, setDeals] = useState<Deal[]>(INITIAL_DEALS)
   const [companies, setCompanies] = useState<Company[]>(INITIAL_COMPANIES)
@@ -123,6 +147,7 @@ export default function Page() {
   const [isLogCallOpen, setIsLogCallOpen] = useState(false)
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null)
   const [isDealDrawerOpen, setIsDealDrawerOpen] = useState(false)
+  const [prefilledCompany, setPrefilledCompany] = useState<string | undefined>(undefined)
 
   // Floating Toasts / HUD
   const [toasts, setToasts] = useState<ToastHUDItem[]>([])
@@ -484,6 +509,54 @@ export default function Page() {
     }
   }
 
+  // Delete Company
+  const handleDeleteCompany = async (id: string, name: string) => {
+    setCompanies((prev) => prev.filter((c) => c.id !== id))
+    addToast(`Company "${name}" deleted`)
+    try {
+      await deleteCompanyAction(id)
+      const workspace = await fetchWorkspaceData()
+      setDeals(workspace.deals)
+      setContacts(workspace.contacts)
+    } catch (err: any) {
+      addToast(err?.message || 'Failed to delete company', undefined, 'warning')
+    }
+  }
+
+  // Delete Contact
+  const handleDeleteContact = async (id: string, name: string) => {
+    setContacts((prev) => prev.filter((c) => c.id !== id))
+    addToast(`Contact "${name}" deleted`)
+    try {
+      await deleteContactAction(id)
+    } catch (err: any) {
+      addToast(err?.message || 'Failed to delete contact', undefined, 'warning')
+    }
+  }
+
+  // Delete Activity
+  const handleDeleteActivity = async (id: string, title: string) => {
+    setActivities((prev) => prev.filter((a) => a.id !== id))
+    addToast(`Activity "${title}" deleted`)
+    try {
+      await deleteActivityAction(id)
+    } catch (err: any) {
+      addToast(err?.message || 'Failed to delete activity', undefined, 'warning')
+    }
+  }
+
+  // Delete Follow-up
+  const handleDeleteFollowUp = async (id: string) => {
+    setFollowUps((prev) => prev.filter((f) => f.id !== id))
+    setCompletedFollowUps((prev) => prev.filter((x) => x !== id))
+    addToast('Follow-up removed')
+    try {
+      await deleteFollowUpAction(id)
+    } catch (err: any) {
+      addToast(err?.message || 'Failed to delete follow-up', undefined, 'warning')
+    }
+  }
+
   // Move deal stage in Kanban
   const handleMoveDealStage = async (dealId: string, newStage: DealStage) => {
     setDeals((prev) =>
@@ -744,6 +817,11 @@ export default function Page() {
                 }}
                 onAddDealClick={() => setIsNewDealOpen(true)}
                 onMoveDealStage={handleMoveDealStage}
+                onDeleteDeal={handleDeleteDeal}
+                onLogInteraction={(deal) => {
+                  setSelectedDeal(deal)
+                  setIsLogCallOpen(true)
+                }}
               />
             </>
           ) : activeView === 'Calendar' ? (
@@ -891,8 +969,8 @@ export default function Page() {
                             >
                               {activity.status}
                             </span>
-                            <div className="flex items-center justify-end">
-                              {activity.summary ? (
+                            <div className="flex items-center justify-end gap-1">
+                              {activity.summary && (
                                 <button
                                   type="button"
                                   onClick={(e) => {
@@ -904,15 +982,38 @@ export default function Page() {
                                 >
                                   {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                                 </button>
-                              ) : (
-                                <button
-                                  className="more-button"
-                                  aria-label={`Options for ${activity.title}`}
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <MoreHorizontal size={17} />
-                                </button>
                               )}
+                              <RowActionMenu
+                                triggerLabel={`More options for ${activity.title}`}
+                                items={[
+                                  ...(associatedDeal
+                                    ? [
+                                        {
+                                          label: `Open deal (${associatedDeal.title})`,
+                                          icon: FileText,
+                                          onClick: () => {
+                                            setSelectedDeal(associatedDeal)
+                                            setIsDealDrawerOpen(true)
+                                          },
+                                        },
+                                      ]
+                                    : []),
+                                  {
+                                    label: 'Log interaction',
+                                    icon: PhoneCall,
+                                    onClick: () => {
+                                      setIsLogCallOpen(true)
+                                    },
+                                  },
+                                  {
+                                    label: 'Delete activity',
+                                    icon: Trash2,
+                                    destructive: true,
+                                    divider: true,
+                                    onClick: () => handleDeleteActivity(activity.id, activity.title),
+                                  },
+                                ]}
+                              />
                             </div>
                           </div>
 
@@ -1082,13 +1183,45 @@ export default function Page() {
                           </div>
                           <strong>{contact.deals}</strong>
                           <span className="last-touch">{contact.lastTouch}</span>
-                          <span className="contact-email">{contact.email}</span>
-                          <button
-                            className="more-button"
-                            aria-label={`More options for ${contact.name}`}
-                          >
-                            <MoreHorizontal size={17} />
-                          </button>
+                          <RowActionMenu
+                            triggerLabel={`More options for ${contact.name}`}
+                            items={[
+                              ...(contact.email
+                                ? [
+                                    {
+                                      label: 'Send email',
+                                      icon: Mail,
+                                      onClick: () => {
+                                        window.location.href = `mailto:${contact.email}`
+                                      },
+                                    },
+                                  ]
+                                : []),
+                              {
+                                label: 'Create deal for contact',
+                                icon: CirclePlus,
+                                onClick: () => {
+                                  setPrefilledCompany(contact.company)
+                                  setIsNewDealOpen(true)
+                                },
+                              },
+                              {
+                                label: 'Log interaction',
+                                icon: PhoneCall,
+                                onClick: () => {
+                                  setPrefilledCompany(contact.company)
+                                  setIsLogCallOpen(true)
+                                },
+                              },
+                              {
+                                label: 'Delete contact',
+                                icon: Trash2,
+                                destructive: true,
+                                divider: true,
+                                onClick: () => handleDeleteContact(contact.id, contact.name),
+                              },
+                            ]}
+                          />
                         </div>
                       ))
                   )}
@@ -1230,12 +1363,53 @@ export default function Page() {
                           <span className={`status-pill ${comp.status.toLowerCase()}`}>
                             {comp.status}
                           </span>
-                          <button
-                            className="more-button"
-                            aria-label={`More options for ${comp.name}`}
-                          >
-                            <MoreHorizontal size={17} />
-                          </button>
+                          <RowActionMenu
+                            triggerLabel={`More options for ${comp.name}`}
+                            items={[
+                              {
+                                label: 'Add deal for company',
+                                icon: CirclePlus,
+                                onClick: () => {
+                                  setPrefilledCompany(comp.name)
+                                  setIsNewDealOpen(true)
+                                },
+                              },
+                              {
+                                label: 'Add contact for company',
+                                icon: UserPlus,
+                                onClick: () => {
+                                  setPrefilledCompany(comp.name)
+                                  setIsNewContactOpen(true)
+                                },
+                              },
+                              {
+                                label: 'Log interaction',
+                                icon: PhoneCall,
+                                onClick: () => {
+                                  setPrefilledCompany(comp.name)
+                                  setIsLogCallOpen(true)
+                                },
+                              },
+                              ...(comp.email
+                                ? [
+                                    {
+                                      label: 'Send email',
+                                      icon: Mail,
+                                      onClick: () => {
+                                        window.location.href = `mailto:${comp.email}`
+                                      },
+                                    },
+                                  ]
+                                : []),
+                              {
+                                label: 'Delete company',
+                                icon: Trash2,
+                                destructive: true,
+                                divider: true,
+                                onClick: () => handleDeleteCompany(comp.id, comp.name),
+                              },
+                            ]}
+                          />
                         </div>
                       ))
                   )}
@@ -1437,6 +1611,148 @@ export default function Page() {
                     </div>
                   </div>
                 </div>
+
+                {/* CARD 4: DATA EXPORT & PORTABILITY (.CSV) */}
+                <div className="panel lg:col-span-12">
+                  <div className="panel-heading">
+                    <div>
+                      <p className="section-kicker">Data Ownership & Portability</p>
+                      <h2>1-Click CSV Data Export</h2>
+                    </div>
+                    <button
+                      onClick={() => {
+                        exportDealsCSV(deals)
+                        exportCompaniesCSV(companies)
+                        exportContactsCSV(contacts)
+                        exportActivitiesCSV(activities)
+                        exportFollowUpsCSV(followUps)
+                        addToast('All workspace data exported (5 CSV files)', 'Export')
+                      }}
+                      className="primary-button text-[12px] py-1.5 px-3"
+                    >
+                      <Download size={14} /> Export All (5 CSVs)
+                    </button>
+                  </div>
+                  <p className="text-[12px] text-[#6f7988] mt-2 mb-4">
+                    Instantly download complete, unencrypted RFC-4180 compliant CSV spreadsheets with UTF-8 BOM encoding for direct import into Excel, Google Sheets, or Notion.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-[12px]">
+                    {/* Deals Export */}
+                    <div className="p-3.5 rounded-[9px] bg-[#f8f9fa] border border-[#edf0f3] flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[#6f7988] text-[11px] font-medium">Deals Pipeline</span>
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#e9f0ff] text-[#266df0]">
+                            {deals.length} records
+                          </span>
+                        </div>
+                        <strong className="text-[#1c1d1f] text-[13px] block">Deals Export</strong>
+                        <small className="block text-[#8f99a8] text-[10px] mt-0.5">Stages, values, next actions</small>
+                      </div>
+                      <button
+                        onClick={() => {
+                          exportDealsCSV(deals)
+                          addToast(`Exported ${deals.length} deals to CSV`, 'CSV')
+                        }}
+                        className="mt-3 w-full py-1.5 px-2 bg-white hover:bg-[#edf2f7] border border-[#dce0e8] text-[#1c1d1f] rounded-[6px] font-medium text-[11px] transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                      >
+                        <Download size={13} className="text-[#266df0]" /> Download .csv
+                      </button>
+                    </div>
+
+                    {/* Companies Export */}
+                    <div className="p-3.5 rounded-[9px] bg-[#f8f9fa] border border-[#edf0f3] flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[#6f7988] text-[11px] font-medium">Accounts</span>
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#e9f0ff] text-[#266df0]">
+                            {companies.length} records
+                          </span>
+                        </div>
+                        <strong className="text-[#1c1d1f] text-[13px] block">Companies Export</strong>
+                        <small className="block text-[#8f99a8] text-[10px] mt-0.5">Metrics, revenue, contacts</small>
+                      </div>
+                      <button
+                        onClick={() => {
+                          exportCompaniesCSV(companies)
+                          addToast(`Exported ${companies.length} companies to CSV`, 'CSV')
+                        }}
+                        className="mt-3 w-full py-1.5 px-2 bg-white hover:bg-[#edf2f7] border border-[#dce0e8] text-[#1c1d1f] rounded-[6px] font-medium text-[11px] transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                      >
+                        <Download size={13} className="text-[#266df0]" /> Download .csv
+                      </button>
+                    </div>
+
+                    {/* Contacts Export */}
+                    <div className="p-3.5 rounded-[9px] bg-[#f8f9fa] border border-[#edf0f3] flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[#6f7988] text-[11px] font-medium">People Directory</span>
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#e9f0ff] text-[#266df0]">
+                            {contacts.length} records
+                          </span>
+                        </div>
+                        <strong className="text-[#1c1d1f] text-[13px] block">Contacts Export</strong>
+                        <small className="block text-[#8f99a8] text-[10px] mt-0.5">Emails, phones, touches</small>
+                      </div>
+                      <button
+                        onClick={() => {
+                          exportContactsCSV(contacts)
+                          addToast(`Exported ${contacts.length} contacts to CSV`, 'CSV')
+                        }}
+                        className="mt-3 w-full py-1.5 px-2 bg-white hover:bg-[#edf2f7] border border-[#dce0e8] text-[#1c1d1f] rounded-[6px] font-medium text-[11px] transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                      >
+                        <Download size={13} className="text-[#266df0]" /> Download .csv
+                      </button>
+                    </div>
+
+                    {/* Activities Export */}
+                    <div className="p-3.5 rounded-[9px] bg-[#f8f9fa] border border-[#edf0f3] flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[#6f7988] text-[11px] font-medium">Activity Log</span>
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#e9f0ff] text-[#266df0]">
+                            {activities.length} records
+                          </span>
+                        </div>
+                        <strong className="text-[#1c1d1f] text-[13px] block">Activities Export</strong>
+                        <small className="block text-[#8f99a8] text-[10px] mt-0.5">Call logs, notes, audits</small>
+                      </div>
+                      <button
+                        onClick={() => {
+                          exportActivitiesCSV(activities)
+                          addToast(`Exported ${activities.length} activities to CSV`, 'CSV')
+                        }}
+                        className="mt-3 w-full py-1.5 px-2 bg-white hover:bg-[#edf2f7] border border-[#dce0e8] text-[#1c1d1f] rounded-[6px] font-medium text-[11px] transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                      >
+                        <Download size={13} className="text-[#266df0]" /> Download .csv
+                      </button>
+                    </div>
+
+                    {/* Follow-ups Export */}
+                    <div className="p-3.5 rounded-[9px] bg-[#f8f9fa] border border-[#edf0f3] flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[#6f7988] text-[11px] font-medium">GTD Queue</span>
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#e9f0ff] text-[#266df0]">
+                            {followUps.length} records
+                          </span>
+                        </div>
+                        <strong className="text-[#1c1d1f] text-[13px] block">Follow-ups Export</strong>
+                        <small className="block text-[#8f99a8] text-[10px] mt-0.5">Tasks, deadlines, status</small>
+                      </div>
+                      <button
+                        onClick={() => {
+                          exportFollowUpsCSV(followUps)
+                          addToast(`Exported ${followUps.length} follow-ups to CSV`, 'CSV')
+                        }}
+                        className="mt-3 w-full py-1.5 px-2 bg-white hover:bg-[#edf2f7] border border-[#dce0e8] text-[#1c1d1f] rounded-[6px] font-medium text-[11px] transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                      >
+                        <Download size={13} className="text-[#266df0]" /> Download .csv
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </>
 
@@ -1445,8 +1761,8 @@ export default function Page() {
             <>
               <section className="page-heading">
                 <div>
-                  <p className="eyebrow">Monday, September 22, 2026</p>
-                  <h1>Good morning, Oliver.</h1>
+                  <p className="eyebrow" suppressHydrationWarning>{formattedToday || getFormattedToday()}</p>
+                  <h1 suppressHydrationWarning>{greeting}</h1>
                   <p className="subcopy">Here&apos;s what needs your attention today.</p>
                 </div>
               </section>
@@ -1563,7 +1879,31 @@ export default function Page() {
                               <span>{item.action}</span>
                             </div>
                             <time>{item.time}</time>
-                            <MoreHorizontal size={17} className="muted-icon" />
+                            <RowActionMenu
+                              triggerLabel={`Options for ${item.action}`}
+                              items={[
+                                {
+                                  label: done ? 'Mark incomplete' : 'Mark complete',
+                                  icon: Check,
+                                  onClick: () => toggleFollowUp(item.id),
+                                },
+                                {
+                                  label: `Log interaction (${item.company})`,
+                                  icon: PhoneCall,
+                                  onClick: () => {
+                                    setPrefilledCompany(item.company)
+                                    setIsLogCallOpen(true)
+                                  },
+                                },
+                                {
+                                  label: 'Delete follow-up',
+                                  icon: Trash2,
+                                  destructive: true,
+                                  divider: true,
+                                  onClick: () => handleDeleteFollowUp(item.id),
+                                },
+                              ]}
+                            />
                           </div>
                         )
                       })
@@ -1773,12 +2113,43 @@ export default function Page() {
                             <Clock size={12} className="text-[#266df0]" />
                             <span>{deal.next}</span>
                           </span>
-                          <button
-                            className="more-button"
-                            aria-label={`More options for ${deal.title}`}
-                          >
-                            <MoreHorizontal size={17} />
-                          </button>
+                          <RowActionMenu
+                            triggerLabel={`More options for ${deal.title}`}
+                            items={[
+                              {
+                                label: 'Open deal drawer',
+                                icon: FileText,
+                                onClick: () => {
+                                  setSelectedDeal(deal)
+                                  setIsDealDrawerOpen(true)
+                                },
+                              },
+                              {
+                                label: 'Log interaction',
+                                icon: PhoneCall,
+                                onClick: () => {
+                                  setSelectedDeal(deal)
+                                  setIsLogCallOpen(true)
+                                },
+                              },
+                              ...(deal.stage !== 'Won'
+                                ? [
+                                    {
+                                      label: 'Mark as Won',
+                                      icon: Check,
+                                      onClick: () => handleMoveDealStage(deal.id, 'Won'),
+                                    },
+                                  ]
+                                : []),
+                              {
+                                label: 'Delete deal',
+                                icon: Trash2,
+                                destructive: true,
+                                divider: true,
+                                onClick: () => handleDeleteDeal(deal.id),
+                              },
+                            ]}
+                          />
                         </div>
                       ))
                   )}
@@ -1827,17 +2198,25 @@ export default function Page() {
       {/* QUICK ADD DEAL MODAL (N) */}
       <NewDealModal
         isOpen={isNewDealOpen}
-        onClose={() => setIsNewDealOpen(false)}
+        onClose={() => {
+          setIsNewDealOpen(false)
+          setPrefilledCompany(undefined)
+        }}
         onAddDeal={handleAddDeal}
         companies={companies}
+        initialCompany={prefilledCompany}
       />
 
       {/* QUICK ADD CONTACT MODAL (C) */}
       <NewContactModal
         isOpen={isNewContactOpen}
-        onClose={() => setIsNewContactOpen(false)}
+        onClose={() => {
+          setIsNewContactOpen(false)
+          setPrefilledCompany(undefined)
+        }}
         onAddContact={handleAddContact}
         companies={companies}
+        initialCompany={prefilledCompany}
       />
 
       {/* QUICK ADD COMPANY MODAL */}

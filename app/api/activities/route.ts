@@ -4,8 +4,8 @@ import * as repo from '@/lib/db/repository'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
-  const isAuthed = await checkIsAuthenticated()
+export async function GET(req: Request) {
+  const isAuthed = await checkIsAuthenticated(req)
   if (!isAuthed) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
@@ -15,7 +15,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const isAuthed = await checkIsAuthenticated()
+  const isAuthed = await checkIsAuthenticated(req)
   if (!isAuthed) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }

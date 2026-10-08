@@ -21,6 +21,11 @@ function safeParseJson<T>(jsonStr: string | null | undefined, fallback: T): T {
   }
 }
 
+function generateId(prefix: string): string {
+  const rand = Math.random().toString(36).substring(2, 8)
+  return `${prefix}-${Date.now()}-${rand}`
+}
+
 // -------------------------------------------------------------
 // WORKSPACE AGGREGATE
 // -------------------------------------------------------------
@@ -157,7 +162,7 @@ export async function ensureCompanyExists(companyName: string, contactName?: str
     await db
       .insertInto('companies')
       .values({
-        id: `comp-${Date.now()}`,
+        id: generateId('comp'),
         name,
         type: 'Client',
         contact: contactName || '',
@@ -179,7 +184,7 @@ export async function ensureCompanyExists(companyName: string, contactName?: str
 export async function createDeal(dealData: Omit<Deal, 'id'>): Promise<Deal> {
   await ensureDbInitialized()
 
-  const id = `deal-${Date.now()}`
+  const id = generateId('deal')
   const now = new Date().toISOString()
   const rawAmount = Number(dealData.rawAmount) || 0
 
@@ -228,6 +233,12 @@ export async function updateDeal(deal: Deal): Promise<Deal> {
   const now = new Date().toISOString()
   const rawAmount = Number(deal.rawAmount) || 0
 
+  const oldDeal = await db
+    .selectFrom('deals')
+    .select('company')
+    .where('id', '=', deal.id)
+    .executeTakeFirst()
+
   await db
     .updateTable('deals')
     .set({
@@ -253,6 +264,9 @@ export async function updateDeal(deal: Deal): Promise<Deal> {
     .execute()
 
   await syncCompanyMetrics(deal.company)
+  if (oldDeal && oldDeal.company && oldDeal.company !== deal.company) {
+    await syncCompanyMetrics(oldDeal.company)
+  }
 
   return deal
 }
@@ -293,13 +307,14 @@ export async function moveDealStage(dealId: string, stage: DealStage): Promise<D
 
   const newProbability = stage === 'Won' ? '100%' : existing.probability
   const now = new Date().toISOString()
+  const dealColor = (existing.color as Deal['color']) || 'blue'
 
   await db
     .updateTable('deals')
     .set({
       stage,
       probability: newProbability,
-      color: 'blue',
+      color: dealColor,
       updated_at: now,
     })
     .where('id', '=', dealId)
@@ -315,7 +330,7 @@ export async function moveDealStage(dealId: string, stage: DealStage): Promise<D
     probability: newProbability,
     next: existing.next,
     nextDueDate: existing.next_due_date ?? undefined,
-    color: 'blue',
+    color: dealColor,
     contactName: existing.contact_name ?? undefined,
     contactEmail: existing.contact_email ?? undefined,
     notes: existing.notes ?? undefined,
@@ -333,7 +348,7 @@ export async function moveDealStage(dealId: string, stage: DealStage): Promise<D
 export async function createContact(contactData: Omit<Contact, 'id'>): Promise<Contact> {
   await ensureDbInitialized()
 
-  const id = `cont-${Date.now()}`
+  const id = generateId('cont')
   const now = new Date().toISOString()
 
   await ensureCompanyExists(contactData.company, contactData.name, contactData.email)
@@ -398,7 +413,7 @@ export async function deleteContact(id: string): Promise<boolean> {
 export async function createCompany(companyData: Omit<Company, 'id'>): Promise<Company> {
   await ensureDbInitialized()
 
-  const id = `comp-${Date.now()}`
+  const id = generateId('comp')
   const now = new Date().toISOString()
 
   await db
@@ -448,6 +463,9 @@ export async function updateCompany(company: Company): Promise<Company> {
 
 export async function deleteCompany(id: string): Promise<boolean> {
   await ensureDbInitialized()
+  // Unlink company from any deals and contacts
+  await db.updateTable('deals').set({ company_id: null }).where('company_id', '=', id).execute()
+  await db.updateTable('contacts').set({ company_id: null }).where('company_id', '=', id).execute()
   const result = await db.deleteFrom('companies').where('id', '=', id).execute()
   return Number(result[0]?.numDeletedRows ?? 0) > 0
 }
@@ -468,7 +486,7 @@ export async function logActivity(
   await ensureDbInitialized()
 
   const targetDealId = dealId || activityData.dealId
-  const actId = `act-${Date.now()}`
+  const actId = generateId('act')
   const now = new Date().toISOString()
 
   // 1. Insert Activity
@@ -498,7 +516,7 @@ export async function logActivity(
   // 2. Insert Follow-up if requested
   let createdFollowUp: FollowUpItem | undefined
   if (followUpData) {
-    const fuId = `fu-${Date.now()}`
+    const fuId = generateId('fu')
     await db
       .insertInto('follow_ups')
       .values({
@@ -537,12 +555,14 @@ export async function logActivity(
         hour: '2-digit',
         minute: '2-digit',
       })
-      const noteHeading = `\n\n### 📞 ${createdActivity.type}: ${createdActivity.title} (${timeStr})\n`
-      const noteBody = createdActivity.summary ? `${noteHeading}${createdActivity.summary}` : ''
+      const noteHeading = `### 📞 ${createdActivity.type}: ${createdActivity.title} (${timeStr})\n`
+      const noteContent = createdActivity.summary
+        ? `${noteHeading}${createdActivity.summary}`
+        : noteHeading.trim()
 
       const newNotes = existingDealRow.notes
-        ? `${existingDealRow.notes}${noteBody}`
-        : createdActivity.summary || ''
+        ? `${existingDealRow.notes}\n\n${noteContent}`
+        : noteContent
 
       const newNext = followUpData?.action || existingDealRow.next
       const newNextDueDate = followUpData?.time || existingDealRow.next_due_date
@@ -624,7 +644,7 @@ export async function syncTodos(
     const todo = todos[i]
     if (!todo.trim()) continue
 
-    const fuId = `fu-${Date.now()}-${i}`
+    const fuId = generateId('fu')
     await db
       .insertInto('follow_ups')
       .values({
@@ -653,3 +673,16 @@ export async function syncTodos(
 
   return created
 }
+
+export async function deleteActivity(id: string): Promise<boolean> {
+  await ensureDbInitialized()
+  const result = await db.deleteFrom('activities').where('id', '=', id).execute()
+  return Number(result[0]?.numDeletedRows ?? 0) > 0
+}
+
+export async function deleteFollowUp(id: string): Promise<boolean> {
+  await ensureDbInitialized()
+  const result = await db.deleteFrom('follow_ups').where('id', '=', id).execute()
+  return Number(result[0]?.numDeletedRows ?? 0) > 0
+}
+

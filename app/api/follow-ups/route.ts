@@ -4,8 +4,8 @@ import * as repo from '@/lib/db/repository'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
-  const isAuthed = await checkIsAuthenticated()
+export async function GET(req: Request) {
+  const isAuthed = await checkIsAuthenticated(req)
   if (!isAuthed) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
@@ -15,7 +15,7 @@ export async function GET() {
 }
 
 export async function PATCH(req: Request) {
-  const isAuthed = await checkIsAuthenticated()
+  const isAuthed = await checkIsAuthenticated(req)
   if (!isAuthed) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
@@ -31,3 +31,22 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: err.message || 'Failed to toggle follow up' }, { status: 400 })
   }
 }
+
+export async function POST(req: Request) {
+  const isAuthed = await checkIsAuthenticated(req)
+  if (!isAuthed) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  try {
+    const body = await req.json()
+    if (Array.isArray(body.todos)) {
+      const items = await repo.syncTodos(body.todos, body.company, body.dealId)
+      return NextResponse.json(items, { status: 201 })
+    }
+    return NextResponse.json({ error: 'Missing todos array in payload' }, { status: 400 })
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message || 'Failed to sync follow-ups' }, { status: 400 })
+  }
+}
+

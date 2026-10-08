@@ -54,10 +54,17 @@ function formatInlineMarkdown(text: string): React.ReactNode {
     // Links
     const linkMatch = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/)
     if (linkMatch) {
+      const rawHref = linkMatch[2].trim()
+      // Disallow dangerous URI schemes like javascript:, vbscript:, data:
+      const isSafeUrl = /^(https?:\/\/|\/|mailto:)/i.test(rawHref)
+      if (!isSafeUrl) {
+        return <span key={index}>{linkMatch[1]}</span>
+      }
+
       return (
         <a
           key={index}
-          href={linkMatch[2]}
+          href={rawHref}
           target="_blank"
           rel="noopener noreferrer"
           className="text-[#266df0] underline font-medium hover:text-[#1952b8]"

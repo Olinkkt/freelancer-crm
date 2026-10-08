@@ -9,11 +9,18 @@ interface NewDealModalProps {
   onClose: () => void
   onAddDeal: (deal: Omit<Deal, 'id'>) => void
   companies: Company[]
+  initialCompany?: string
 }
 
 const STAGES: DealStage[] = ['Lead', 'Qualified', 'Scope', 'Quote sent', 'Negotiation', 'Won']
 
-export function NewDealModal({ isOpen, onClose, onAddDeal, companies }: NewDealModalProps) {
+export function NewDealModal({
+  isOpen,
+  onClose,
+  onAddDeal,
+  companies,
+  initialCompany,
+}: NewDealModalProps) {
   const [title, setTitle] = useState('')
   const [company, setCompany] = useState('')
   const [value, setValue] = useState('')
@@ -27,7 +34,7 @@ export function NewDealModal({ isOpen, onClose, onAddDeal, companies }: NewDealM
   useEffect(() => {
     if (isOpen) {
       setTitle('')
-      setCompany(companies[0]?.name || '')
+      setCompany(initialCompany || companies[0]?.name || '')
       setValue('25 000 Kč')
       setStage('Lead')
       setProbability('30%')

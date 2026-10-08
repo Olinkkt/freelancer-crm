@@ -10,7 +10,15 @@ export async function ensureDbInitialized(): Promise<void> {
     return globalForInit.dbInitPromise
   }
 
-  globalForInit.dbInitPromise = (async () => {
+  const initPromise = (async () => {
+    // 0. Enable WAL mode and busy timeout for SQLite/LibSQL to prevent database lock contention
+    try {
+      await sql`PRAGMA journal_mode = WAL;`.execute(db)
+      await sql`PRAGMA busy_timeout = 5000;`.execute(db)
+    } catch {
+      // Ignore for PostgreSQL or environments where PRAGMA is unsupported
+    }
+
     // 1. Companies
     await sql`
       CREATE TABLE IF NOT EXISTS companies (
@@ -115,6 +123,11 @@ export async function ensureDbInitialized(): Promise<void> {
       // Ignore index creation errors if dialect differs
     }
   })()
+
+  globalForInit.dbInitPromise = initPromise.catch((err) => {
+    globalForInit.dbInitPromise = undefined
+    throw err
+  })
 
   return globalForInit.dbInitPromise
 }

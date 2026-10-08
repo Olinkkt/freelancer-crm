@@ -5,7 +5,6 @@ import {
   Kanban,
   TableProperties,
   CirclePlus,
-  MoreHorizontal,
   ArrowRight,
   ArrowLeft,
   ChevronDown,
@@ -16,14 +15,21 @@ import {
   Sparkles,
   Command,
   WalletCards,
+  FileText,
+  PhoneCall,
+  Check,
+  Trash2,
 } from 'lucide-react'
 import { Deal, DealStage } from '@/lib/crm-types'
+import { RowActionMenu } from '@/components/ui/row-action-menu'
 
 interface DealKanbanProps {
   deals: Deal[]
   onOpenDeal: (deal: Deal) => void
   onAddDealClick: () => void
   onMoveDealStage: (dealId: string, newStage: DealStage) => void
+  onDeleteDeal?: (dealId: string) => void
+  onLogInteraction?: (deal: Deal) => void
 }
 
 const STAGES: DealStage[] = ['Lead', 'Qualified', 'Scope', 'Quote sent', 'Negotiation', 'Won']
@@ -33,6 +39,8 @@ export function DealKanban({
   onOpenDeal,
   onAddDealClick,
   onMoveDealStage,
+  onDeleteDeal,
+  onLogInteraction,
 }: DealKanbanProps) {
   const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban')
   const [focusedColIndex, setFocusedColIndex] = useState<number>(0)
@@ -504,16 +512,46 @@ export function DealKanban({
                         <td className="py-3 px-3 text-[#6f7988]">
                           {deal.contactName || deal.company}
                         </td>
-                        <td className="py-3 px-3 text-center">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              onOpenDeal(deal)
-                            }}
-                            className="text-[#9fa1a7] hover:text-[#1c1d1f] p-1 rounded-[6px]"
-                          >
-                            <MoreHorizontal size={16} />
-                          </button>
+                        <td className="py-3 px-3 text-center" onClick={(e) => e.stopPropagation()}>
+                          <RowActionMenu
+                            triggerLabel={`Options for ${deal.title}`}
+                            items={[
+                              {
+                                label: 'Open deal drawer',
+                                icon: FileText,
+                                onClick: () => onOpenDeal(deal),
+                              },
+                              ...(onLogInteraction
+                                ? [
+                                    {
+                                      label: 'Log interaction',
+                                      icon: PhoneCall,
+                                      onClick: () => onLogInteraction(deal),
+                                    },
+                                  ]
+                                : []),
+                              ...(deal.stage !== 'Won'
+                                ? [
+                                    {
+                                      label: 'Mark as Won',
+                                      icon: Check,
+                                      onClick: () => onMoveDealStage(deal.id, 'Won'),
+                                    },
+                                  ]
+                                : []),
+                              ...(onDeleteDeal
+                                ? [
+                                    {
+                                      label: 'Delete deal',
+                                      icon: Trash2,
+                                      destructive: true,
+                                      divider: true,
+                                      onClick: () => onDeleteDeal(deal.id),
+                                    },
+                                  ]
+                                : []),
+                            ]}
+                          />
                         </td>
                       </tr>
                     ))}

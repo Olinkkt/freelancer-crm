@@ -9,6 +9,7 @@ interface NewContactModalProps {
   onClose: () => void
   onAddContact: (contact: Omit<Contact, 'id'>) => void
   companies: Company[]
+  initialCompany?: string
 }
 
 export function NewContactModal({
@@ -16,6 +17,7 @@ export function NewContactModal({
   onClose,
   onAddContact,
   companies,
+  initialCompany,
 }: NewContactModalProps) {
   const [name, setName] = useState('')
   const [role, setRole] = useState('')
@@ -28,7 +30,7 @@ export function NewContactModal({
     if (isOpen) {
       setName('')
       setRole('')
-      setCompany(companies[0]?.name || '')
+      setCompany(initialCompany || companies[0]?.name || '')
       setEmail('')
       setPhone('')
       setTimeout(() => {

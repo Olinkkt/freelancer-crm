@@ -105,3 +105,13 @@ export async function syncTodosAction(
   await assertAuth()
   return await repo.syncTodos(todos, companyName, dealId)
 }
+
+export async function deleteActivityAction(id: string): Promise<boolean> {
+  await assertAuth()
+  return await repo.deleteActivity(id)
+}
+
+export async function deleteFollowUpAction(id: string): Promise<boolean> {
+  await assertAuth()
+  return await repo.deleteFollowUp(id)
+}

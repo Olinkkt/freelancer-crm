@@ -9,11 +9,20 @@ import {
   Users,
   Check,
   FileText,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
 import { CalendarEvent, DayColumn, FeaturedEvent } from './types'
 import { INITIAL_DAYS, INITIAL_EVENTS, TOP_FEATURED_EVENTS } from './mock-data'
 import { EventModal } from './event-modal'
 import { Deal, FollowUpItem } from '@/lib/crm-types'
+import {
+  getWorkweekDays,
+  formatWeekRange,
+  getFormattedToday,
+  matchMilestoneToWorkweek,
+  getDateString,
+} from '@/lib/date-utils'
 
 interface CalendarViewProps {
   deals?: Deal[]
@@ -41,12 +50,7 @@ export function formatDuration(hours: number): string {
   return `${h}h ${m}m`
 }
 
-export function getDateString(date: Date): string {
-  const y = date.getFullYear()
-  const m = String(date.getMonth() + 1).padStart(2, '0')
-  const d = String(date.getDate()).padStart(2, '0')
-  return `${y}-${m}-${d}`
-}
+export { getDateString } from '@/lib/date-utils'
 
 interface DragState {
   event: CalendarEvent
@@ -89,31 +93,23 @@ const THEME_STYLES: Record<string, typeof UNIFIED_THEME> = {
 }
 
 export function CalendarView({ deals = [], followUps = [], onOpenDeal }: CalendarViewProps) {
-  // Dynamically map deal milestones (Section 3.4) into calendar events
+  // Dynamic week offset (0 = current week, -1 = previous, +1 = next)
+  const [weekOffset, setWeekOffset] = useState<number>(0)
+  const [days, setDays] = useState<DayColumn[]>(() => getWorkweekDays(0))
+
+  useEffect(() => {
+    setDays(getWorkweekDays(weekOffset))
+  }, [weekOffset])
+
+  const weekRangeLabel = useMemo(() => formatWeekRange(days), [days])
+
+  // Dynamically map deal milestones (Section 3.4) into calendar events matching active workweek
   const dealMilestoneEvents = useMemo<CalendarEvent[]>(() => {
     return deals
       .filter((d) => d.nextDueDate && d.nextDueDate !== 'Done')
       .map((d) => {
-        let dayIdx = 1 // default Tuesday (Today)
-        let startH = 10.0
-        const due = d.nextDueDate?.toLowerCase() || ''
-        if (due.includes('today')) {
-          dayIdx = 1
-          if (due.includes('14:30')) startH = 14.5
-          else if (due.includes('10:00')) startH = 10.0
-          else startH = 11.5
-        } else if (due.includes('tomorrow')) {
-          dayIdx = 2
-          startH = 9.0
-        } else if (due.includes('thu') || due.includes('sep 24')) {
-          dayIdx = 3
-          startH = 11.0
-        } else if (due.includes('fri') || due.includes('sep 25')) {
-          dayIdx = 4
-          startH = 10.0
-        }
-
-        const dateStr = ['2026-09-21', '2026-09-22', '2026-09-23', '2026-09-24', '2026-09-25'][dayIdx] || '2026-09-22'
+        const matched = matchMilestoneToWorkweek(d.nextDueDate!, days)
+        if (!matched) return null
 
         return {
           id: `deal-ms-${d.id}`,
@@ -121,12 +117,12 @@ export function CalendarView({ deals = [], followUps = [], onOpenDeal }: Calenda
           subtitle: `${d.company} • ${d.title}`,
           company: d.company,
           person: d.contactName || d.company,
-          dayIndex: dayIdx,
-          dateString: dateStr,
-          startHour: startH,
+          dayIndex: matched.dayIndex,
+          dateString: matched.dateString,
+          startHour: matched.startHour,
           durationHours: 1.0,
-          startTimeLabel: formatHourMinute(startH),
-          endTimeLabel: formatHourMinute(startH + 1.0),
+          startTimeLabel: formatHourMinute(matched.startHour),
+          endTimeLabel: formatHourMinute(matched.startHour + 1.0),
           category: 'milestone',
           colorTheme: d.color || 'blue',
           actionLabel: `Open deal (${d.value})`,
@@ -153,7 +149,8 @@ export function CalendarView({ deals = [], followUps = [], onOpenDeal }: Calenda
           ],
         }
       })
-  }, [deals])
+      .filter(Boolean) as CalendarEvent[]
+  }, [deals, days])
 
   // Merge base events with deal milestone events
   const allCombinedEvents = useMemo(() => {
@@ -168,7 +165,6 @@ export function CalendarView({ deals = [], followUps = [], onOpenDeal }: Calenda
   useEffect(() => {
     setEvents(allCombinedEvents)
   }, [allCombinedEvents])
-  const [days, setDays] = useState<DayColumn[]>(INITIAL_DAYS)
   const [searchQuery, setSearchQuery] = useState('')
   const [toastMessage, setToastMessage] = useState<string | null>(null)
 
@@ -590,8 +586,10 @@ export function CalendarView({ deals = [], followUps = [], onOpenDeal }: Calenda
     return `${String(hour).padStart(2, '0')}:00`
   }
 
-  // Dynamic count for today (Tuesday 22 in CRM data)
-  const todayEventsCount = events.filter((e) => e.dayIndex === 1).length
+  // Dynamic count for today
+  const todayDateStr = getDateString(new Date())
+  const todayEventsCount = events.filter((e) => e.dateString === todayDateStr).length
+  const todayFormatted = useMemo(() => getFormattedToday(), [])
 
   return (
     <div className="w-full">
@@ -607,7 +605,7 @@ export function CalendarView({ deals = [], followUps = [], onOpenDeal }: Calenda
       <section className="page-heading">
         <div>
           <p className="eyebrow">Workspace schedule</p>
-          <h1>Tuesday, September 22, 2026</h1>
+          <h1>{todayFormatted}</h1>
           <p className="subcopy">
             You have {todayEventsCount} meetings & milestones on your schedule today.
           </p>
@@ -710,8 +708,45 @@ export function CalendarView({ deals = [], followUps = [], onOpenDeal }: Calenda
 
       {/* WEEKLY SCHEDULE GRID (Panel styled with integrated search toolbar) */}
       <div className="panel p-0 overflow-hidden" style={{ padding: 0 }}>
-        {/* Integrated Calendar Search Toolbar */}
-        <div className="flex items-center justify-end px-4 py-2.5 border-b border-[#edf0f3] bg-white">
+        {/* Integrated Calendar Search & Week Navigation Toolbar */}
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 border-b border-[#edf0f3] bg-white">
+          <div className="flex items-center gap-2.5">
+            <div className="flex items-center rounded-[8px] border border-[#edf0f3] bg-[#f8f9fa] p-0.5 shadow-2xs">
+              <button
+                type="button"
+                onClick={() => setWeekOffset((prev) => prev - 1)}
+                className="p-1 text-[#505967] hover:text-[#1c1d1f] hover:bg-white rounded-[6px] transition-colors"
+                title="Previous week"
+                aria-label="Previous week"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setWeekOffset(0)}
+                className={`px-2.5 py-1 text-[11px] font-semibold rounded-[6px] transition-colors ${
+                  weekOffset === 0
+                    ? 'bg-white text-[#266df0] shadow-2xs'
+                    : 'text-[#6f7988] hover:text-[#1c1d1f] hover:bg-white'
+                }`}
+              >
+                Today
+              </button>
+              <button
+                type="button"
+                onClick={() => setWeekOffset((prev) => prev + 1)}
+                className="p-1 text-[#505967] hover:text-[#1c1d1f] hover:bg-white rounded-[6px] transition-colors"
+                title="Next week"
+                aria-label="Next week"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+            <span className="text-[12px] font-semibold text-[#1c1d1f]">
+              {weekRangeLabel}
+            </span>
+          </div>
+
           <label className="search-field">
             <Search size={14} />
             <input
@@ -783,7 +818,10 @@ export function CalendarView({ deals = [], followUps = [], onOpenDeal }: Calenda
 
           {/* 5 Day Columns */}
           {days.map((day, dayIndex) => {
-            const dayEvents = filteredEvents.filter((ev) => ev.dayIndex === dayIndex)
+            const dayDateStr = getDateString(day.fullDate)
+            const dayEvents = filteredEvents.filter((ev) =>
+              ev.dateString ? ev.dateString === dayDateStr : ev.dayIndex === dayIndex
+            )
 
             return (
               <div

@@ -1,5 +1,5 @@
 import crypto from 'crypto'
-import { cookies } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 
 const COOKIE_NAME = 'crm_operator_session'
 const SESSION_MAX_AGE_SECONDS = 30 * 24 * 60 * 60 // 30 days
@@ -73,12 +73,69 @@ export function verifyPassword(providedPassword: string): boolean {
   }
 }
 
-export async function checkIsAuthenticated(): Promise<boolean> {
+export async function checkIsAuthenticated(req?: Request): Promise<boolean> {
   if (!isAuthRequired()) return true
 
-  const cookieStore = await cookies()
-  const sessionCookie = cookieStore.get(COOKIE_NAME)
-  return verifySessionToken(sessionCookie?.value)
+  // 1. Direct Request object inspection if provided (Route Handlers & Tests)
+  if (req) {
+    const authHeader = req.headers.get('authorization')
+    if (authHeader) {
+      const parts = authHeader.split(' ')
+      if (parts.length === 2 && parts[0].toLowerCase() === 'bearer') {
+        const token = parts[1].trim()
+        if (verifySessionToken(token) || verifyPassword(token)) {
+          return true
+        }
+      }
+    }
+    const apiKey = req.headers.get('x-api-key')
+    if (apiKey && verifyPassword(apiKey)) {
+      return true
+    }
+
+    const cookieHeader = req.headers.get('cookie')
+    if (cookieHeader) {
+      const parsedCookies = Object.fromEntries(
+        cookieHeader.split(';').map((c) => {
+          const [k, ...v] = c.trim().split('=')
+          return [k, v.join('=')]
+        })
+      )
+      if (verifySessionToken(parsedCookies[COOKIE_NAME])) {
+        return true
+      }
+    }
+  }
+
+  // 2. Check Next.js HTTP Headers (Bearer token or x-api-key for external API clients)
+  try {
+    const headerStore = await headers()
+    const authHeader = headerStore.get('authorization')
+    if (authHeader) {
+      const parts = authHeader.split(' ')
+      if (parts.length === 2 && parts[0].toLowerCase() === 'bearer') {
+        const token = parts[1].trim()
+        if (verifySessionToken(token) || verifyPassword(token)) {
+          return true
+        }
+      }
+    }
+    const apiKey = headerStore.get('x-api-key')
+    if (apiKey && verifyPassword(apiKey)) {
+      return true
+    }
+  } catch {
+    // headers() might throw outside Next.js request context (e.g. scripts/unit tests)
+  }
+
+  // 3. Check Next.js Operator Session Cookie (Browser clients)
+  try {
+    const cookieStore = await cookies()
+    const sessionCookie = cookieStore.get(COOKIE_NAME)
+    return verifySessionToken(sessionCookie?.value)
+  } catch {
+    return false
+  }
 }
 
 export async function setOperatorSession(): Promise<void> {

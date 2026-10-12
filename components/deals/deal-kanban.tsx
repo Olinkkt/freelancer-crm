@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import {
   Kanban,
-  TableProperties,
   CirclePlus,
   ArrowRight,
   ArrowLeft,
@@ -19,6 +18,11 @@ import {
   PhoneCall,
   Check,
   Trash2,
+  GripVertical,
+  Banknote,
+  Eye,
+  EyeOff,
+  Edit3,
 } from 'lucide-react'
 import { Deal, DealStage } from '@/lib/crm-types'
 import { RowActionMenu } from '@/components/ui/row-action-menu'
@@ -30,9 +34,16 @@ interface DealKanbanProps {
   onMoveDealStage: (dealId: string, newStage: DealStage) => void
   onDeleteDeal?: (dealId: string) => void
   onLogInteraction?: (deal: Deal) => void
+  onEditDeal?: (deal: Deal) => void
 }
 
-const STAGES: DealStage[] = ['Lead', 'Qualified', 'Scope', 'Quote sent', 'Negotiation', 'Won']
+const STAGES: DealStage[] = [
+  'Lead',
+  'Qualified',
+  'Proposal',
+  'Won',
+  'Paid',
+]
 
 export function DealKanban({
   deals,
@@ -41,23 +52,27 @@ export function DealKanban({
   onMoveDealStage,
   onDeleteDeal,
   onLogInteraction,
+  onEditDeal,
 }: DealKanbanProps) {
-  const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban')
   const [focusedColIndex, setFocusedColIndex] = useState<number>(0)
   const [focusedCardIndex, setFocusedCardIndex] = useState<number>(0)
   const [isBoardFocused, setIsBoardFocused] = useState<boolean>(false)
   const [searchFilter, setSearchFilter] = useState<string>('')
+  const [draggedDealId, setDraggedDealId] = useState<string | null>(null)
+  const [dragOverStage, setDragOverStage] = useState<DealStage | null>(null)
+  const [hideEmptyStages, setHideEmptyStages] = useState<boolean>(false)
   const boardRef = useRef<HTMLDivElement>(null)
+  const isDraggingRef = useRef<boolean>(false)
+  const dragCounters = useRef<Record<string, number>>({})
 
   // Group deals by stage
   const dealsByStage = useMemo(() => {
     const map: Record<DealStage, Deal[]> = {
       Lead: [],
       Qualified: [],
-      Scope: [],
-      'Quote sent': [],
-      Negotiation: [],
+      Proposal: [],
       Won: [],
+      Paid: [],
     }
 
     const filtered = searchFilter
@@ -69,8 +84,19 @@ export function DealKanban({
       : deals
 
     filtered.forEach((d) => {
-      if (map[d.stage]) {
-        map[d.stage].push(d)
+      let stageKey = d.stage as DealStage
+      if (
+        stageKey === ('Scope' as any) ||
+        stageKey === ('Quote sent' as any) ||
+        stageKey === ('Negotiation' as any)
+      ) {
+        stageKey = 'Proposal'
+      } else if (stageKey === ('Completed' as any)) {
+        stageKey = 'Won'
+      }
+
+      if (map[stageKey]) {
+        map[stageKey].push(d)
       } else {
         map['Lead'].push(d)
       }
@@ -78,6 +104,80 @@ export function DealKanban({
 
     return map
   }, [deals, searchFilter])
+
+  const emptyStagesCount = useMemo(() => {
+    return STAGES.filter((s) => (dealsByStage[s]?.length || 0) === 0).length
+  }, [dealsByStage])
+
+  const visibleStages = useMemo(() => {
+    if (!hideEmptyStages) return STAGES
+    const withDeals = STAGES.filter((s) => (dealsByStage[s]?.length || 0) > 0)
+    return withDeals.length > 0 ? withDeals : STAGES
+  }, [hideEmptyStages, dealsByStage])
+
+  // Find currently dragged deal
+  const draggedDeal = useMemo(() => {
+    if (!draggedDealId) return null
+    return deals.find((d) => d.id === draggedDealId) || null
+  }, [draggedDealId, deals])
+
+  // Drag and drop handlers
+  const handleDragStart = (e: React.DragEvent, deal: Deal) => {
+    isDraggingRef.current = true
+    setDraggedDealId(deal.id)
+    e.dataTransfer.setData('text/plain', deal.id)
+    e.dataTransfer.effectAllowed = 'move'
+  }
+
+  const handleDragEnd = () => {
+    setDraggedDealId(null)
+    setDragOverStage(null)
+    dragCounters.current = {}
+    setTimeout(() => {
+      isDraggingRef.current = false
+    }, 150)
+  }
+
+  const handleDragOver = (e: React.DragEvent, stage: DealStage) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    if (dragOverStage !== stage) {
+      setDragOverStage(stage)
+    }
+  }
+
+  const handleDragEnter = (e: React.DragEvent, stage: DealStage) => {
+    e.preventDefault()
+    dragCounters.current[stage] = (dragCounters.current[stage] || 0) + 1
+    if (dragOverStage !== stage) {
+      setDragOverStage(stage)
+    }
+  }
+
+  const handleDragLeave = (e: React.DragEvent, stage: DealStage) => {
+    dragCounters.current[stage] = (dragCounters.current[stage] || 0) - 1
+    if (dragCounters.current[stage] <= 0) {
+      dragCounters.current[stage] = 0
+      if (dragOverStage === stage) {
+        setDragOverStage(null)
+      }
+    }
+  }
+
+  const handleDrop = (e: React.DragEvent, stage: DealStage) => {
+    e.preventDefault()
+    dragCounters.current[stage] = 0
+    setDragOverStage(null)
+    const dealId = e.dataTransfer.getData('text/plain') || draggedDealId
+    if (dealId) {
+      const deal = deals.find((d) => d.id === dealId)
+      if (deal && deal.stage !== stage) {
+        onMoveDealStage(dealId, stage)
+      }
+    }
+    setDraggedDealId(null)
+  }
+
 
   // Get current focused deal
   const currentStage = STAGES[focusedColIndex]
@@ -109,9 +209,6 @@ export function DealKanban({
       if (document.querySelector('.modal-backdrop') || document.querySelector('[role="dialog"]')) {
         return
       }
-
-      // Only handle if in kanban view
-      if (viewMode !== 'kanban') return
 
       const key = e.key.toLowerCase()
 
@@ -207,7 +304,6 @@ export function DealKanban({
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [
-    viewMode,
     focusedColIndex,
     focusedCardIndex,
     dealsByStage,
@@ -221,15 +317,25 @@ export function DealKanban({
     const res: Record<DealStage, number> = {
       Lead: 0,
       Qualified: 0,
-      Scope: 0,
-      'Quote sent': 0,
-      Negotiation: 0,
+      Proposal: 0,
       Won: 0,
+      Paid: 0,
     }
     deals.forEach((d) => {
       const amt = d.rawAmount || parseInt(d.value.replace(/[^0-9]/g, '')) || 0
-      if (res[d.stage] !== undefined) {
-        res[d.stage] += amt
+      let stageKey = d.stage as DealStage
+      if (
+        stageKey === ('Scope' as any) ||
+        stageKey === ('Quote sent' as any) ||
+        stageKey === ('Negotiation' as any)
+      ) {
+        stageKey = 'Proposal'
+      } else if (stageKey === ('Completed' as any)) {
+        stageKey = 'Won'
+      }
+
+      if (res[stageKey] !== undefined) {
+        res[stageKey] += amt
       }
     })
     return res
@@ -241,9 +347,9 @@ export function DealKanban({
 
   return (
     <div className="space-y-4" ref={boardRef}>
-      {/* Toolbar: Search, View Switch */}
+      {/* Toolbar: Search, Keyboard Hints & Add Action */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 rounded-[12px] border border-[#e4e7ec] shadow-xs">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <label className="search-field">
             <Search size={14} />
             <input
@@ -253,106 +359,149 @@ export function DealKanban({
               placeholder="Search deals"
             />
           </label>
+          {emptyStagesCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setHideEmptyStages((prev) => !prev)}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[8px] text-[11px] font-medium border transition-colors cursor-pointer ${
+                hideEmptyStages
+                  ? 'bg-[#e9f0ff] border-[#b8d1fc] text-[#266df0]'
+                  : 'bg-white border-[#e4e7ec] text-[#6f7988] hover:text-[#1c1d1f] hover:bg-[#f8faff]'
+              }`}
+              title={hideEmptyStages ? 'Show all 5 stages' : `Hide ${emptyStagesCount} empty stage${emptyStagesCount > 1 ? 's' : ''}`}
+            >
+              {hideEmptyStages ? <Eye size={13} /> : <EyeOff size={13} />}
+              <span>{hideEmptyStages ? 'Show all stages' : `Hide empty (${emptyStagesCount})`}</span>
+            </button>
+          )}
+        </div>
 
-          {/* View mode toggle: Kanban vs Table */}
-          <div className="flex items-center p-0.5 bg-[#f0f2f5] rounded-[10px] border border-[#e4e7ec]">
-            <button
-              onClick={() => setViewMode('kanban')}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[7px] text-[11px] font-medium transition-all ${
-                viewMode === 'kanban'
-                  ? 'bg-white text-[#1c1d1f] shadow-xs'
-                  : 'text-[#6f7988] hover:text-[#1c1d1f]'
-              }`}
-            >
-              <Kanban size={13} />
-              <span>Kanban</span>
-            </button>
-            <button
-              onClick={() => setViewMode('table')}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[7px] text-[11px] font-medium transition-all ${
-                viewMode === 'table'
-                  ? 'bg-white text-[#1c1d1f] shadow-xs'
-                  : 'text-[#6f7988] hover:text-[#1c1d1f]'
-              }`}
-            >
-              <TableProperties size={13} />
-              <span>Dense Table</span>
-            </button>
-          </div>
+        <div className="flex items-center gap-2.5 text-[11px] text-[#8f99a8]">
+          <span className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#f4f5f6] text-[#6f7988] rounded-[8px] font-mono text-[10px]">
+            <span>Drag:</span>
+            <kbd className="text-[#1c1d1f] font-semibold">Mouse</kbd>
+            <span className="text-[#cad0d9]">•</span>
+            <span>Navigate:</span>
+            <kbd className="text-[#1c1d1f] font-semibold">← → ↑ ↓</kbd>
+            <span className="text-[#cad0d9]">•</span>
+            <span>Shift:</span>
+            <kbd className="text-[#1c1d1f] font-semibold">[ ]</kbd>
+            <span className="text-[#cad0d9]">•</span>
+            <span>Open:</span>
+            <kbd className="text-[#1c1d1f] font-semibold">↵</kbd>
+          </span>
+          <button
+            type="button"
+            onClick={onAddDealClick}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#232529] hover:bg-[#101113] text-white text-[11px] font-medium rounded-[8px] transition-colors cursor-pointer"
+          >
+            <CirclePlus size={13} />
+            <span>New deal</span>
+            <kbd className="ml-0.5 px-1 bg-[#3a3e45] text-white rounded text-[10px] font-mono">N</kbd>
+          </button>
         </div>
       </div>
 
-      {viewMode === 'kanban' ? (
-        /* KANBAN BOARD */
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3.5 items-start">
-          {STAGES.map((stage, colIdx) => {
-            const stageDeals = dealsByStage[stage] || []
-            const isColumnFocused = isBoardFocused && focusedColIndex === colIdx
-            const totalStageAmt = stageAmounts[stage] || 0
+      {/* KANBAN BOARD */}
+      <div className="flex gap-4 items-start overflow-x-auto pb-6 pt-1 px-0.5 scroll-smooth">
+        {visibleStages.map((stage) => {
+          const colIdx = STAGES.indexOf(stage)
+          const stageDeals = dealsByStage[stage] || []
+          const isColumnFocused = isBoardFocused && focusedColIndex === colIdx
+          const totalStageAmt = stageAmounts[stage] || 0
+          const isTargetStage = dragOverStage === stage && draggedDeal?.stage !== stage
 
-            return (
-              <div
-                key={stage}
-                onClick={() => {
-                  setFocusedColIndex(colIdx)
-                  setIsBoardFocused(true)
-                }}
-                className={`bg-[#f9fafb] border rounded-[12px] p-2.5 transition-all min-h-[580px] flex flex-col ${
-                  isColumnFocused
-                    ? 'border-[#266df0]/60 ring-1 ring-[#266df0]/20 bg-[#f8faff]'
-                    : 'border-[#edf0f3]'
-                }`}
-              >
-                {/* Column Header */}
-                <div className="px-2 py-2 flex items-center justify-between border-b border-[#edf0f3] mb-2">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`w-2 h-2 rounded-full ${
-                        stage === 'Lead'
-                          ? 'bg-[#a6b9df]'
-                          : stage === 'Qualified'
-                          ? 'bg-[#6f94e6]'
-                          : stage === 'Scope'
-                          ? 'bg-[#538bf3]'
-                          : stage === 'Quote sent'
-                          ? 'bg-[#407ff2]'
-                          : stage === 'Negotiation'
-                          ? 'bg-[#266df0]'
-                          : 'bg-[#232529]'
-                      }`}
-                    />
-                    <h3 className="text-[12px] font-semibold text-[#1c1d1f] tracking-tight">{stage}</h3>
-                    <span className="w-4 h-4 rounded-full bg-[#e9ebef] text-[#6f7988] text-[10px] font-mono font-medium flex items-center justify-center">
-                      {stageDeals.length}
-                    </span>
-                  </div>
-                  <span className="text-[10px] font-mono font-medium text-[#8f99a8] tabular-nums">
-                    {formatKc(totalStageAmt)}
+          return (
+            <div
+              key={stage}
+              onDragOver={(e) => handleDragOver(e, stage)}
+              onDragEnter={(e) => handleDragEnter(e, stage)}
+              onDragLeave={(e) => handleDragLeave(e, stage)}
+              onDrop={(e) => handleDrop(e, stage)}
+              onClick={() => {
+                setFocusedColIndex(colIdx)
+                setIsBoardFocused(true)
+              }}
+              className={`w-[280px] shrink-0 bg-[#f9fafb] border rounded-[12px] p-2.5 transition-all min-h-[580px] flex flex-col ${
+                isTargetStage
+                  ? 'border-[#266df0] ring-2 ring-[#266df0]/30 bg-[#eff5ff]'
+                  : isColumnFocused
+                  ? 'border-[#266df0]/60 ring-1 ring-[#266df0]/20 bg-[#f8faff]'
+                  : 'border-[#edf0f3]'
+              }`}
+            >
+              {/* Column Header */}
+              <div className="px-2 py-2 flex items-center justify-between border-b border-[#edf0f3] mb-2 min-h-[34px]">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span
+                    className={`w-2 h-2 rounded-full shrink-0 ${
+                      stage === 'Lead'
+                        ? 'bg-[#a6b9df]'
+                        : stage === 'Qualified'
+                        ? 'bg-[#6f94e6]'
+                        : stage === 'Proposal'
+                        ? 'bg-[#266df0]'
+                        : stage === 'Won'
+                        ? 'bg-[#10b981]'
+                        : 'bg-[#059669]'
+                    }`}
+                  />
+                  <h3 className="text-[12px] font-semibold text-[#1c1d1f] tracking-tight whitespace-nowrap truncate">{stage}</h3>
+                  <span className="w-4 h-4 rounded-full bg-[#e9ebef] text-[#6f7988] text-[10px] font-mono font-medium flex items-center justify-center shrink-0">
+                    {stageDeals.length}
                   </span>
                 </div>
+                {totalStageAmt > 0 && (
+                  <span className="text-[11px] font-mono font-semibold text-[#266df0] tabular-nums whitespace-nowrap shrink-0">
+                    {formatKc(totalStageAmt)}
+                  </span>
+                )}
+              </div>
 
-                {/* Cards in Column */}
-                <div className="flex-1 space-y-2.5 overflow-y-auto">
-                  {stageDeals.length === 0 ? (
-                    <div className="py-10 text-center border-2 border-dashed border-[#edf0f3] rounded-[10px]">
-                      <p className="text-[11px] text-[#9fa1a7]">Empty stage</p>
+              {/* Cards in Column */}
+              <div
+                className="flex-1 space-y-2.5 overflow-y-auto"
+                onDragOver={(e) => handleDragOver(e, stage)}
+                onDrop={(e) => handleDrop(e, stage)}
+              >
+                {stageDeals.length === 0 ? (
+                  isTargetStage ? (
+                    <div className="py-12 text-center border-2 border-dashed border-[#266df0] bg-[#eff5ff] text-[#266df0] rounded-[10px] flex items-center justify-center gap-1.5 text-[11px] font-semibold animate-pulse">
+                      <ArrowRight size={12} />
+                      <span>Drop here to move</span>
                     </div>
                   ) : (
-                    stageDeals.map((deal, cardIdx) => {
+                    <div className="py-10 text-center text-[#9fa1a7] text-[11px]">
+                      <div className="w-7 h-7 rounded-full bg-white border border-[#edf0f3] text-[#c0c6d0] flex items-center justify-center mx-auto mb-1.5">
+                        <Sparkles size={13} />
+                      </div>
+                      <span>No deals</span>
+                    </div>
+                  )
+                ) : (
+                  <>
+                    {stageDeals.map((deal, cardIdx) => {
                       const isCardFocused = isColumnFocused && focusedCardIndex === cardIdx
+                      const isBeingDragged = draggedDealId === deal.id
 
                       return (
                         <div
                           key={deal.id}
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, deal)}
+                          onDragEnd={handleDragEnd}
                           onClick={(e) => {
+                            if (isDraggingRef.current) return
                             e.stopPropagation()
                             setFocusedColIndex(colIdx)
                             setFocusedCardIndex(cardIdx)
                             setIsBoardFocused(true)
                             onOpenDeal(deal)
                           }}
-                          className={`relative p-3.5 bg-white rounded-[12px] border transition-all cursor-pointer group select-none ${
-                            isCardFocused
+                          className={`relative p-3.5 bg-white rounded-[12px] border transition-all cursor-grab active:cursor-grabbing group select-none ${
+                            isBeingDragged
+                              ? 'opacity-35 scale-[0.98] border-dashed border-[#266df0] shadow-none'
+                              : isCardFocused
                               ? 'border-[#266df0] ring-2 ring-[#266df0]/30 shadow-md z-10 translate-y-[-1px]'
                               : 'border-[#e4e7ec] shadow-2xs hover:border-[#cbd0d8] hover:shadow-xs'
                           }`}
@@ -360,6 +509,10 @@ export function DealKanban({
                           {/* Card Top: Avatar, Company, Stage Actions */}
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex items-center gap-2 min-w-0">
+                              <GripVertical
+                                size={12}
+                                className="text-[#cbd0d8] group-hover:text-[#6f7988] shrink-0 transition-colors"
+                              />
                               <span className="w-6 h-6 rounded-[6px] flex items-center justify-center text-[10px] font-semibold bg-[#e9f0ff] text-[#266df0] shrink-0">
                                 {deal.company.charAt(0)}
                               </span>
@@ -368,32 +521,100 @@ export function DealKanban({
                               </span>
                             </div>
 
-                            {/* Stage shift arrows for quick mouse click too */}
-                            <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 transition-opacity">
-                              {colIdx > 0 && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    onMoveDealStage(deal.id, STAGES[colIdx - 1])
-                                  }}
-                                  title="Shift left ([)"
-                                  className="w-5 h-5 rounded hover:bg-[#f0f2f5] text-[#8f99a8] hover:text-[#1c1d1f] flex items-center justify-center"
-                                >
-                                  <ArrowLeft size={11} />
-                                </button>
-                              )}
-                              {colIdx < STAGES.length - 1 && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    onMoveDealStage(deal.id, STAGES[colIdx + 1])
-                                  }}
-                                  title="Shift right (])"
-                                  className="w-5 h-5 rounded hover:bg-[#f0f2f5] text-[#8f99a8] hover:text-[#1c1d1f] flex items-center justify-center"
-                                >
-                                  <ArrowRight size={11} />
-                                </button>
-                              )}
+                            {/* Stage shift arrows & RowActionMenu */}
+                            <div
+                              className="flex items-center gap-0.5"
+                              onMouseDown={(e) => e.stopPropagation()}
+                            >
+                              <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 transition-opacity">
+                                {colIdx > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      onMoveDealStage(deal.id, STAGES[colIdx - 1])
+                                    }}
+                                    onMouseDown={(e) => e.stopPropagation()}
+                                    title="Shift left ([)"
+                                    className="w-5 h-5 rounded hover:bg-[#f0f2f5] text-[#8f99a8] hover:text-[#1c1d1f] flex items-center justify-center cursor-pointer"
+                                  >
+                                    <ArrowLeft size={11} />
+                                  </button>
+                                )}
+                                {colIdx < STAGES.length - 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      onMoveDealStage(deal.id, STAGES[colIdx + 1])
+                                    }}
+                                    onMouseDown={(e) => e.stopPropagation()}
+                                    title="Shift right (])"
+                                    className="w-5 h-5 rounded hover:bg-[#f0f2f5] text-[#8f99a8] hover:text-[#1c1d1f] flex items-center justify-center cursor-pointer"
+                                  >
+                                    <ArrowRight size={11} />
+                                  </button>
+                                )}
+                              </div>
+
+                              <div
+                                onClick={(e) => e.stopPropagation()}
+                                onMouseDown={(e) => e.stopPropagation()}
+                              >
+                                <RowActionMenu
+                                  triggerLabel={`Options for ${deal.title}`}
+                                  items={[
+                                    {
+                                      label: 'Edit deal',
+                                      icon: Edit3,
+                                      onClick: () => (onEditDeal ? onEditDeal(deal) : onOpenDeal(deal)),
+                                    },
+                                    {
+                                      label: 'Open deal drawer',
+                                      icon: FileText,
+                                      onClick: () => onOpenDeal(deal),
+                                    },
+                                    ...(onLogInteraction
+                                      ? [
+                                          {
+                                            label: 'Log interaction',
+                                            icon: PhoneCall,
+                                            onClick: () => onLogInteraction(deal),
+                                          },
+                                        ]
+                                      : []),
+                                    ...(deal.stage !== 'Won' && deal.stage !== 'Paid'
+                                      ? [
+                                          {
+                                            label: 'Mark as Won',
+                                            icon: Check,
+                                            onClick: () => onMoveDealStage(deal.id, 'Won'),
+                                          },
+                                        ]
+                                      : []),
+                                    ...(deal.stage !== 'Paid'
+                                      ? [
+                                          {
+                                            label: 'Mark as Paid',
+                                            icon: Banknote,
+                                            onClick: () => onMoveDealStage(deal.id, 'Paid'),
+                                          },
+                                        ]
+                                      : []),
+                                    ...(onDeleteDeal
+                                      ? [
+                                          {
+                                            label: 'Delete deal',
+                                            icon: Trash2,
+                                            destructive: true,
+                                            divider: true,
+                                            onClick: () => onDeleteDeal(deal.id),
+                                          },
+                                        ]
+                                      : []),
+                                  ]}
+                                />
+                              </div>
                             </div>
                           </div>
 
@@ -413,170 +634,35 @@ export function DealKanban({
                           </div>
 
                           {/* Mandatory Next Action Pill (GTD) */}
-                          <div className="mt-2 flex items-center gap-1.5 text-[10px] text-[#232529] bg-[#f8faff] p-1.5 rounded-[7px] border border-[#edf3fe]">
-                            <Clock size={11} className="text-[#266df0] shrink-0" />
-                            <span className="truncate font-medium">{deal.next}</span>
-                          </div>
+                          {deal.stage !== 'Paid' && deal.next ? (
+                            <div className="mt-2 flex items-center gap-1.5 text-[10px] text-[#232529] bg-[#f8faff] p-1.5 rounded-[7px] border border-[#edf3fe]">
+                              <Clock size={11} className="text-[#266df0] shrink-0" />
+                              <span className="truncate font-medium">{deal.next}</span>
+                            </div>
+                          ) : null}
                         </div>
                       )
-                    })
-                  )}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      ) : (
-        /* DENSE TABLE VIEW */
-        <div className="bg-white rounded-[12px] border border-[#e4e7ec] shadow-xs overflow-hidden">
-          {deals.length === 0 ? (
-            <div className="py-12 px-4 text-center">
-              <div className="w-10 h-10 rounded-full bg-[#f4f5f6] text-[#8f99a8] flex items-center justify-center mx-auto mb-2.5">
-                <WalletCards size={18} />
-              </div>
-              <h3 className="text-[13px] font-semibold text-[#1c1d1f] mb-1">No deals in pipeline</h3>
-              <p className="text-[11px] text-[#8f99a8] max-w-xs mx-auto mb-3">
-                Track client scopes, estimated value, and GTD next steps.
-              </p>
-              <button
-                type="button"
-                onClick={onAddDealClick}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#232529] hover:bg-[#101113] text-white text-[11px] font-medium rounded-[8px] transition-colors cursor-pointer"
-              >
-                <CirclePlus size={13} />
-                <span>Add first deal (N)</span>
-              </button>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-[12px]">
-                <thead className="bg-[#fafbfc] border-b border-[#edf0f3] text-[9px] uppercase tracking-wider font-bold text-[#9fa1a7]">
-                  <tr>
-                    <th className="py-3 px-4">Deal & Company</th>
-                    <th className="py-3 px-3">Stage</th>
-                    <th className="py-3 px-3 text-right">Value (Kč)</th>
-                    <th className="py-3 px-3">Probability</th>
-                    <th className="py-3 px-3">Mandatory Next Action</th>
-                    <th className="py-3 px-3">Primary Contact</th>
-                    <th className="py-3 px-3 text-center">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#f0f1f3]">
-                  {deals
-                    .filter((d) => {
-                      if (!searchFilter.trim()) return true
-                      const q = searchFilter.toLowerCase().trim()
-                      return (
-                        d.title.toLowerCase().includes(q) ||
-                        d.company.toLowerCase().includes(q) ||
-                        d.stage.toLowerCase().includes(q) ||
-                        d.value.toLowerCase().includes(q)
-                      )
-                    })
-                    .map((deal) => (
-                      <tr
-                        key={deal.id}
-                        onClick={() => onOpenDeal(deal)}
-                        className="hover:bg-[#f8faff] cursor-pointer transition-colors"
-                      >
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-2.5">
-                            <span className="w-7 h-7 rounded-[8px] flex items-center justify-center text-[11px] font-semibold bg-[#e9f0ff] text-[#266df0] shrink-0">
-                              {deal.company.charAt(0)}
-                            </span>
-                            <div>
-                              <strong className="text-[13px] font-semibold text-[#1c1d1f] block">
-                                {deal.title}
-                              </strong>
-                              <span className="text-[11px] text-[#8f99a8]">{deal.company}</span>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-3 px-3">
-                          <span className="px-2 py-0.5 text-[10px] font-medium rounded-[7px] bg-[#f1f5ff] text-[#266df0]">
-                            {deal.stage}
-                          </span>
-                        </td>
-                        <td className="py-3 px-3 text-right font-mono tabular-nums font-bold text-[#1c1d1f]">
-                          {deal.value}
-                        </td>
-                        <td className="py-3 px-3 font-mono text-[#6f7988] font-medium">
-                          {deal.probability}
-                        </td>
-                        <td className="py-3 px-3 text-[#6f7988]">
-                          <div className="flex items-center gap-1.5">
-                            <Clock size={12} className="text-[#266df0]" />
-                            <span>{deal.next}</span>
-                          </div>
-                        </td>
-                        <td className="py-3 px-3 text-[#6f7988]">
-                          {deal.contactName || deal.company}
-                        </td>
-                        <td className="py-3 px-3 text-center" onClick={(e) => e.stopPropagation()}>
-                          <RowActionMenu
-                            triggerLabel={`Options for ${deal.title}`}
-                            items={[
-                              {
-                                label: 'Open deal drawer',
-                                icon: FileText,
-                                onClick: () => onOpenDeal(deal),
-                              },
-                              ...(onLogInteraction
-                                ? [
-                                    {
-                                      label: 'Log interaction',
-                                      icon: PhoneCall,
-                                      onClick: () => onLogInteraction(deal),
-                                    },
-                                  ]
-                                : []),
-                              ...(deal.stage !== 'Won'
-                                ? [
-                                    {
-                                      label: 'Mark as Won',
-                                      icon: Check,
-                                      onClick: () => onMoveDealStage(deal.id, 'Won'),
-                                    },
-                                  ]
-                                : []),
-                              ...(onDeleteDeal
-                                ? [
-                                    {
-                                      label: 'Delete deal',
-                                      icon: Trash2,
-                                      destructive: true,
-                                      divider: true,
-                                      onClick: () => onDeleteDeal(deal.id),
-                                    },
-                                  ]
-                                : []),
-                            ]}
-                          />
-                        </td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
-
-              {deals.length > 0 &&
-                searchFilter.trim() &&
-                deals.filter((d) => {
-                  const q = searchFilter.toLowerCase().trim()
-                  return (
-                    d.title.toLowerCase().includes(q) ||
-                    d.company.toLowerCase().includes(q) ||
-                    d.stage.toLowerCase().includes(q) ||
-                    d.value.toLowerCase().includes(q)
-                  )
-                }).length === 0 && (
-                  <div className="py-8 text-center text-[#8f99a8] text-[12px]">
-                    No deals matching &ldquo;{searchFilter}&rdquo;
-                  </div>
+                    })}
+                    {isTargetStage && (
+                      <div className="py-2.5 px-3 border-2 border-dashed border-[#266df0] bg-[#eff5ff] text-[#266df0] rounded-[10px] text-[11px] font-semibold text-center flex items-center justify-center gap-1.5 transition-all animate-pulse">
+                        <ArrowRight size={12} />
+                        <span>Drop to move here</span>
+                      </div>
+                    )}
+                  </>
                 )}
+              </div>
             </div>
-          )}
-        </div>
-      )}
+          )
+        })}
+      </div>
+
+      {searchFilter.trim() &&
+        Object.values(dealsByStage).every((list) => list.length === 0) && (
+          <div className="py-12 text-center text-[#8f99a8] text-[12px] bg-white rounded-[12px] border border-[#e4e7ec]">
+            No deals matching &ldquo;{searchFilter}&rdquo;
+          </div>
+        )}
     </div>
   )
 }

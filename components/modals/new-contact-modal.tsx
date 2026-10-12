@@ -10,6 +10,8 @@ interface NewContactModalProps {
   onAddContact: (contact: Omit<Contact, 'id'>) => void
   companies: Company[]
   initialCompany?: string
+  contactToEdit?: Contact | null
+  onUpdateContact?: (contact: Contact) => void
 }
 
 export function NewContactModal({
@@ -18,6 +20,8 @@ export function NewContactModal({
   onAddContact,
   companies,
   initialCompany,
+  contactToEdit,
+  onUpdateContact,
 }: NewContactModalProps) {
   const [name, setName] = useState('')
   const [role, setRole] = useState('')
@@ -28,16 +32,24 @@ export function NewContactModal({
 
   useEffect(() => {
     if (isOpen) {
-      setName('')
-      setRole('')
-      setCompany(initialCompany || companies[0]?.name || '')
-      setEmail('')
-      setPhone('')
+      if (contactToEdit) {
+        setName(contactToEdit.name || '')
+        setRole(contactToEdit.role || '')
+        setCompany(contactToEdit.company || initialCompany || companies[0]?.name || '')
+        setEmail(contactToEdit.email || '')
+        setPhone(contactToEdit.phone || '')
+      } else {
+        setName('')
+        setRole('')
+        setCompany(initialCompany || companies[0]?.name || '')
+        setEmail('')
+        setPhone('')
+      }
       setTimeout(() => {
         nameInputRef.current?.focus()
       }, 50)
     }
-  }, [isOpen, companies])
+  }, [isOpen, companies, initialCompany, contactToEdit])
 
   if (!isOpen) return null
 
@@ -45,16 +57,27 @@ export function NewContactModal({
     if (e) e.preventDefault()
     if (!name.trim()) return
 
-    onAddContact({
-      name: name.trim(),
-      role: role.trim() || 'Stakeholder',
-      company: company.trim() || 'Independent',
-      email: email.trim() || `${name.toLowerCase().replace(/\s+/g, '.')}@example.cz`,
-      phone: phone.trim() || undefined,
-      deals: 1,
-      lastTouch: 'Today',
-      color: 'blue',
-    })
+    if (contactToEdit && onUpdateContact) {
+      onUpdateContact({
+        ...contactToEdit,
+        name: name.trim(),
+        role: role.trim() ? role.trim() : null,
+        company: company.trim() || 'Independent',
+        email: email.trim() || `${name.toLowerCase().replace(/\s+/g, '.')}@example.cz`,
+        phone: phone.trim() || undefined,
+      })
+    } else {
+      onAddContact({
+        name: name.trim(),
+        role: role.trim() ? role.trim() : null,
+        company: company.trim() || 'Independent',
+        email: email.trim() || `${name.toLowerCase().replace(/\s+/g, '.')}@example.cz`,
+        phone: phone.trim() || undefined,
+        deals: 1,
+        lastTouch: 'Today',
+        color: 'blue',
+      })
+    }
 
     onClose()
   }
@@ -85,7 +108,7 @@ export function NewContactModal({
               Hotkey: C
             </span>
             <h2 className="text-[16px] font-semibold text-[#1c1d1f] tracking-tight">
-              Add New Contact
+              {contactToEdit ? 'Edit Contact' : 'Add New Contact'}
             </h2>
           </div>
           <button
@@ -116,7 +139,7 @@ export function NewContactModal({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-[11px] font-bold uppercase tracking-wider text-[#505967] mb-1.5">
-                Role / Title
+                Role in company (Optional)
               </label>
               <input
                 type="text"
@@ -188,10 +211,10 @@ export function NewContactModal({
               <button
                 type="submit"
                 disabled={!name.trim()}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#232529] hover:bg-[#101113] text-white text-[12px] font-medium rounded-[10px] shadow-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#232529] hover:bg-[#101113] text-white text-[12px] font-medium rounded-[10px] shadow-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 <UserPlus size={15} />
-                <span>Save Contact</span>
+                <span>{contactToEdit ? 'Save Changes' : 'Save Contact'}</span>
               </button>
             </div>
           </div>

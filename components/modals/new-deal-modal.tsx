@@ -10,9 +10,17 @@ interface NewDealModalProps {
   onAddDeal: (deal: Omit<Deal, 'id'>) => void
   companies: Company[]
   initialCompany?: string
+  dealToEdit?: Deal | null
+  onUpdateDeal?: (deal: Deal) => void
 }
 
-const STAGES: DealStage[] = ['Lead', 'Qualified', 'Scope', 'Quote sent', 'Negotiation', 'Won']
+const STAGES: DealStage[] = [
+  'Lead',
+  'Qualified',
+  'Proposal',
+  'Won',
+  'Paid',
+]
 
 export function NewDealModal({
   isOpen,
@@ -20,6 +28,8 @@ export function NewDealModal({
   onAddDeal,
   companies,
   initialCompany,
+  dealToEdit,
+  onUpdateDeal,
 }: NewDealModalProps) {
   const [title, setTitle] = useState('')
   const [company, setCompany] = useState('')
@@ -33,19 +43,30 @@ export function NewDealModal({
 
   useEffect(() => {
     if (isOpen) {
-      setTitle('')
-      setCompany(initialCompany || companies[0]?.name || '')
-      setValue('25 000 Kč')
-      setStage('Lead')
-      setProbability('30%')
-      setNextAction('Send intro email & discovery questionnaire')
-      setNextDueDate('Tomorrow, 10:00')
-      setNotes('')
+      if (dealToEdit) {
+        setTitle(dealToEdit.title || '')
+        setCompany(dealToEdit.company || initialCompany || companies[0]?.name || '')
+        setValue(dealToEdit.value || '')
+        setStage(dealToEdit.stage || 'Lead')
+        setProbability(dealToEdit.probability || '30%')
+        setNextAction(dealToEdit.next || '')
+        setNextDueDate(dealToEdit.nextDueDate || '')
+        setNotes(dealToEdit.notes || '')
+      } else {
+        setTitle('')
+        setCompany(initialCompany || companies[0]?.name || '')
+        setValue('25 000 Kč')
+        setStage('Lead')
+        setProbability('30%')
+        setNextAction('Send intro email & discovery questionnaire')
+        setNextDueDate('Tomorrow, 10:00')
+        setNotes('')
+      }
       setTimeout(() => {
         titleInputRef.current?.focus()
       }, 50)
     }
-  }, [isOpen, companies])
+  }, [isOpen, companies, initialCompany, dealToEdit])
 
   if (!isOpen) return null
 
@@ -60,25 +81,42 @@ export function NewDealModal({
     const colorMap: Record<DealStage, Deal['color']> = {
       Lead: 'blue',
       Qualified: 'blue',
-      Scope: 'blue',
-      'Quote sent': 'blue',
-      Negotiation: 'blue',
-      Won: 'blue',
+      Proposal: 'blue',
+      Won: 'green',
+      Paid: 'green',
     }
 
-    onAddDeal({
-      title: title.trim(),
-      company: company.trim(),
-      value: formattedVal || '—',
-      rawAmount: numeric,
-      stage,
-      probability,
-      next: nextAction.trim() || 'Schedule next step',
-      nextDueDate: nextDueDate.trim() || 'This week',
-      color: colorMap[stage] || 'blue',
-      notes: notes.trim(),
-      createdAt: 'Just now',
-    })
+    const isPaid = stage === 'Paid'
+
+    if (dealToEdit && onUpdateDeal) {
+      onUpdateDeal({
+        ...dealToEdit,
+        title: title.trim(),
+        company: company.trim(),
+        value: formattedVal || '—',
+        rawAmount: numeric,
+        stage,
+        probability,
+        next: isPaid ? '' : nextAction.trim(),
+        nextDueDate: isPaid ? undefined : nextDueDate.trim(),
+        color: colorMap[stage] || dealToEdit.color || 'blue',
+        notes: notes.trim(),
+      })
+    } else {
+      onAddDeal({
+        title: title.trim(),
+        company: company.trim(),
+        value: formattedVal || '—',
+        rawAmount: numeric,
+        stage,
+        probability,
+        next: isPaid ? '' : (nextAction.trim() || 'Schedule next step'),
+        nextDueDate: isPaid ? undefined : (nextDueDate.trim() || 'This week'),
+        color: colorMap[stage] || 'blue',
+        notes: notes.trim(),
+        createdAt: 'Just now',
+      })
+    }
 
     onClose()
   }
@@ -109,7 +147,7 @@ export function NewDealModal({
               Hotkey: N
             </span>
             <h2 className="text-[16px] font-semibold text-[#1c1d1f] tracking-tight">
-              Create New Deal
+              {dealToEdit ? 'Edit Deal' : 'Create New Deal'}
             </h2>
           </div>
           <button
@@ -198,39 +236,39 @@ export function NewDealModal({
                 onChange={(e) => setProbability(e.target.value)}
                 className="w-full h-10 px-3 border border-[#e4e7ec] rounded-[10px] text-[13px] text-[#1c1d1f] bg-white focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
               >
-                <option value="20%">20% — Low</option>
+                <option value="20%">20% — Lead</option>
                 <option value="40%">40% — Qualified</option>
-                <option value="60%">60% — In Scoping</option>
-                <option value="80%">80% — Proposal Out</option>
-                <option value="90%">90% — Verbal OK</option>
-                <option value="100%">100% — Won</option>
+                <option value="70%">70% — Proposal</option>
+                <option value="100%">100% — Won / Paid</option>
               </select>
             </div>
           </div>
 
-          {/* Mandatory Next Action GTD Prompt */}
-          <div className="p-3.5 bg-[#f8faff] border border-[#d6e3fc] rounded-[12px] space-y-2">
-            <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#266df0] uppercase tracking-wider">
-              <AlertCircle size={14} />
-              <span>Mandatory Next Action (GTD Rule)</span>
+          {/* Mandatory Next Action GTD Prompt (hidden when stage is Paid) */}
+          {stage !== 'Paid' && (
+            <div className="p-3.5 bg-[#f8faff] border border-[#d6e3fc] rounded-[12px] space-y-2">
+              <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#266df0] uppercase tracking-wider">
+                <AlertCircle size={14} />
+                <span>Mandatory Next Action (GTD Rule)</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <input
+                  type="text"
+                  value={nextAction}
+                  onChange={(e) => setNextAction(e.target.value)}
+                  placeholder="e.g. Send revised scope"
+                  className="w-full h-9 px-2.5 bg-white border border-[#dbe6fe] rounded-[10px] text-[12px] text-[#1c1d1f] focus:outline-none focus:border-[#266df0]"
+                />
+                <input
+                  type="text"
+                  value={nextDueDate}
+                  onChange={(e) => setNextDueDate(e.target.value)}
+                  placeholder="e.g. Tomorrow 14:30"
+                  className="w-full h-9 px-2.5 bg-white border border-[#dbe6fe] rounded-[10px] text-[12px] text-[#1c1d1f] focus:outline-none focus:border-[#266df0]"
+                />
+              </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <input
-                type="text"
-                value={nextAction}
-                onChange={(e) => setNextAction(e.target.value)}
-                placeholder="e.g. Send revised scope"
-                className="w-full h-9 px-2.5 bg-white border border-[#dbe6fe] rounded-[10px] text-[12px] text-[#1c1d1f] focus:outline-none focus:border-[#266df0]"
-              />
-              <input
-                type="text"
-                value={nextDueDate}
-                onChange={(e) => setNextDueDate(e.target.value)}
-                placeholder="e.g. Tomorrow 14:30"
-                className="w-full h-9 px-2.5 bg-white border border-[#dbe6fe] rounded-[10px] text-[12px] text-[#1c1d1f] focus:outline-none focus:border-[#266df0]"
-              />
-            </div>
-          </div>
+          )}
 
           <div>
             <label className="block text-[11px] font-bold uppercase tracking-wider text-[#505967] mb-1.5">
@@ -261,10 +299,10 @@ export function NewDealModal({
               <button
                 type="submit"
                 disabled={!title.trim() || !company.trim()}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#232529] hover:bg-[#101113] text-white text-[12px] font-medium rounded-[10px] shadow-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#232529] hover:bg-[#101113] text-white text-[12px] font-medium rounded-[10px] shadow-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 <CirclePlus size={15} />
-                <span>Save Deal</span>
+                <span>{dealToEdit ? 'Save Changes' : 'Save Deal'}</span>
               </button>
             </div>
           </div>

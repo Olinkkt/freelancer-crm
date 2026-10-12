@@ -1,3 +1,4 @@
+import { sql } from 'kysely'
 import { db } from './client'
 import { ensureDbInitialized } from './init'
 import {
@@ -76,7 +77,7 @@ export async function getWorkspaceData(): Promise<WorkspaceData> {
   const contacts: Contact[] = contactRows.map((r) => ({
     id: r.id,
     name: r.name,
-    role: r.role,
+    role: r.role && r.role.trim() !== '' ? r.role : null,
     company: r.company,
     email: r.email,
     phone: r.phone ?? undefined,
@@ -108,6 +109,29 @@ export async function getWorkspaceData(): Promise<WorkspaceData> {
     completed: Boolean(r.completed),
   }))
 
+  // Ensure that if a company has only one contact, that contact is primary
+  for (const comp of companies) {
+    const compContacts = contacts.filter(
+      (c) => c.company.trim().toLowerCase() === comp.name.trim().toLowerCase()
+    )
+    if (compContacts.length === 1) {
+      const single = compContacts[0]
+      if (comp.contact !== single.name || comp.email !== single.email) {
+        comp.contact = single.name
+        comp.email = single.email || ''
+        db.updateTable('companies')
+          .set({
+            contact: single.name,
+            email: single.email || '',
+            updated_at: new Date().toISOString(),
+          })
+          .where('id', '=', comp.id)
+          .execute()
+          .catch(() => {})
+      }
+    }
+  }
+
   return {
     deals,
     companies,
@@ -118,8 +142,145 @@ export async function getWorkspaceData(): Promise<WorkspaceData> {
 }
 
 // -------------------------------------------------------------
-// COMPANY METRICS SYNC
+// COMPANY METRICS & PRIMARY CONTACT SYNC
 // -------------------------------------------------------------
+export async function syncCompanyPrimaryContact(companyName: string): Promise<void> {
+  const name = companyName.trim()
+  if (!name) return
+
+  const contacts = await db
+    .selectFrom('contacts')
+    .select(['id', 'name', 'email'])
+    .where((eb) =>
+      eb.or([
+        eb('company', '=', name),
+        eb(sql`lower(company)`, '=', name.toLowerCase()),
+      ])
+    )
+    .execute()
+
+  if (contacts.length === 1) {
+    // Exactly one contact in company -> make this one the primary!
+    const single = contacts[0]
+    await db
+      .updateTable('companies')
+      .set({
+        contact: single.name,
+        email: single.email || '',
+        updated_at: new Date().toISOString(),
+      })
+      .where((eb) =>
+        eb.or([
+          eb('name', '=', name),
+          eb(sql`lower(name)`, '=', name.toLowerCase()),
+        ])
+      )
+      .execute()
+  } else if (contacts.length === 0) {
+    // 0 contacts exist -> clear primary contact
+    await db
+      .updateTable('companies')
+      .set({
+        contact: '',
+        email: '',
+        updated_at: new Date().toISOString(),
+      })
+      .where((eb) =>
+        eb.or([
+          eb('name', '=', name),
+          eb(sql`lower(name)`, '=', name.toLowerCase()),
+        ])
+      )
+      .execute()
+  } else {
+    // 2 or more contacts: check if current company.contact is still a valid contact
+    const comp = await db
+      .selectFrom('companies')
+      .select(['contact'])
+      .where((eb) =>
+        eb.or([
+          eb('name', '=', name),
+          eb(sql`lower(name)`, '=', name.toLowerCase()),
+        ])
+      )
+      .executeTakeFirst()
+
+    const hasValidPrimary = comp && contacts.some((c) => c.name === comp.contact)
+    if (!hasValidPrimary) {
+      // Default to first contact if current primary was deleted or not set
+      await db
+        .updateTable('companies')
+        .set({
+          contact: contacts[0].name,
+          email: contacts[0].email || '',
+          updated_at: new Date().toISOString(),
+        })
+        .where((eb) =>
+          eb.or([
+            eb('name', '=', name),
+            eb(sql`lower(name)`, '=', name.toLowerCase()),
+          ])
+        )
+        .execute()
+    }
+  }
+}
+
+export async function setPrimaryContact(
+  companyName: string,
+  contactId: string
+): Promise<Company | null> {
+  await ensureDbInitialized()
+  const name = companyName.trim()
+  const contact = await db
+    .selectFrom('contacts')
+    .select(['id', 'name', 'email'])
+    .where('id', '=', contactId)
+    .executeTakeFirst()
+
+  if (!contact) return null
+
+  await db
+    .updateTable('companies')
+    .set({
+      contact: contact.name,
+      email: contact.email || '',
+      updated_at: new Date().toISOString(),
+    })
+    .where((eb) =>
+      eb.or([
+        eb('name', '=', name),
+        eb(sql`lower(name)`, '=', name.toLowerCase()),
+      ])
+    )
+    .execute()
+
+  const updated = await db
+    .selectFrom('companies')
+    .selectAll()
+    .where((eb) =>
+      eb.or([
+        eb('name', '=', name),
+        eb(sql`lower(name)`, '=', name.toLowerCase()),
+      ])
+    )
+    .executeTakeFirst()
+
+  if (!updated) return null
+
+  return {
+    id: updated.id,
+    name: updated.name,
+    type: updated.type,
+    contact: updated.contact,
+    email: updated.email,
+    deals: Number(updated.deals) || 0,
+    value: updated.value,
+    status: updated.status as Company['status'],
+    color: updated.color as Company['color'],
+  }
+}
+
 export async function syncCompanyMetrics(companyName: string): Promise<void> {
   if (!companyName.trim()) return
 
@@ -188,6 +349,10 @@ export async function createDeal(dealData: Omit<Deal, 'id'>): Promise<Deal> {
   const now = new Date().toISOString()
   const rawAmount = Number(dealData.rawAmount) || 0
 
+  const isPaid = dealData.stage === 'Paid'
+  const nextAction = isPaid ? '' : (dealData.next || '')
+  const nextDueDate = isPaid ? null : (dealData.nextDueDate || null)
+
   await ensureCompanyExists(dealData.company, dealData.contactName, dealData.contactEmail)
 
   await db
@@ -201,8 +366,8 @@ export async function createDeal(dealData: Omit<Deal, 'id'>): Promise<Deal> {
       raw_amount: rawAmount,
       stage: dealData.stage,
       probability: dealData.probability || '30%',
-      next: dealData.next || '',
-      next_due_date: dealData.nextDueDate || null,
+      next: nextAction,
+      next_due_date: nextDueDate,
       color: dealData.color || 'blue',
       contact_name: dealData.contactName || null,
       contact_email: dealData.contactEmail || null,
@@ -221,6 +386,8 @@ export async function createDeal(dealData: Omit<Deal, 'id'>): Promise<Deal> {
   return {
     ...dealData,
     id,
+    next: nextAction,
+    nextDueDate: isPaid ? undefined : dealData.nextDueDate,
     createdAt: now,
     deliverables: dealData.deliverables || [],
     invoices: dealData.invoices || [],
@@ -239,6 +406,10 @@ export async function updateDeal(deal: Deal): Promise<Deal> {
     .where('id', '=', deal.id)
     .executeTakeFirst()
 
+  const isPaid = deal.stage === 'Paid'
+  const nextAction = isPaid ? '' : (deal.next || '')
+  const nextDueDate = isPaid ? null : (deal.nextDueDate || null)
+
   await db
     .updateTable('deals')
     .set({
@@ -248,8 +419,8 @@ export async function updateDeal(deal: Deal): Promise<Deal> {
       raw_amount: rawAmount,
       stage: deal.stage,
       probability: deal.probability,
-      next: deal.next,
-      next_due_date: deal.nextDueDate || null,
+      next: nextAction,
+      next_due_date: nextDueDate,
       color: deal.color,
       contact_name: deal.contactName || null,
       contact_email: deal.contactEmail || null,
@@ -268,7 +439,11 @@ export async function updateDeal(deal: Deal): Promise<Deal> {
     await syncCompanyMetrics(oldDeal.company)
   }
 
-  return deal
+  return {
+    ...deal,
+    next: nextAction,
+    nextDueDate: isPaid ? undefined : deal.nextDueDate,
+  }
 }
 
 export async function deleteDeal(id: string): Promise<boolean> {
@@ -305,9 +480,13 @@ export async function moveDealStage(dealId: string, stage: DealStage): Promise<D
 
   if (!existing) return null
 
-  const newProbability = stage === 'Won' ? '100%' : existing.probability
+  const isClosedWon = stage === 'Won' || stage === 'Paid'
+  const isPaid = stage === 'Paid'
+  const newProbability = isClosedWon ? '100%' : existing.probability
   const now = new Date().toISOString()
   const dealColor = (existing.color as Deal['color']) || 'blue'
+  const nextAction = isPaid ? '' : existing.next
+  const nextDueDate = isPaid ? null : existing.next_due_date
 
   await db
     .updateTable('deals')
@@ -315,6 +494,8 @@ export async function moveDealStage(dealId: string, stage: DealStage): Promise<D
       stage,
       probability: newProbability,
       color: dealColor,
+      next: nextAction,
+      next_due_date: nextDueDate,
       updated_at: now,
     })
     .where('id', '=', dealId)
@@ -328,8 +509,8 @@ export async function moveDealStage(dealId: string, stage: DealStage): Promise<D
     rawAmount: Number(existing.raw_amount) || 0,
     stage,
     probability: newProbability,
-    next: existing.next,
-    nextDueDate: existing.next_due_date ?? undefined,
+    next: nextAction,
+    nextDueDate: isPaid ? undefined : (existing.next_due_date ?? undefined),
     color: dealColor,
     contactName: existing.contact_name ?? undefined,
     contactEmail: existing.contact_email ?? undefined,
@@ -371,14 +552,23 @@ export async function createContact(contactData: Omit<Contact, 'id'>): Promise<C
     })
     .execute()
 
+  await syncCompanyPrimaryContact(contactData.company)
+
   return {
     ...contactData,
     id,
+    role: contactData.role && contactData.role.trim() !== '' ? contactData.role : null,
   }
 }
 
 export async function updateContact(contact: Contact): Promise<Contact> {
   await ensureDbInitialized()
+
+  const existing = await db
+    .selectFrom('contacts')
+    .select(['company', 'name', 'email'])
+    .where('id', '=', contact.id)
+    .executeTakeFirst()
 
   const now = new Date().toISOString()
 
@@ -386,7 +576,7 @@ export async function updateContact(contact: Contact): Promise<Contact> {
     .updateTable('contacts')
     .set({
       name: contact.name,
-      role: contact.role,
+      role: contact.role || '',
       company: contact.company,
       email: contact.email,
       phone: contact.phone || null,
@@ -398,12 +588,32 @@ export async function updateContact(contact: Contact): Promise<Contact> {
     .where('id', '=', contact.id)
     .execute()
 
-  return contact
+  await syncCompanyPrimaryContact(contact.company)
+  if (existing?.company && existing.company.trim().toLowerCase() !== contact.company.trim().toLowerCase()) {
+    await syncCompanyPrimaryContact(existing.company)
+  }
+
+  return {
+    ...contact,
+    role: contact.role && contact.role.trim() !== '' ? contact.role : null,
+  }
 }
 
 export async function deleteContact(id: string): Promise<boolean> {
   await ensureDbInitialized()
+
+  const existing = await db
+    .selectFrom('contacts')
+    .select('company')
+    .where('id', '=', id)
+    .executeTakeFirst()
+
   const result = await db.deleteFrom('contacts').where('id', '=', id).execute()
+
+  if (existing?.company) {
+    await syncCompanyPrimaryContact(existing.company)
+  }
+
   return Number(result[0]?.numDeletedRows ?? 0) > 0
 }
 
@@ -672,6 +882,43 @@ export async function syncTodos(
   }
 
   return created
+}
+
+export async function updateActivity(activity: Activity): Promise<Activity> {
+  await ensureDbInitialized()
+  await db
+    .updateTable('activities')
+    .set({
+      title: activity.title,
+      type: activity.type,
+      person: activity.person,
+      company: activity.company,
+      date: activity.date,
+      status: activity.status,
+      summary: activity.notes || null,
+      color: activity.color || 'blue',
+      deal_id: activity.dealId || null,
+    })
+    .where('id', '=', activity.id)
+    .execute()
+  return activity
+}
+
+export async function updateFollowUp(followUp: FollowUp): Promise<FollowUp> {
+  await ensureDbInitialized()
+  await db
+    .updateTable('follow_ups')
+    .set({
+      company: followUp.company,
+      action: followUp.action,
+      day: followUp.day,
+      time: followUp.time,
+      tone: followUp.color || 'blue',
+      deal_id: followUp.dealId || null,
+    })
+    .where('id', '=', followUp.id)
+    .execute()
+  return followUp
 }
 
 export async function deleteActivity(id: string): Promise<boolean> {

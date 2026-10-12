@@ -1,4 +1,4 @@
-import { describe, it, before, beforeEach, afterEach } from 'node:test'
+import { describe, it, before, beforeEach, afterEach, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { db } from '@/lib/db/client'
 import { ensureDbInitialized } from '@/lib/db/init'
@@ -21,6 +21,14 @@ describe('Server Actions Integration', () => {
 
   before(async () => {
     await ensureDbInitialized()
+  })
+
+  after(async () => {
+    await db.deleteFrom('activities').execute()
+    await db.deleteFrom('follow_ups').execute()
+    await db.deleteFrom('deals').execute()
+    await db.deleteFrom('contacts').execute()
+    await db.deleteFrom('companies').execute()
   })
 
   beforeEach(async () => {

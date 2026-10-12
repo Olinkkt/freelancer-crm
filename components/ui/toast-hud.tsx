@@ -18,9 +18,9 @@ interface ToastHUDProps {
 export function ToastHUD({ toasts, onDismiss }: ToastHUDProps) {
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none">
-      {toasts.map((toast) => (
+      {toasts.map((toast, idx) => (
         <div
-          key={toast.id}
+          key={toast.id ? `${toast.id}-${idx}` : `toast-${idx}`}
           className="pointer-events-auto flex items-center gap-2.5 px-3.5 py-2.5 bg-[#232529] text-white rounded-[12px] shadow-[0_12px_30px_rgba(0,0,0,0.18)] border border-[#343840] text-[12px] font-medium animate-in slide-in-from-bottom-2 fade-in duration-150"
         >
           {toast.type === 'warning' ? (

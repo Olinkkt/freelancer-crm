@@ -17,7 +17,7 @@ export interface CompanyTable {
 export interface ContactTable {
   id: string
   name: string
-  role: string
+  role: string | null
   company: string
   company_id: string | null
   email: string

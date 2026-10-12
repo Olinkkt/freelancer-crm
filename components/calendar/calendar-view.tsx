@@ -106,7 +106,7 @@ export function CalendarView({ deals = [], followUps = [], onOpenDeal }: Calenda
   // Dynamically map deal milestones (Section 3.4) into calendar events matching active workweek
   const dealMilestoneEvents = useMemo<CalendarEvent[]>(() => {
     return deals
-      .filter((d) => d.nextDueDate && d.nextDueDate !== 'Done')
+      .filter((d) => d.stage !== 'Paid' && d.next && d.nextDueDate && d.nextDueDate !== 'Done')
       .map((d) => {
         const matched = matchMilestoneToWorkweek(d.nextDueDate!, days)
         if (!matched) return null
@@ -526,8 +526,9 @@ export function CalendarView({ deals = [], followUps = [], onOpenDeal }: Calenda
 
   // Active top featured cards derived from real deals
   const activeFeaturedEvents: FeaturedEvent[] = useMemo(() => {
-    if (deals.length > 0) {
-      return deals.slice(0, 3).map((d) => ({
+    const activeDeals = deals.filter((d) => d.stage !== 'Paid' && d.next)
+    if (activeDeals.length > 0) {
+      return activeDeals.slice(0, 3).map((d) => ({
         id: `feat-${d.id}`,
         title: d.next,
         subtitle: `${d.title} • ${d.stage}`,

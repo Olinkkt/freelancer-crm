@@ -29,6 +29,8 @@ interface LogCallModalProps {
   contacts: Contact[]
   deals?: Deal[]
   initialDealId?: string
+  activityToEdit?: Activity | null
+  onUpdateActivity?: (activity: Activity) => void
 }
 
 interface SlashCommand {
@@ -48,6 +50,8 @@ export function LogCallModal({
   contacts,
   deals = [],
   initialDealId,
+  activityToEdit,
+  onUpdateActivity,
 }: LogCallModalProps) {
   const [type, setType] = useState<Activity['type']>('Call')
   const [person, setPerson] = useState('')
@@ -132,38 +136,50 @@ export function LogCallModal({
 
   useEffect(() => {
     if (isOpen) {
-      setType('Call')
-      setTitle('Client check-in call')
-      setSummary('')
-      setNextAction('Send follow-up summary')
-      setNextDue('Today, 17:00')
-      setIsSlashMenuOpen(false)
-
-      // Smart initial deal/contact binding
-      if (initialDealId) {
-        const foundDeal = deals.find((d) => d.id === initialDealId)
-        if (foundDeal) {
-          setSelectedDealId(foundDeal.id)
-          setCompany(foundDeal.company)
-          setPerson(foundDeal.contactName || contacts.find((c) => c.company === foundDeal.company)?.name || '')
-          setTitle(`Call regarding ${foundDeal.title}`)
-        }
+      if (activityToEdit) {
+        setType((activityToEdit.type as any) || 'Call')
+        setTitle(activityToEdit.title || '')
+        setPerson(activityToEdit.person || '')
+        setCompany(activityToEdit.company || '')
+        setSelectedDealId(activityToEdit.dealId || '')
+        setSummary(activityToEdit.notes || activityToEdit.summary || '')
+        setNextAction('')
+        setNextDue('Today, 17:00')
+        setIsSlashMenuOpen(false)
       } else {
-        const defaultContact = contacts[0]
-        const initialPerson = defaultContact?.name || ''
-        const initialCompany = defaultContact?.company || companies[0]?.name || ''
-        setPerson(initialPerson)
-        setCompany(initialCompany)
+        setType('Call')
+        setTitle('Client check-in call')
+        setSummary('')
+        setNextAction('Send follow-up summary')
+        setNextDue('Today, 17:00')
+        setIsSlashMenuOpen(false)
 
-        // Try to find matching active deal for initial contact/company
-        const matchedDeal = deals.find(
-          (d) => d.company === initialCompany || d.contactName === initialPerson
-        )
-        if (matchedDeal) {
-          setSelectedDealId(matchedDeal.id)
-          setTitle(`Call regarding ${matchedDeal.title}`)
+        // Smart initial deal/contact binding
+        if (initialDealId) {
+          const foundDeal = deals.find((d) => d.id === initialDealId)
+          if (foundDeal) {
+            setSelectedDealId(foundDeal.id)
+            setCompany(foundDeal.company)
+            setPerson(foundDeal.contactName || contacts.find((c) => c.company === foundDeal.company)?.name || '')
+            setTitle(`Call regarding ${foundDeal.title}`)
+          }
         } else {
-          setSelectedDealId('')
+          const defaultContact = contacts[0]
+          const initialPerson = defaultContact?.name || ''
+          const initialCompany = defaultContact?.company || companies[0]?.name || ''
+          setPerson(initialPerson)
+          setCompany(initialCompany)
+
+          // Try to find matching active deal for initial contact/company
+          const matchedDeal = deals.find(
+            (d) => d.company === initialCompany || d.contactName === initialPerson
+          )
+          if (matchedDeal) {
+            setSelectedDealId(matchedDeal.id)
+            setTitle(`Call regarding ${matchedDeal.title}`)
+          } else {
+            setSelectedDealId('')
+          }
         }
       }
 
@@ -171,7 +187,7 @@ export function LogCallModal({
         notesRef.current?.focus()
       }, 60)
     }
-  }, [isOpen, initialDealId, contacts, companies, deals])
+  }, [isOpen, initialDealId, contacts, companies, deals, activityToEdit])
 
   if (!isOpen) return null
 
@@ -268,6 +284,22 @@ export function LogCallModal({
       Note: 'blue',
     }
 
+    if (activityToEdit && onUpdateActivity) {
+      onUpdateActivity({
+        ...activityToEdit,
+        type,
+        title: title.trim() || `${type} with ${person || company}`,
+        person: person.trim() || 'Client',
+        company: company.trim() || 'Independent',
+        dealId: selectedDealId || undefined,
+        notes: summary.trim(),
+        summary: summary.trim(),
+        color: colorMap[type] || activityToEdit.color || 'blue',
+      })
+      onClose()
+      return
+    }
+
     const activityData: Omit<Activity, 'id'> = {
       dealId: selectedDealId || undefined,
       type,
@@ -349,7 +381,7 @@ export function LogCallModal({
               Hotkey: L
             </span>
             <h2 className="text-[16px] font-semibold text-[#1c1d1f] tracking-tight">
-              Quick Log Call & Deal Note
+              {activityToEdit ? 'Edit Interaction Note' : 'Quick Log Call & Deal Note'}
             </h2>
           </div>
           <button
@@ -631,7 +663,7 @@ export function LogCallModal({
                 className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#232529] hover:bg-[#101113] text-white text-[12px] font-medium rounded-[10px] shadow-xs transition-all cursor-pointer"
               >
                 <PhoneCall size={15} />
-                <span>Log & Sync Note</span>
+                <span>{activityToEdit ? 'Save Changes' : 'Log & Sync Note'}</span>
               </button>
             </div>
           </div>

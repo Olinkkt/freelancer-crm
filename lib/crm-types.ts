@@ -1,10 +1,9 @@
 export type DealStage =
   | 'Lead'
   | 'Qualified'
-  | 'Scope'
-  | 'Quote sent'
-  | 'Negotiation'
+  | 'Proposal'
   | 'Won'
+  | 'Paid'
 
 export interface DeliverableItem {
   id: string
@@ -50,7 +49,7 @@ export interface Deal {
 export interface Contact {
   id: string
   name: string
-  role: string
+  role?: string | null
   company: string
   email: string
   phone?: string

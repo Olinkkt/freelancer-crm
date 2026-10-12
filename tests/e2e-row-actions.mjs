@@ -46,24 +46,19 @@ async function run() {
   await page.keyboard.press('Escape')
   await page.waitForTimeout(300)
 
-  // 3. Deals View: Dense Table RowActionMenu
-  console.log('3. Testing Deals view Dense Table RowActionMenu...')
+  // 3. Deals View: Kanban Card RowActionMenu
+  console.log('3. Testing Deals view Kanban Card RowActionMenu...')
   const dealsNav = page.locator('button:has-text("Deals")').first()
   await dealsNav.click()
   await page.waitForTimeout(300)
 
-  // Switch to Dense Table mode
-  const tableToggle = page.locator('button:has-text("Table")')
-  await tableToggle.click()
-  await page.waitForTimeout(300)
+  const kanbanCardMenuBtn = page.locator('button[aria-haspopup="menu"]').first()
+  await kanbanCardMenuBtn.waitFor({ state: 'visible' })
+  await kanbanCardMenuBtn.click()
 
-  const denseTableMenuBtn = page.locator('table button[aria-haspopup="menu"]').first()
-  await denseTableMenuBtn.waitFor({ state: 'visible' })
-  await denseTableMenuBtn.click()
-
-  const denseDealItem = page.locator('button[role="menuitem"]:has-text("Open deal drawer")')
-  await denseDealItem.waitFor({ state: 'visible' })
-  console.log('  ✓ Dense table RowActionMenu opened successfully!')
+  const cardDealItem = page.locator('button[role="menuitem"]:has-text("Open deal drawer")')
+  await cardDealItem.waitFor({ state: 'visible' })
+  console.log('  ✓ Kanban Card RowActionMenu opened successfully!')
   await page.keyboard.press('Escape')
   await page.waitForTimeout(300)
 

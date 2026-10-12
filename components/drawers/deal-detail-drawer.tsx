@@ -6,7 +6,8 @@ import {
   Building2,
   Calendar,
   AlertCircle,
-  CheckCircle2,
+  Check,
+  Banknote,
   Clock,
   Mail,
   Send,
@@ -39,7 +40,13 @@ interface DealDetailDrawerProps {
   onOpenLogCallModal?: () => void
 }
 
-const STAGES: DealStage[] = ['Lead', 'Qualified', 'Scope', 'Quote sent', 'Negotiation', 'Won']
+const STAGES: DealStage[] = [
+  'Lead',
+  'Qualified',
+  'Proposal',
+  'Won',
+  'Paid',
+]
 
 export function DealDetailDrawer({
   deal,
@@ -80,11 +87,15 @@ export function DealDetailDrawer({
   if (!isOpen || !currentDeal) return null
 
   const handleStageChange = (newStage: DealStage) => {
+    const isClosed = newStage === 'Won' || newStage === 'Paid'
+    const isPaid = newStage === 'Paid'
     const updated: Deal = {
       ...currentDeal,
       stage: newStage,
-      probability: newStage === 'Won' ? '100%' : currentDeal.probability,
-      color: 'blue',
+      probability: isClosed ? '100%' : currentDeal.probability,
+      color: isClosed ? 'green' : (currentDeal.color || 'blue'),
+      next: isPaid ? '' : currentDeal.next,
+      nextDueDate: isPaid ? undefined : currentDeal.nextDueDate,
     }
     setCurrentDeal(updated)
     onUpdateDeal(updated)
@@ -260,7 +271,7 @@ export function DealDetailDrawer({
                   <label className="block text-[10px] font-bold uppercase tracking-wider text-[#8f99a8]">
                     Pipeline Stage
                   </label>
-                  <div className="grid grid-cols-3 gap-1.5">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                     {STAGES.map((s) => (
                       <button
                         key={s}
@@ -278,18 +289,20 @@ export function DealDetailDrawer({
                 </div>
 
                 {/* Mandatory Next Action (GTD Rule) */}
-                <div className="p-4 bg-[#f8faff] border border-[#d6e3fc] rounded-[12px] space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#266df0] uppercase tracking-wider">
-                      <AlertCircle size={14} />
-                      <span>Mandatory Next Action</span>
+                {currentDeal.stage !== 'Paid' && currentDeal.next ? (
+                  <div className="p-4 bg-[#f8faff] border border-[#d6e3fc] rounded-[12px] space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#266df0] uppercase tracking-wider">
+                        <AlertCircle size={14} />
+                        <span>Mandatory Next Action</span>
+                      </div>
+                      <span className="text-[10px] font-medium text-[#266df0] bg-[#e9f0ff] px-2 py-0.5 rounded-[7px]">
+                        {currentDeal.nextDueDate || 'Scheduled'}
+                      </span>
                     </div>
-                    <span className="text-[10px] font-medium text-[#266df0] bg-[#e9f0ff] px-2 py-0.5 rounded-[7px]">
-                      {currentDeal.nextDueDate || 'Scheduled'}
-                    </span>
+                    <p className="text-[13px] font-semibold text-[#1c1d1f]">{currentDeal.next}</p>
                   </div>
-                  <p className="text-[13px] font-semibold text-[#1c1d1f]">{currentDeal.next}</p>
-                </div>
+                ) : null}
 
                 {/* Contact Information */}
                 <div className="space-y-2 pt-2 border-t border-[#f0f1f3]">
@@ -529,18 +542,31 @@ export function DealDetailDrawer({
                 <span>Delete</span>
               </button>
             )}
-            <div className="ml-auto flex items-center gap-2">
+            <div className="ml-auto flex items-center gap-1.5 flex-wrap">
+              {currentDeal.stage !== 'Won' && currentDeal.stage !== 'Paid' && (
+                <button
+                  type="button"
+                  onClick={() => handleStageChange('Won')}
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-[#f0f2f5] hover:bg-[#e4e7ec] text-[#232529] text-[11px] font-medium rounded-[10px] transition-colors cursor-pointer"
+                >
+                  <Check size={13} className="text-[#3b9b6d]" />
+                  <span>Mark Won</span>
+                </button>
+              )}
+              {currentDeal.stage !== 'Paid' && (
+                <button
+                  type="button"
+                  onClick={() => handleStageChange('Paid')}
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-[#f0f2f5] hover:bg-[#e4e7ec] text-[#232529] text-[11px] font-medium rounded-[10px] transition-colors cursor-pointer"
+                >
+                  <Banknote size={13} className="text-[#059669]" />
+                  <span>Mark Paid</span>
+                </button>
+              )}
               <button
-                onClick={() => handleStageChange('Won')}
-                disabled={currentDeal.stage === 'Won'}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#f0f2f5] hover:bg-[#e4e7ec] text-[#232529] text-[11px] font-medium rounded-[10px] transition-colors disabled:opacity-50"
-              >
-                <CheckCircle2 size={14} className="text-[#3b9b6d]" />
-                <span>{currentDeal.stage === 'Won' ? 'Won' : 'Mark as Won'}</span>
-              </button>
-              <button
+                type="button"
                 onClick={onClose}
-                className="px-3.5 py-1.5 bg-[#232529] hover:bg-[#101113] text-white text-[11px] font-medium rounded-[10px] shadow-xs transition-colors"
+                className="px-3.5 py-1.5 bg-[#232529] hover:bg-[#101113] text-white text-[11px] font-medium rounded-[10px] shadow-xs transition-colors cursor-pointer"
               >
                 Done
               </button>

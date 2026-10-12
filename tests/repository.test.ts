@@ -1,4 +1,4 @@
-import { describe, it, before, beforeEach } from 'node:test'
+import { describe, it, before, beforeEach, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { db } from '@/lib/db/client'
 import { ensureDbInitialized } from '@/lib/db/init'
@@ -7,6 +7,14 @@ import * as repo from '@/lib/db/repository'
 describe('CRM Database Repository', () => {
   before(async () => {
     await ensureDbInitialized()
+  })
+
+  after(async () => {
+    await db.deleteFrom('activities').execute()
+    await db.deleteFrom('follow_ups').execute()
+    await db.deleteFrom('deals').execute()
+    await db.deleteFrom('contacts').execute()
+    await db.deleteFrom('companies').execute()
   })
 
   beforeEach(async () => {
@@ -176,7 +184,7 @@ describe('CRM Database Repository', () => {
         company: 'Innovatech',
         value: '80 000 Kč',
         rawAmount: 80000,
-        stage: 'Quote sent',
+        stage: 'Proposal',
         probability: '75%',
         next: 'Sign proposal',
         color: 'violet',
@@ -192,6 +200,26 @@ describe('CRM Database Repository', () => {
       assert.equal(data.deals[0].stage, 'Won')
       assert.equal(data.deals[0].probability, '100%')
       assert.equal(data.deals[0].color, 'violet')
+    })
+
+    it('moveDealStage sets 100% and clears next on Paid stage', async () => {
+      const deal = await repo.createDeal({
+        title: 'API Integration',
+        company: 'Fintech Co',
+        value: '60 000 Kč',
+        rawAmount: 60000,
+        stage: 'Won',
+        probability: '100%',
+        next: 'Deliver milestones',
+        color: 'green',
+      })
+
+      const paid = await repo.moveDealStage(deal.id, 'Paid')
+      assert.ok(paid)
+      assert.equal(paid.stage, 'Paid')
+      assert.equal(paid.probability, '100%')
+      assert.equal(paid.next, '')
+      assert.equal(paid.nextDueDate, undefined)
     })
 
     it('deleteDeal unlinks activities and follow-ups and recalculates metrics', async () => {
@@ -286,6 +314,92 @@ describe('CRM Database Repository', () => {
 
       const finalData = await repo.getWorkspaceData()
       assert.equal(finalData.contacts.length, 0)
+    })
+
+    it('creates contact without role and defaults role to null', async () => {
+      const contact = await repo.createContact({
+        name: 'Kyle Reese',
+        company: 'Resistance',
+        email: 'kyle@resistance.org',
+        deals: 0,
+        lastTouch: 'Today',
+        color: 'blue',
+      })
+
+      assert.equal(contact.role, null)
+
+      const data = await repo.getWorkspaceData()
+      const found = data.contacts.find((c) => c.id === contact.id)
+      assert.ok(found)
+      assert.equal(found.role, null)
+
+      await repo.deleteContact(contact.id)
+    })
+
+    it('automatically makes the single contact the primary contact of a company', async () => {
+      // 1. Create company without contact
+      await repo.createCompany({
+        name: 'Nexus Tech',
+        type: 'Client',
+        contact: '',
+        email: '',
+        deals: 0,
+        value: '0 Kč',
+        status: 'Active',
+        color: 'blue',
+      })
+
+      // 2. Add only one contact for Nexus Tech
+      const contact1 = await repo.createContact({
+        name: 'Rick Deckard',
+        company: 'Nexus Tech',
+        email: 'rick@nexus.com',
+        deals: 0,
+        lastTouch: 'Today',
+        color: 'blue',
+      })
+
+      // Verify that Rick is now the primary contact of Nexus Tech
+      let data = await repo.getWorkspaceData()
+      let nexus = data.companies.find((c) => c.name === 'Nexus Tech')!
+      assert.equal(nexus.contact, 'Rick Deckard')
+      assert.equal(nexus.email, 'rick@nexus.com')
+
+      // 3. Add a second contact
+      const contact2 = await repo.createContact({
+        name: 'Rachael Tyrell',
+        company: 'Nexus Tech',
+        email: 'rachael@nexus.com',
+        deals: 0,
+        lastTouch: 'Today',
+        color: 'violet',
+      })
+
+      // Rick is still primary
+      data = await repo.getWorkspaceData()
+      nexus = data.companies.find((c) => c.name === 'Nexus Tech')!
+      assert.equal(nexus.contact, 'Rick Deckard')
+
+      // 4. Manually set Rachael as primary
+      await repo.setPrimaryContact('Nexus Tech', contact2.id)
+      data = await repo.getWorkspaceData()
+      nexus = data.companies.find((c) => c.name === 'Nexus Tech')!
+      assert.equal(nexus.contact, 'Rachael Tyrell')
+      assert.equal(nexus.email, 'rachael@nexus.com')
+
+      // 5. Delete Rachael -> now only Rick remains (1 contact left in company)
+      await repo.deleteContact(contact2.id)
+      data = await repo.getWorkspaceData()
+      nexus = data.companies.find((c) => c.name === 'Nexus Tech')!
+      assert.equal(nexus.contact, 'Rick Deckard')
+      assert.equal(nexus.email, 'rick@nexus.com')
+
+      // 6. Delete Rick -> 0 contacts left
+      await repo.deleteContact(contact1.id)
+      data = await repo.getWorkspaceData()
+      nexus = data.companies.find((c) => c.name === 'Nexus Tech')!
+      assert.equal(nexus.contact, '')
+      assert.equal(nexus.email, '')
     })
   })
 

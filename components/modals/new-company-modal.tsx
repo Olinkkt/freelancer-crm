@@ -8,9 +8,17 @@ interface NewCompanyModalProps {
   isOpen: boolean
   onClose: () => void
   onAddCompany: (company: Omit<Company, 'id'>) => void
+  companyToEdit?: Company | null
+  onUpdateCompany?: (company: Company) => void
 }
 
-export function NewCompanyModal({ isOpen, onClose, onAddCompany }: NewCompanyModalProps) {
+export function NewCompanyModal({
+  isOpen,
+  onClose,
+  onAddCompany,
+  companyToEdit,
+  onUpdateCompany,
+}: NewCompanyModalProps) {
   const [name, setName] = useState('')
   const [type, setType] = useState('Client')
   const [contact, setContact] = useState('')
@@ -20,16 +28,24 @@ export function NewCompanyModal({ isOpen, onClose, onAddCompany }: NewCompanyMod
 
   useEffect(() => {
     if (isOpen) {
-      setName('')
-      setType('Client')
-      setContact('')
-      setEmail('')
-      setStatus('Active')
+      if (companyToEdit) {
+        setName(companyToEdit.name || '')
+        setType(companyToEdit.type || 'Client')
+        setContact(companyToEdit.contact || '')
+        setEmail(companyToEdit.email || '')
+        setStatus(companyToEdit.status || 'Active')
+      } else {
+        setName('')
+        setType('Client')
+        setContact('')
+        setEmail('')
+        setStatus('Active')
+      }
       setTimeout(() => {
         nameInputRef.current?.focus()
       }, 50)
     }
-  }, [isOpen])
+  }, [isOpen, companyToEdit])
 
   if (!isOpen) return null
 
@@ -37,16 +53,27 @@ export function NewCompanyModal({ isOpen, onClose, onAddCompany }: NewCompanyMod
     if (e) e.preventDefault()
     if (!name.trim()) return
 
-    onAddCompany({
-      name: name.trim(),
-      type: type.trim() || 'Client',
-      contact: contact.trim(),
-      email: email.trim(),
-      deals: 0,
-      value: '0 Kč',
-      status,
-      color: 'blue',
-    })
+    if (companyToEdit && onUpdateCompany) {
+      onUpdateCompany({
+        ...companyToEdit,
+        name: name.trim(),
+        type: type.trim() || 'Client',
+        contact: contact.trim(),
+        email: email.trim(),
+        status,
+      })
+    } else {
+      onAddCompany({
+        name: name.trim(),
+        type: type.trim() || 'Client',
+        contact: contact.trim(),
+        email: email.trim(),
+        deals: 0,
+        value: '0 Kč',
+        status,
+        color: 'blue',
+      })
+    }
 
     onClose()
   }
@@ -77,8 +104,12 @@ export function NewCompanyModal({ isOpen, onClose, onAddCompany }: NewCompanyMod
               <Building2 size={16} />
             </div>
             <div>
-              <h2 className="text-[14px] font-semibold text-[#1c1d1f]">Add Company Account</h2>
-              <p className="text-[11px] text-[#6f7988]">Create client account or business entity</p>
+              <h2 className="text-[14px] font-semibold text-[#1c1d1f]">
+                {companyToEdit ? 'Edit Company Account' : 'Add Company Account'}
+              </h2>
+              <p className="text-[11px] text-[#6f7988]">
+                {companyToEdit ? 'Update details for this business entity' : 'Create client account or business entity'}
+              </p>
             </div>
           </div>
           <button
@@ -189,7 +220,7 @@ export function NewCompanyModal({ isOpen, onClose, onAddCompany }: NewCompanyMod
                 disabled={!name.trim()}
                 className="px-3.5 py-1.5 text-[12px] font-medium bg-[#232529] hover:bg-[#101113] text-white rounded-[7px] transition-colors disabled:opacity-50 cursor-pointer"
               >
-                Save company
+                {companyToEdit ? 'Save changes' : 'Save company'}
               </button>
             </div>
           </div>

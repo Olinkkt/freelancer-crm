@@ -62,6 +62,14 @@ export async function deleteContactAction(id: string): Promise<boolean> {
   return await repo.deleteContact(id)
 }
 
+export async function setPrimaryContactAction(
+  companyName: string,
+  contactId: string
+): Promise<Company | null> {
+  await assertAuth()
+  return await repo.setPrimaryContact(companyName, contactId)
+}
+
 // 4. Companies actions
 export async function createCompanyAction(companyData: Omit<Company, 'id'>): Promise<Company> {
   await assertAuth()
@@ -104,6 +112,16 @@ export async function syncTodosAction(
 ): Promise<FollowUpItem[]> {
   await assertAuth()
   return await repo.syncTodos(todos, companyName, dealId)
+}
+
+export async function updateActivityAction(activity: Activity): Promise<Activity> {
+  await assertAuth()
+  return await repo.updateActivity(activity)
+}
+
+export async function updateFollowUpAction(followUp: FollowUp): Promise<FollowUp> {
+  await assertAuth()
+  return await repo.updateFollowUp(followUp)
 }
 
 export async function deleteActivityAction(id: string): Promise<boolean> {

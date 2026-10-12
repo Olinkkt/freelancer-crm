@@ -20,7 +20,6 @@ import {
   CornerDownLeft,
   X,
   Kanban,
-  TableProperties,
   Keyboard,
   Clock,
   CheckCircle2,
@@ -41,7 +40,6 @@ export type PaletteActionType =
   | 'open_company'
   | 'open_contact'
   | 'toggle_kanban'
-  | 'toggle_table'
   | 'show_shortcuts'
   | 'open_scratchpad'
 
@@ -199,19 +197,11 @@ export function CommandPalette({
       {
         id: 'action-switch-kanban',
         category: 'Actions',
-        title: 'Switch to Deals Kanban board',
+        title: 'Open Deals & Pipeline (Kanban)',
         subtitle: 'Visual stage columns with hotkey navigation',
         shortcut: 'G P',
         icon: <Kanban size={15} className="text-[#266df0]" />,
         actionType: 'toggle_kanban',
-      },
-      {
-        id: 'action-switch-table',
-        category: 'Actions',
-        title: 'Switch to Deals Dense table',
-        subtitle: 'Compact high-density opportunity view',
-        icon: <TableProperties size={15} className="text-[#6f7988]" />,
-        actionType: 'toggle_table',
       },
 
       // Navigation
@@ -293,7 +283,10 @@ export function CommandPalette({
         id: `deal-${deal.id}`,
         category: 'Deals',
         title: deal.title,
-        subtitle: `${deal.company} • ${deal.stage} • Next: ${deal.next}`,
+        subtitle:
+          deal.stage === 'Paid' || !deal.next
+            ? `${deal.company} • ${deal.stage}`
+            : `${deal.company} • ${deal.stage} • Next: ${deal.next}`,
         badge: deal.value,
         color: deal.color,
         icon: (
@@ -331,7 +324,9 @@ export function CommandPalette({
         id: `contact-${contact.id}`,
         category: 'Contacts',
         title: contact.name,
-        subtitle: `${contact.role} at ${contact.company} • ${contact.email}`,
+        subtitle: contact.role
+          ? `${contact.role} at ${contact.company} • ${contact.email}`
+          : `${contact.company} • ${contact.email}`,
         badge: contact.lastTouch,
         color: contact.color,
         icon: (

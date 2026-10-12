@@ -15,6 +15,10 @@ export function DealNextActionCell({
   onOpenModal,
   onComplete,
 }: DealNextActionCellProps) {
+  if (deal.stage === 'Paid') {
+    return <span className="text-[#8f99a8] text-[11px] font-medium">—</span>
+  }
+
   if (!deal.nextAction) {
     return (
       <button

@@ -44,8 +44,13 @@ describe('API Route Handlers', () => {
     validToken = createSessionToken()
   })
 
-  after(() => {
+  after(async () => {
     process.env.AUTH_SECRET = originalSecret
+    await db.deleteFrom('activities').execute()
+    await db.deleteFrom('follow_ups').execute()
+    await db.deleteFrom('deals').execute()
+    await db.deleteFrom('contacts').execute()
+    await db.deleteFrom('companies').execute()
   })
 
   beforeEach(async () => {
@@ -134,7 +139,7 @@ describe('API Route Handlers', () => {
       const putReq = createAuthedRequest('http://localhost:3000/api/deals', 'PUT', {
         ...createdDeal,
         title: 'New Portal - Phase 2',
-        stage: 'Proposal Sent',
+        stage: 'Proposal',
       })
       const putRes = await putDeal(putReq)
       assert.equal(putRes.status, 200)

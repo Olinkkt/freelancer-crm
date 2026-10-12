@@ -95,7 +95,7 @@ export function EventModal({
     const endTimeLabel = formatHour(endH, endM)
 
     onSaveEvent({
-      id: selectedEvent?.id || `ev-${Date.now()}`,
+      id: selectedEvent?.id || `ev-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       title: name.trim(),
       description: description.trim() || undefined,
       subtitle: description.trim() || undefined,

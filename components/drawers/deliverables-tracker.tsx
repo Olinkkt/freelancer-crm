@@ -87,8 +87,9 @@ export function DeliverablesTracker({
     e.preventDefault()
     if (!newTitle.trim()) return
 
+    const rand = Math.random().toString(36).substring(2, 7)
     const newItem: DeliverableItem = {
-      id: `del-${Date.now()}`,
+      id: `del-${Date.now()}-${rand}`,
       title: newTitle.trim(),
       status: 'Pending',
       clientSignOff: false,

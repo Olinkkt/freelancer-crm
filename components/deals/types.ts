@@ -1,12 +1,9 @@
 export type DealStage =
   | 'Lead'
-  | 'Contacted'
   | 'Qualified'
-  | 'Scope'
-  | 'Quote sent'
-  | 'Negotiation'
+  | 'Proposal'
   | 'Won'
-  | 'Lost'
+  | 'Paid'
 
 export type DealColor = 'blue' | 'violet' | 'amber' | 'green'
 

@@ -199,6 +199,7 @@ export default function DealProjectPage() {
       company: deal.company,
       date: 'Today, Just now',
       status: 'Completed',
+      summary: draftNotes.trim(),
       notes: draftNotes.trim(),
       color: 'blue',
     }
@@ -221,7 +222,7 @@ export default function DealProjectPage() {
     if (!act || !act.notes) return
 
     const lines = act.notes.split('\n')
-    const updatedLines = lines.map((line) => {
+    const updatedLines = lines.map((line: string) => {
       if (line.includes(itemText)) {
         if (currentChecked) {
           return line.replace(/-\s*\[x\]/i, '- [ ]')
@@ -233,7 +234,7 @@ export default function DealProjectPage() {
     })
 
     const updatedNotes = updatedLines.join('\n')
-    const updatedAct: Activity = { ...act, notes: updatedNotes }
+    const updatedAct: Activity = { ...act, notes: updatedNotes, summary: updatedNotes }
     setActivities((prev) => prev.map((a) => (a.id === activityId ? updatedAct : a)))
 
     try {
@@ -693,7 +694,7 @@ export default function DealProjectPage() {
                             <div className="pt-2 border-t border-[#edf0f3] text-[12px]">
                               <MarkdownFormatter
                                 content={act.notes}
-                                onToggleCheck={(text, checked) => {
+                                onToggleCheck={(text: string, checked: boolean) => {
                                   handleToggleMarkdownCheck(act.id, text, checked)
                                 }}
                               />
@@ -926,7 +927,7 @@ export default function DealProjectPage() {
           isOpen={isLogCallOpen}
           onClose={() => setIsLogCallOpen(false)}
           prefilledCompany={deal.company}
-          onSaveActivity={async (newAct, newFollowUp) => {
+          onSaveActivity={async (newAct: Omit<Activity, 'id'>, newFollowUp?: Omit<FollowUpItem, 'id'>) => {
             try {
               const res = await logActivityAction(newAct, newFollowUp, deal.id)
               setActivities((prev) => [res.activity, ...prev])

@@ -283,8 +283,10 @@ describe('CRM Database Repository', () => {
         title: 'Full Stack App Development',
         company: 'Stripe Europe',
         value: '180 000 Kč',
+        rawAmount: 180000,
         stage: 'Qualified',
         probability: '40%',
+        next: 'Send technical proposal',
         color: 'blue',
       })
 

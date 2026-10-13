@@ -82,6 +82,9 @@ export interface Activity {
   status: 'Due today' | 'Upcoming' | 'Completed'
   color: 'blue' | 'violet' | 'amber' | 'green'
   summary?: string
+  notes?: string
+  dueDate?: string
+  createdAt?: string
 }
 
 export interface FollowUpItem {

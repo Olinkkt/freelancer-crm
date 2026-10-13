@@ -514,8 +514,8 @@ export async function getDealActivities(dealId: string): Promise<Activity[]> {
     date: r.date,
     status: r.status as Activity['status'],
     color: r.color as Activity['color'],
-    notes: r.notes ?? undefined,
-    dueDate: r.due_date ?? undefined,
+    summary: r.summary ?? undefined,
+    notes: r.summary ?? undefined,
     createdAt: r.created_at,
   }))
 }
@@ -1023,7 +1023,7 @@ export async function updateActivity(activity: Activity): Promise<Activity> {
       company: activity.company,
       date: activity.date,
       status: activity.status,
-      summary: activity.notes || null,
+      summary: activity.notes || activity.summary || null,
       color: activity.color || 'blue',
       deal_id: activity.dealId || null,
     })
@@ -1032,7 +1032,7 @@ export async function updateActivity(activity: Activity): Promise<Activity> {
   return activity
 }
 
-export async function updateFollowUp(followUp: FollowUp): Promise<FollowUp> {
+export async function updateFollowUp(followUp: FollowUpItem): Promise<FollowUpItem> {
   await ensureDbInitialized()
   await db
     .updateTable('follow_ups')
@@ -1041,8 +1041,7 @@ export async function updateFollowUp(followUp: FollowUp): Promise<FollowUp> {
       action: followUp.action,
       day: followUp.day,
       time: followUp.time,
-      tone: followUp.color || 'blue',
-      deal_id: followUp.dealId || null,
+      tone: followUp.tone || 'normal',
     })
     .where('id', '=', followUp.id)
     .execute()

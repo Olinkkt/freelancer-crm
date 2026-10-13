@@ -129,7 +129,7 @@ export async function updateActivityAction(activity: Activity): Promise<Activity
   return await repo.updateActivity(activity)
 }
 
-export async function updateFollowUpAction(followUp: FollowUp): Promise<FollowUp> {
+export async function updateFollowUpAction(followUp: FollowUpItem): Promise<FollowUpItem> {
   await assertAuth()
   return await repo.updateFollowUp(followUp)
 }

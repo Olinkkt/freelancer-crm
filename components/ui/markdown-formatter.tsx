@@ -6,6 +6,7 @@ interface MarkdownFormatterProps {
   content: string
   className?: string
   onToggleTodo?: (todoText: string, newCompleted: boolean) => void
+  onToggleCheck?: (todoText: string, newCompleted: boolean) => void
 }
 
 /**
@@ -86,6 +87,7 @@ export function MarkdownFormatter({
   content,
   className = '',
   onToggleTodo,
+  onToggleCheck,
 }: MarkdownFormatterProps) {
   if (!content) return null
 
@@ -176,10 +178,11 @@ export function MarkdownFormatter({
               <input
                 type="checkbox"
                 checked={isChecked}
-                readOnly={!onToggleTodo}
+                readOnly={!onToggleTodo && !onToggleCheck}
                 onChange={() => {
-                  if (onToggleTodo) {
-                    onToggleTodo(taskText, !isChecked)
+                  const toggleFn = onToggleCheck || onToggleTodo
+                  if (toggleFn) {
+                    toggleFn(taskText, !isChecked)
                   }
                 }}
                 className="mt-1 h-3.5 w-3.5 rounded border-[#c7ccd6] text-[#266df0] focus:ring-0 cursor-pointer accent-[#266df0]"

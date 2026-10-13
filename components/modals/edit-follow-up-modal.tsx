@@ -45,7 +45,7 @@ export function EditFollowUpModal({
       ...followUp,
       action: action.trim(),
       company: company.trim() || 'Workspace',
-      day: day.trim() || 'Today',
+      day: (day.trim() as FollowUpItem['day']) || 'Today',
       time: time.trim() || '10:00',
     })
 

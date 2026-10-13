@@ -20,15 +20,20 @@ import { Activity, Company, Contact, FollowUpItem, Deal } from '@/lib/crm-types'
 interface LogCallModalProps {
   isOpen: boolean
   onClose: () => void
-  onLogActivity: (
+  onLogActivity?: (
     activity: Omit<Activity, 'id'>,
     followUp?: Omit<FollowUpItem, 'id'>,
     dealId?: string
   ) => void
-  companies: Company[]
-  contacts: Contact[]
+  onSaveActivity?: (
+    activity: Omit<Activity, 'id'>,
+    followUp?: Omit<FollowUpItem, 'id'>
+  ) => void | Promise<void>
+  companies?: Company[]
+  contacts?: Contact[]
   deals?: Deal[]
   initialDealId?: string
+  prefilledCompany?: string
   activityToEdit?: Activity | null
   onUpdateActivity?: (activity: Activity) => void
 }
@@ -46,10 +51,12 @@ export function LogCallModal({
   isOpen,
   onClose,
   onLogActivity,
-  companies,
-  contacts,
+  onSaveActivity,
+  companies = [],
+  contacts = [],
   deals = [],
   initialDealId,
+  prefilledCompany,
   activityToEdit,
   onUpdateActivity,
 }: LogCallModalProps) {
@@ -155,7 +162,20 @@ export function LogCallModal({
         setIsSlashMenuOpen(false)
 
         // Smart initial deal/contact binding
-        if (initialDealId) {
+        if (prefilledCompany) {
+          setCompany(prefilledCompany)
+          const matchedDeal = deals.find((d) => d.company === prefilledCompany)
+          if (matchedDeal) {
+            setSelectedDealId(matchedDeal.id)
+            setPerson(matchedDeal.contactName || contacts.find((c) => c.company === prefilledCompany)?.name || '')
+            setTitle(`Call regarding ${matchedDeal.title}`)
+          } else {
+            const matchedContact = contacts.find((c) => c.company === prefilledCompany)
+            setPerson(matchedContact?.name || '')
+            setSelectedDealId('')
+            setTitle(`Call with ${prefilledCompany}`)
+          }
+        } else if (initialDealId) {
           const foundDeal = deals.find((d) => d.id === initialDealId)
           if (foundDeal) {
             setSelectedDealId(foundDeal.id)
@@ -328,7 +348,11 @@ export function LogCallModal({
       }
     }
 
-    onLogActivity(activityData, followUpData, selectedDealId || undefined)
+    if (onSaveActivity) {
+      onSaveActivity(activityData, followUpData)
+    } else if (onLogActivity) {
+      onLogActivity(activityData, followUpData, selectedDealId || undefined)
+    }
     onClose()
   }
 

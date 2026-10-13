@@ -1062,6 +1062,7 @@ export function CalendarView({ deals = [], followUps = [], onOpenDeal }: Calenda
         selectedEvent={selectedEvent}
         defaultDayIndex={modalDefaultDay}
         defaultStartHour={modalDefaultHour}
+        days={days}
         onSaveEvent={handleSaveEvent}
         onDeleteEvent={handleDeleteEvent}
       />

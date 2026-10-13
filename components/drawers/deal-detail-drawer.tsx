@@ -28,6 +28,7 @@ import { Deal, DealStage, DeliverableItem, InvoiceMilestone, Activity } from '@/
 import { ScratchpadEditor } from './scratchpad-editor'
 import { DeliverablesTracker } from './deliverables-tracker'
 import { MarkdownFormatter } from '../ui/markdown-formatter'
+import { formatDealValue } from '@/lib/config'
 
 interface DealDetailDrawerProps {
   deal: Deal | null
@@ -330,7 +331,7 @@ export function DealDetailDrawer({
                   </h1>
                   <div className="mt-3 flex items-baseline gap-3">
                     <span className="text-[26px] font-bold font-mono tabular-nums text-[#1c1d1f] tracking-tight">
-                      {currentDeal.value}
+                      {formatDealValue(currentDeal.value)}
                     </span>
                     <span className="px-2 py-0.5 text-[11px] font-medium rounded-[7px] bg-[#f0f2f5] text-[#232529] font-mono">
                       {currentDeal.probability} prob.
@@ -602,23 +603,43 @@ export function DealDetailDrawer({
                   <span className="block text-[10px] font-bold uppercase tracking-wider text-[#8f99a8]">
                     Primary Contact
                   </span>
-                  <div className="p-3 bg-[#fafbfc] border border-[#edf0f3] rounded-[12px] flex items-center justify-between">
-                    <div>
-                      <div className="text-[13px] font-semibold text-[#1c1d1f]">
-                        {currentDeal.contactName || currentDeal.company}
+                  {(() => {
+                    const fallbackDomain = currentDeal.company
+                      .toLowerCase()
+                      .replace(/[^a-z0-9]/g, '')
+                    const contactEmail =
+                      currentDeal.contactEmail ||
+                      (fallbackDomain ? `contact@${fallbackDomain}.cz` : '')
+
+                    return (
+                      <div className="p-3 bg-[#fafbfc] border border-[#edf0f3] rounded-[12px] flex items-center justify-between">
+                        <div>
+                          <div className="text-[13px] font-semibold text-[#1c1d1f]">
+                            {currentDeal.contactName || currentDeal.company}
+                          </div>
+                          <div className="text-[11px] text-[#6f7988]">
+                            {contactEmail || 'No email specified'}
+                          </div>
+                        </div>
+                        {contactEmail ? (
+                          <a
+                            href={`mailto:${contactEmail}`}
+                            className="w-8 h-8 rounded-[10px] bg-white border border-[#e4e7ec] text-[#266df0] hover:bg-[#e9f0ff] flex items-center justify-center transition-colors"
+                            title={`Send email to ${contactEmail}`}
+                          >
+                            <Mail size={15} />
+                          </a>
+                        ) : (
+                          <span
+                            className="w-8 h-8 rounded-[10px] bg-white border border-[#e4e7ec] text-[#a4acb9] flex items-center justify-center cursor-not-allowed"
+                            title="No email on record"
+                          >
+                            <Mail size={15} />
+                          </span>
+                        )}
                       </div>
-                      <div className="text-[11px] text-[#6f7988]">
-                        {currentDeal.contactEmail || `contact@${currentDeal.company.toLowerCase().replace(/\s+/g, '')}.cz`}
-                      </div>
-                    </div>
-                    <a
-                      href={`mailto:${currentDeal.contactEmail || 'client@example.cz'}`}
-                      className="w-8 h-8 rounded-[10px] bg-white border border-[#e4e7ec] text-[#266df0] hover:bg-[#e9f0ff] flex items-center justify-center transition-colors"
-                      title="Send email"
-                    >
-                      <Mail size={15} />
-                    </a>
-                  </div>
+                    )
+                  })()}
                 </div>
 
                 {/* MULTI-MEETING NOTES & TIMELINE STREAM (Option 2) */}

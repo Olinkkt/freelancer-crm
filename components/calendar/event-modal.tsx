@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react'
 import { X, Trash2 } from 'lucide-react'
-import { CalendarEvent } from './types'
+import { CalendarEvent, DayColumn } from './types'
+import { getWorkweekDays, getDateString } from '@/lib/date-utils'
 
 interface EventModalProps {
   isOpen: boolean
@@ -12,6 +13,7 @@ interface EventModalProps {
   selectedEvent?: CalendarEvent | null
   defaultDayIndex?: number
   defaultStartHour?: number
+  days?: DayColumn[]
 }
 
 // Generate time options from 08:00 to 18:00 in 30-min intervals
@@ -37,8 +39,10 @@ export function EventModal({
   selectedEvent,
   defaultDayIndex = 1,
   defaultStartHour = 10,
+  days,
 }: EventModalProps) {
   const isEditing = !!selectedEvent
+  const activeDays = days && days.length === 5 ? days : getWorkweekDays(0)
 
   const [name, setName] = useState('')
   const [dayIndex, setDayIndex] = useState(defaultDayIndex)
@@ -93,6 +97,9 @@ export function EventModal({
 
     const startTimeLabel = formatHour(startH, startM)
     const endTimeLabel = formatHour(endH, endM)
+    const targetDate = activeDays[dayIndex]?.fullDate
+      ? getDateString(activeDays[dayIndex].fullDate)
+      : getDateString(new Date())
 
     onSaveEvent({
       id: selectedEvent?.id || `ev-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
@@ -100,7 +107,7 @@ export function EventModal({
       description: description.trim() || undefined,
       subtitle: description.trim() || undefined,
       dayIndex,
-      dateString: `2026-09-${21 + dayIndex}`,
+      dateString: targetDate,
       startHour,
       durationHours: duration,
       startTimeLabel,
@@ -146,11 +153,18 @@ export function EventModal({
           <label>
             Date
             <select value={dayIndex} onChange={(e) => setDayIndex(Number(e.target.value))}>
-              <option value={0}>Mon 21 Sep</option>
-              <option value={1}>Tue 22 Sep (Today)</option>
-              <option value={2}>Wed 23 Sep</option>
-              <option value={3}>Thu 24 Sep</option>
-              <option value={4}>Fri 25 Sep</option>
+              {activeDays.map((d, idx) => {
+                const formatted = d.fullDate.toLocaleDateString('en-GB', {
+                  weekday: 'short',
+                  day: 'numeric',
+                  month: 'short',
+                })
+                return (
+                  <option key={idx} value={idx}>
+                    {formatted} {d.isToday ? '(Today)' : ''}
+                  </option>
+                )
+              })}
             </select>
           </label>
 

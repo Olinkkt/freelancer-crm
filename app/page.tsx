@@ -37,7 +37,7 @@ import {
   exportFollowUpsCSV,
 } from '@/lib/csv-export'
 import { getFormattedToday, getDynamicGreeting } from '@/lib/date-utils'
-import { OPERATOR_CONFIG, formatMoney, getOperatorInitials } from '@/lib/config'
+import { OPERATOR_CONFIG, formatMoney, formatDealValue, getOperatorInitials } from '@/lib/config'
 import { CalendarView } from '@/components/calendar/calendar-view'
 import { Deal, Contact, Company, Activity, FollowUpItem, DealStage } from '@/lib/crm-types'
 import {
@@ -780,8 +780,12 @@ export default function Page() {
   const activeProjectsCount = deals.filter(
     (d) => d.stage === 'Won'
   ).length
-  const dueTodayFollowUpsCount = followUps.filter(
-    (f) => f.day.toLowerCase() === 'today' && !completedFollowUps.includes(f.id)
+  const pendingFollowUps = followUps.filter(
+    (f) => !completedFollowUps.includes(f.id)
+  )
+  const pendingFollowUpsCount = pendingFollowUps.length
+  const dueTodayFollowUpsCount = pendingFollowUps.filter(
+    (f) => f.day.toLowerCase() === 'today'
   ).length
   const winRate =
     deals.length > 0
@@ -2251,12 +2255,14 @@ export default function Page() {
                     <Clock size={18} />
                   </div>
                   <span className="metric-label">Follow-ups</span>
-                  <strong>{followUps.length}</strong>
+                  <strong>{pendingFollowUpsCount}</strong>
                   <small>
                     {dueTodayFollowUpsCount > 0 ? (
                       <>
                         <span className="warning">{dueTodayFollowUpsCount} due today</span> keep momentum
                       </>
+                    ) : pendingFollowUpsCount > 0 ? (
+                      `${pendingFollowUpsCount} upcoming`
                     ) : (
                       'All caught up'
                     )}
@@ -2539,7 +2545,7 @@ export default function Page() {
                               </span>
                             )}
                           </div>
-                          <strong className="font-mono tabular-nums">{deal.value}</strong>
+                          <strong className="font-mono tabular-nums">{formatDealValue(deal.value)}</strong>
                           <span className="probability font-mono">{deal.probability}</span>
                           <span className="next-action flex items-center gap-1">
                             {deal.stage === 'Paid' ? (

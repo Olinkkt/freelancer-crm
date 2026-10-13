@@ -26,6 +26,7 @@ import {
 } from 'lucide-react'
 import { Deal, DealStage } from '@/lib/crm-types'
 import { RowActionMenu } from '@/components/ui/row-action-menu'
+import { formatDealValue } from '@/lib/config'
 
 interface DealKanbanProps {
   deals: Deal[]
@@ -628,7 +629,7 @@ export function DealKanban({
                           {/* Financial Value & Probability */}
                           <div className="mt-2.5 flex items-baseline justify-between pt-2 border-t border-[#f5f6f8]">
                             <span className="text-[13px] font-bold font-mono tabular-nums text-[#1c1d1f]">
-                              {deal.value}
+                              {formatDealValue(deal.value)}
                             </span>
                             <span className="text-[10px] font-mono font-medium text-[#6f7988]">
                               {deal.probability}

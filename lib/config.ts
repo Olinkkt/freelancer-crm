@@ -38,6 +38,17 @@ export function formatMoney(amount: number): string {
 }
 
 /**
+ * Formats a deal value (string or number) into standard localized currency.
+ */
+export function formatDealValue(value: string | number): string {
+  if (typeof value === 'number') return formatMoney(value)
+  const numeric = parseInt(String(value).replace(/[^0-9]/g, ''), 10)
+  if (isNaN(numeric) || numeric === 0) return '0 Kč'
+  return formatMoney(numeric)
+}
+
+
+/**
  * Returns initials from full operator name (e.g. "Oliver Seidl" -> "OS")
  */
 export function getOperatorInitials(name: string = OPERATOR_CONFIG.name): string {

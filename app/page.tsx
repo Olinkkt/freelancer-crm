@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   ArrowUpRight,
   Building2,
@@ -120,6 +121,7 @@ function NavItem({
 }
 
 export default function Page() {
+  const router = useRouter()
   // Navigation & View State
   const [activeView, setActiveView] = useState<string>('Dashboard')
   const [activeTab, setActiveTab] = useState<string>('Overview')
@@ -422,6 +424,11 @@ export default function Page() {
         if (payload) {
           setSelectedDeal(payload)
           setIsDealDrawerOpen(true)
+        }
+        break
+      case 'open_project_workspace':
+        if (payload?.id) {
+          router.push(`/deals/${payload.id}`)
         }
         break
       case 'open_company':

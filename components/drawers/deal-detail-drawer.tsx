@@ -1,6 +1,8 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   X,
   Building2,
@@ -63,6 +65,7 @@ export function DealDetailDrawer({
   onOpenLogCallModal,
   onToast,
 }: DealDetailDrawerProps) {
+  const router = useRouter()
   const [currentDeal, setCurrentDeal] = useState<Deal | null>(deal)
   const [activeTab, setActiveTab] = useState<'overview' | 'deliverables'>('overview')
   const [notes, setNotes] = useState('')
@@ -83,10 +86,20 @@ export function DealDetailDrawer({
       if (e.key === 'Escape' && isOpen) {
         onClose()
       }
+      if (
+        (e.key === 'o' || e.key === 'O') &&
+        isOpen &&
+        currentDeal &&
+        !['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName) &&
+        !(e.target as HTMLElement)?.isContentEditable
+      ) {
+        e.preventDefault()
+        router.push(`/deals/${currentDeal.id}`)
+      }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, onClose])
+  }, [isOpen, onClose, currentDeal, router])
 
   const dealInvoices = React.useMemo(() => {
     if (!currentDeal) return []
@@ -257,6 +270,17 @@ export function DealDetailDrawer({
             </div>
 
             <div className="flex items-center gap-1.5">
+              <Link
+                href={`/deals/${currentDeal.id}`}
+                title="Open full project workspace (O)"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold text-[#1c1d1f] bg-white hover:bg-[#f0f2f5] rounded-[7px] border border-[#dce0e8] hover:border-[#cbd0d8] transition-colors cursor-pointer mr-1"
+              >
+                <ExternalLink size={12} className="text-[#266df0]" />
+                <span className="hidden sm:inline">Workspace</span>
+                <kbd className="hidden sm:inline-block px-1 py-0.2 text-[9px] font-mono text-[#8f99a8] bg-[#f4f5f6] border border-[#e4e7ec] rounded-[4px]">
+                  O
+                </kbd>
+              </Link>
               {onOpenLogCallModal && (
                 <button
                   type="button"
@@ -820,6 +844,22 @@ export function DealDetailDrawer({
             ) : (
               /* DELIVERABLES & INVOICES TAB (Section 3.5) */
               <div className="space-y-4">
+                <div className="flex items-center justify-between p-3 bg-[#f8faff] border border-[#d6e3fc] rounded-[10px] text-[12px]">
+                  <div className="flex items-center gap-2 text-[#1c1d1f]">
+                    <Sparkles size={14} className="text-[#266df0] shrink-0" />
+                    <span className="text-[11px] text-[#505967]">
+                      Need a full-screen view for scope, specs & invoices?
+                    </span>
+                  </div>
+                  <Link
+                    href={`/deals/${currentDeal.id}`}
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#266df0] hover:underline shrink-0"
+                  >
+                    <span>Open Workspace</span>
+                    <ExternalLink size={11} />
+                  </Link>
+                </div>
+
                 <div>
                   <h2 className="text-[16px] font-bold text-[#1c1d1f] tracking-tight">
                     {currentDeal.title}

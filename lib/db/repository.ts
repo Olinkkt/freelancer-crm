@@ -28,22 +28,8 @@ function generateId(prefix: string): string {
   return `${prefix}-${Date.now()}-${rand}`
 }
 
-// -------------------------------------------------------------
-// WORKSPACE AGGREGATE
-// -------------------------------------------------------------
-export async function getWorkspaceData(): Promise<WorkspaceData> {
-  await ensureDbInitialized()
-
-  const [dealRows, companyRows, contactRows, activityRows, followUpRows, settingsRow] = await Promise.all([
-    db.selectFrom('deals').selectAll().orderBy('created_at', 'desc').execute(),
-    db.selectFrom('companies').selectAll().orderBy('name', 'asc').execute(),
-    db.selectFrom('contacts').selectAll().orderBy('name', 'asc').execute(),
-    db.selectFrom('activities').selectAll().orderBy('created_at', 'desc').execute(),
-    db.selectFrom('follow_ups').selectAll().orderBy('created_at', 'desc').execute(),
-    db.selectFrom('workspace_settings').selectAll().where('id', '=', 'current').executeTakeFirst(),
-  ])
-
-  const deals: Deal[] = dealRows.map((r) => ({
+export function mapDealRow(r: any): Deal {
+  return {
     id: r.id,
     title: r.title,
     company: r.company,
@@ -62,7 +48,25 @@ export async function getWorkspaceData(): Promise<WorkspaceData> {
     deliverables: safeParseJson<DeliverableItem[]>(r.deliverables, []),
     invoices: safeParseJson<InvoiceMilestone[]>(r.invoices, []),
     createdAt: r.created_at,
-  }))
+  }
+}
+
+// -------------------------------------------------------------
+// WORKSPACE AGGREGATE
+// -------------------------------------------------------------
+export async function getWorkspaceData(): Promise<WorkspaceData> {
+  await ensureDbInitialized()
+
+  const [dealRows, companyRows, contactRows, activityRows, followUpRows, settingsRow] = await Promise.all([
+    db.selectFrom('deals').selectAll().orderBy('created_at', 'desc').execute(),
+    db.selectFrom('companies').selectAll().orderBy('name', 'asc').execute(),
+    db.selectFrom('contacts').selectAll().orderBy('name', 'asc').execute(),
+    db.selectFrom('activities').selectAll().orderBy('created_at', 'desc').execute(),
+    db.selectFrom('follow_ups').selectAll().orderBy('created_at', 'desc').execute(),
+    db.selectFrom('workspace_settings').selectAll().where('id', '=', 'current').executeTakeFirst(),
+  ])
+
+  const deals: Deal[] = dealRows.map(mapDealRow)
 
   const companies: Company[] = companyRows.map((r) => ({
     id: r.id,
@@ -460,6 +464,60 @@ export async function updateDeal(deal: Deal): Promise<Deal> {
     next: nextAction,
     nextDueDate: isPaid ? undefined : deal.nextDueDate,
   }
+}
+
+export async function getDealById(idOrSlug: string): Promise<Deal | null> {
+  await ensureDbInitialized()
+
+  const row = await db
+    .selectFrom('deals')
+    .selectAll()
+    .where('id', '=', idOrSlug)
+    .executeTakeFirst()
+
+  if (row) {
+    return mapDealRow(row)
+  }
+
+  // Fallback: match by title or company, or slugified match
+  const allDeals = await db.selectFrom('deals').selectAll().execute()
+  const normalizedSlug = idOrSlug.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+  const match = allDeals.find((d) => {
+    if (d.title.toLowerCase() === idOrSlug.toLowerCase()) return true
+    if (d.company.toLowerCase() === idOrSlug.toLowerCase()) return true
+    const titleSlug = d.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+    const companySlug = d.company.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+    return titleSlug === normalizedSlug || companySlug === normalizedSlug
+  })
+
+  if (!match) return null
+  return mapDealRow(match)
+}
+
+export async function getDealActivities(dealId: string): Promise<Activity[]> {
+  await ensureDbInitialized()
+
+  const rows = await db
+    .selectFrom('activities')
+    .selectAll()
+    .where('deal_id', '=', dealId)
+    .orderBy('created_at', 'desc')
+    .execute()
+
+  return rows.map((r) => ({
+    id: r.id,
+    dealId: r.deal_id ?? undefined,
+    type: r.type as Activity['type'],
+    title: r.title,
+    person: r.person,
+    company: r.company,
+    date: r.date,
+    status: r.status as Activity['status'],
+    color: r.color as Activity['color'],
+    notes: r.notes ?? undefined,
+    dueDate: r.due_date ?? undefined,
+    createdAt: r.created_at,
+  }))
 }
 
 export async function deleteDeal(id: string): Promise<boolean> {

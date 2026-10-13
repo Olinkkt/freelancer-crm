@@ -41,6 +41,16 @@ export async function deleteDealAction(id: string): Promise<boolean> {
   return await repo.deleteDeal(id)
 }
 
+export async function fetchDealByIdAction(idOrSlug: string): Promise<Deal | null> {
+  await assertAuth()
+  return await repo.getDealById(idOrSlug)
+}
+
+export async function fetchDealActivitiesAction(dealId: string): Promise<Activity[]> {
+  await assertAuth()
+  return await repo.getDealActivities(dealId)
+}
+
 export async function moveDealStageAction(dealId: string, stage: DealStage): Promise<Deal | null> {
   await assertAuth()
   return await repo.moveDealStage(dealId, stage)

@@ -44,7 +44,7 @@ interface SlashCommand {
 }
 
 export function ScratchpadEditor({
-  notes,
+  notes = '',
   onChangeNotes,
   onSave,
   onSyncTodos,
@@ -202,7 +202,7 @@ export function ScratchpadEditor({
 
   // Extract todos matching "- [ ]"
   const extractTodos = (): string[] => {
-    const lines = notes.split('\n')
+    const lines = (notes || '').split('\n')
     return lines
       .filter((l) => l.trim().startsWith('- [ ]'))
       .map((l) => l.trim().replace(/^- \[ \]\s*/, ''))

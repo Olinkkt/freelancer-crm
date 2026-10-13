@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Kanban,
   CirclePlus,
@@ -23,6 +24,7 @@ import {
   Eye,
   EyeOff,
   Edit3,
+  ExternalLink,
 } from 'lucide-react'
 import { Deal, DealStage } from '@/lib/crm-types'
 import { RowActionMenu } from '@/components/ui/row-action-menu'
@@ -55,6 +57,7 @@ export function DealKanban({
   onLogInteraction,
   onEditDeal,
 }: DealKanbanProps) {
+  const router = useRouter()
   const [focusedColIndex, setFocusedColIndex] = useState<number>(0)
   const [focusedCardIndex, setFocusedCardIndex] = useState<number>(0)
   const [isBoardFocused, setIsBoardFocused] = useState<boolean>(false)
@@ -568,14 +571,19 @@ export function DealKanban({
                                   triggerLabel={`Options for ${deal.title}`}
                                   items={[
                                     {
-                                      label: 'Edit deal',
-                                      icon: Edit3,
-                                      onClick: () => (onEditDeal ? onEditDeal(deal) : onOpenDeal(deal)),
+                                      label: 'Open project workspace',
+                                      icon: ExternalLink,
+                                      onClick: () => router.push(`/deals/${deal.id}`),
                                     },
                                     {
                                       label: 'Open deal drawer',
                                       icon: FileText,
                                       onClick: () => onOpenDeal(deal),
+                                    },
+                                    {
+                                      label: 'Edit deal',
+                                      icon: Edit3,
+                                      onClick: () => (onEditDeal ? onEditDeal(deal) : onOpenDeal(deal)),
                                     },
                                     ...(onLogInteraction
                                       ? [

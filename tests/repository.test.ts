@@ -277,6 +277,46 @@ describe('CRM Database Repository', () => {
       assert.equal(company.deals, 0)
       assert.equal(company.value, '0 Kč')
     })
+
+    it('retrieves a deal by ID or slug and fetches linked activities', async () => {
+      const deal = await repo.createDeal({
+        title: 'Full Stack App Development',
+        company: 'Stripe Europe',
+        value: '180 000 Kč',
+        stage: 'Qualified',
+        probability: '40%',
+        color: 'blue',
+      })
+
+      // Fetch by exact ID
+      const byId = await repo.getDealById(deal.id)
+      assert.ok(byId)
+      assert.equal(byId.id, deal.id)
+      assert.equal(byId.title, 'Full Stack App Development')
+
+      // Fetch by slug / title match
+      const bySlug = await repo.getDealById('full-stack-app-development')
+      assert.ok(bySlug)
+      assert.equal(bySlug.id, deal.id)
+
+      // Log an activity linked to deal
+      await repo.logActivity({
+        dealId: deal.id,
+        type: 'Call',
+        title: 'Technical Scope Sync',
+        person: 'Tech Lead',
+        company: 'Stripe Europe',
+        date: 'Today',
+        status: 'Completed',
+        color: 'blue',
+        summary: 'Discussed API endpoints and schemas',
+      })
+
+      const acts = await repo.getDealActivities(deal.id)
+      assert.equal(acts.length, 1)
+      assert.equal(acts[0].title, 'Technical Scope Sync')
+      assert.equal(acts[0].dealId, deal.id)
+    })
   })
 
   describe('Contacts CRUD', () => {

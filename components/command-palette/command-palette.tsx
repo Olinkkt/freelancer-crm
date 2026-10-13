@@ -27,6 +27,7 @@ import {
   Calculator,
   CheckSquare,
   Save,
+  ExternalLink,
 } from 'lucide-react'
 import { Deal, Contact, Company, Activity } from '@/lib/crm-types'
 import { ScratchpadEditor } from '../drawers/scratchpad-editor'
@@ -37,6 +38,7 @@ export type PaletteActionType =
   | 'new_contact'
   | 'log_call'
   | 'open_deal'
+  | 'open_project_workspace'
   | 'open_company'
   | 'open_contact'
   | 'toggle_kanban'
@@ -295,6 +297,19 @@ export function CommandPalette({
           </span>
         ),
         actionType: 'open_deal',
+        payload: deal,
+      })
+
+      // Full workspace subpage jump
+      items.push({
+        id: `deal-workspace-${deal.id}`,
+        category: 'Deals',
+        title: `${deal.title} — Full Project Workspace`,
+        subtitle: `Deliverables, milestones & billing for ${deal.company}`,
+        badge: 'Workspace ↗',
+        color: deal.color,
+        icon: <ExternalLink size={14} className="text-[#266df0] shrink-0" />,
+        actionType: 'open_project_workspace',
         payload: deal,
       })
     })

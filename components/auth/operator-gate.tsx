@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { ShieldCheck, Lock, ArrowRight, AlertCircle, Loader2 } from 'lucide-react'
 import { loginOperator } from '@/app/actions/auth'
+import { OPERATOR_CONFIG } from '@/lib/config'
 
 interface OperatorGateProps {
   onAuthenticated: () => void
@@ -43,10 +44,10 @@ export function OperatorGate({ onAuthenticated }: OperatorGateProps) {
             <Lock size={22} strokeWidth={2.2} />
           </div>
           <h1 className="text-xl font-semibold text-white tracking-tight">
-            Oliver Seidl
+            {OPERATOR_CONFIG.name}
           </h1>
           <p className="text-xs text-[#8f99a8] mt-1">
-            Solo Operator Workspace &middot; Freelancer CRM
+            Solo Operator Workspace &middot; {OPERATOR_CONFIG.appTitle}
           </p>
         </div>
 

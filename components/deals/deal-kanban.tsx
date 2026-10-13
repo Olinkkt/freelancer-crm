@@ -446,7 +446,9 @@ export function DealKanban({
                         : 'bg-[#059669]'
                     }`}
                   />
-                  <h3 className="text-[12px] font-semibold text-[#1c1d1f] tracking-tight whitespace-nowrap truncate">{stage}</h3>
+                  <h3 className="text-[12px] font-semibold text-[#1c1d1f] tracking-tight whitespace-nowrap truncate">
+                    {stage === 'Won' ? 'Won • Active Work' : stage === 'Paid' ? 'Paid • Delivered' : stage}
+                  </h3>
                   <span className="w-4 h-4 rounded-full bg-[#e9ebef] text-[#6f7988] text-[10px] font-mono font-medium flex items-center justify-center shrink-0">
                     {stageDeals.length}
                   </span>
@@ -633,8 +635,52 @@ export function DealKanban({
                             </span>
                           </div>
 
+                          {/* Deliverables Mini-Progress */}
+                          {deal.deliverables && deal.deliverables.length > 0 && (
+                            <div className="mt-2 space-y-1">
+                              <div className="flex items-center justify-between text-[10px] text-[#6f7988]">
+                                <span className="font-medium">Deliverables</span>
+                                <span className="font-mono font-semibold text-[#1c1d1f]">
+                                  {deal.deliverables.filter((d) => d.status === 'Done').length}/{deal.deliverables.length}
+                                </span>
+                              </div>
+                              <div className="w-full bg-[#f0f2f5] h-1 rounded-full overflow-hidden">
+                                <div
+                                  className="bg-[#266df0] h-full transition-all"
+                                  style={{
+                                    width: `${Math.round(
+                                      (deal.deliverables.filter((d) => d.status === 'Done').length / deal.deliverables.length) * 100
+                                    )}%`,
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Invoicing Status Badge */}
+                          {(() => {
+                            if (deal.stage === 'Paid') {
+                              return (
+                                <div className="mt-1.5 flex items-center gap-1 text-[9px] font-mono font-semibold text-[#1f7a47] bg-[#eaf8f0] px-1.5 py-0.5 rounded-[5px] w-fit">
+                                  <span>✓ 100% Paid</span>
+                                </div>
+                              )
+                            }
+                            if (deal.invoices && deal.invoices.length > 0) {
+                              const paidDeposit = deal.invoices.some((i) => i.type === 'Deposit' && i.status === 'Paid')
+                              if (paidDeposit) {
+                                return (
+                                  <div className="mt-1.5 flex items-center gap-1 text-[9px] font-mono font-semibold text-[#266df0] bg-[#eff5ff] px-1.5 py-0.5 rounded-[5px] w-fit">
+                                    <span>50% Deposit Paid</span>
+                                  </div>
+                                )
+                              }
+                            }
+                            return null
+                          })()}
+
                           {/* Mandatory Next Action Pill (GTD) */}
-                          {deal.stage !== 'Paid' && deal.next ? (
+                          {deal.next ? (
                             <div className="mt-2 flex items-center gap-1.5 text-[10px] text-[#232529] bg-[#f8faff] p-1.5 rounded-[7px] border border-[#edf3fe]">
                               <Clock size={11} className="text-[#266df0] shrink-0" />
                               <span className="truncate font-medium">{deal.next}</span>

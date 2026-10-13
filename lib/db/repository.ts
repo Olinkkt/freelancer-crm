@@ -11,6 +11,7 @@ import {
   WorkspaceData,
   DeliverableItem,
   InvoiceMilestone,
+  WorkspaceSettings,
 } from '@/lib/crm-types'
 
 function safeParseJson<T>(jsonStr: string | null | undefined, fallback: T): T {
@@ -33,12 +34,13 @@ function generateId(prefix: string): string {
 export async function getWorkspaceData(): Promise<WorkspaceData> {
   await ensureDbInitialized()
 
-  const [dealRows, companyRows, contactRows, activityRows, followUpRows] = await Promise.all([
+  const [dealRows, companyRows, contactRows, activityRows, followUpRows, settingsRow] = await Promise.all([
     db.selectFrom('deals').selectAll().orderBy('created_at', 'desc').execute(),
     db.selectFrom('companies').selectAll().orderBy('name', 'asc').execute(),
     db.selectFrom('contacts').selectAll().orderBy('name', 'asc').execute(),
     db.selectFrom('activities').selectAll().orderBy('created_at', 'desc').execute(),
     db.selectFrom('follow_ups').selectAll().orderBy('created_at', 'desc').execute(),
+    db.selectFrom('workspace_settings').selectAll().where('id', '=', 'current').executeTakeFirst(),
   ])
 
   const deals: Deal[] = dealRows.map((r) => ({
@@ -132,12 +134,26 @@ export async function getWorkspaceData(): Promise<WorkspaceData> {
     }
   }
 
+  const settings: WorkspaceSettings | undefined = settingsRow
+    ? {
+        operatorName: settingsRow.operator_name,
+        operatorEmail: settingsRow.operator_email,
+        operatorRole: settingsRow.operator_role,
+        currency: settingsRow.currency,
+        currencySymbol: settingsRow.currency_symbol,
+        locale: settingsRow.locale,
+        isClaimed: Boolean(settingsRow.is_claimed),
+        updatedAt: settingsRow.updated_at,
+      }
+    : undefined
+
   return {
     deals,
     companies,
     contacts,
     activities,
     followUps,
+    settings,
   }
 }
 
@@ -488,6 +504,48 @@ export async function moveDealStage(dealId: string, stage: DealStage): Promise<D
   const nextAction = isPaid ? '' : existing.next
   const nextDueDate = isPaid ? null : existing.next_due_date
 
+  // Sync invoices when advancing to Won or Paid
+  let currentInvoices = safeParseJson<InvoiceMilestone[]>(existing.invoices, [])
+  if (isClosedWon) {
+    if (currentInvoices.length === 0 && Number(existing.raw_amount) > 0) {
+      const half = Math.round(Number(existing.raw_amount) * 0.5)
+      const rest = Number(existing.raw_amount) - half
+      currentInvoices = [
+        {
+          id: `inv-${existing.id}-deposit`,
+          type: 'Deposit',
+          label: '50% Upfront Deposit Invoice',
+          amount: half,
+          formattedAmount: `${half.toLocaleString('cs-CZ').replace(/\s/g, ' ')} Kč`,
+          percentage: 50,
+          status: 'Paid',
+          dueDate: 'Kickoff',
+          paidAt: 'Received',
+        },
+        {
+          id: `inv-${existing.id}-final`,
+          type: 'Final',
+          label: '50% Final Handover Invoice',
+          amount: rest,
+          formattedAmount: `${rest.toLocaleString('cs-CZ').replace(/\s/g, ' ')} Kč`,
+          percentage: 50,
+          status: isPaid ? 'Paid' : 'Draft',
+          dueDate: 'On Completion',
+          paidAt: isPaid ? 'Received' : undefined,
+        },
+      ]
+    } else {
+      currentInvoices = currentInvoices.map((inv) => {
+        if (isPaid) {
+          return { ...inv, status: 'Paid', paidAt: inv.paidAt || 'Received' }
+        } else if (stage === 'Won' && inv.type === 'Deposit') {
+          return { ...inv, status: 'Paid', paidAt: inv.paidAt || 'Received' }
+        }
+        return inv
+      })
+    }
+  }
+
   await db
     .updateTable('deals')
     .set({
@@ -496,6 +554,7 @@ export async function moveDealStage(dealId: string, stage: DealStage): Promise<D
       color: dealColor,
       next: nextAction,
       next_due_date: nextDueDate,
+      invoices: currentInvoices.length > 0 ? JSON.stringify(currentInvoices) : existing.invoices,
       updated_at: now,
     })
     .where('id', '=', dealId)
@@ -518,7 +577,7 @@ export async function moveDealStage(dealId: string, stage: DealStage): Promise<D
     startDate: existing.start_date ?? undefined,
     endDate: existing.end_date ?? undefined,
     deliverables: safeParseJson<DeliverableItem[]>(existing.deliverables, []),
-    invoices: safeParseJson<InvoiceMilestone[]>(existing.invoices, []),
+    invoices: currentInvoices,
     createdAt: existing.created_at,
   }
 }
@@ -931,5 +990,169 @@ export async function deleteFollowUp(id: string): Promise<boolean> {
   await ensureDbInitialized()
   const result = await db.deleteFrom('follow_ups').where('id', '=', id).execute()
   return Number(result[0]?.numDeletedRows ?? 0) > 0
+}
+
+// -------------------------------------------------------------
+// WORKSPACE SETTINGS & FIRST-RUN CLAIM
+// -------------------------------------------------------------
+export async function getWorkspaceSettings(): Promise<(WorkspaceSettings & { passcodeHash?: string | null }) | null> {
+  await ensureDbInitialized()
+  try {
+    const row = await db
+      .selectFrom('workspace_settings')
+      .selectAll()
+      .where('id', '=', 'current')
+      .executeTakeFirst()
+
+    if (!row) return null
+
+    return {
+      operatorName: row.operator_name,
+      operatorEmail: row.operator_email,
+      operatorRole: row.operator_role,
+      currency: row.currency,
+      currencySymbol: row.currency_symbol,
+      locale: row.locale,
+      isClaimed: Boolean(row.is_claimed),
+      passcodeHash: row.passcode_hash,
+      updatedAt: row.updated_at,
+    }
+  } catch (err: unknown) {
+    const errorMsg = String(err)
+    if (errorMsg.includes('no such table: workspace_settings')) {
+      await ensureDbInitialized(true)
+      const row = await db
+        .selectFrom('workspace_settings')
+        .selectAll()
+        .where('id', '=', 'current')
+        .executeTakeFirst()
+
+      if (!row) return null
+
+      return {
+        operatorName: row.operator_name,
+        operatorEmail: row.operator_email,
+        operatorRole: row.operator_role,
+        currency: row.currency,
+        currencySymbol: row.currency_symbol,
+        locale: row.locale,
+        isClaimed: Boolean(row.is_claimed),
+        passcodeHash: row.passcode_hash,
+        updatedAt: row.updated_at,
+      }
+    }
+    throw err
+  }
+}
+
+export async function claimWorkspace(params: {
+  operatorName: string
+  operatorEmail: string
+  operatorRole?: string
+  currency: string
+  currencySymbol: string
+  locale: string
+  passcodeHash?: string
+}): Promise<WorkspaceSettings> {
+  await ensureDbInitialized()
+  const now = new Date().toISOString()
+  const existing = await getWorkspaceSettings()
+
+  if (existing && existing.isClaimed) {
+    throw new Error('Workspace is already claimed and initialized.')
+  }
+
+  await db
+    .deleteFrom('workspace_settings')
+    .where('id', '=', 'current')
+    .execute()
+
+  await db
+    .insertInto('workspace_settings')
+    .values({
+      id: 'current',
+      operator_name: params.operatorName.trim(),
+      operator_email: params.operatorEmail.trim(),
+      operator_role: params.operatorRole?.trim() || 'Creative & Tech Operator',
+      currency: params.currency.trim(),
+      currency_symbol: params.currencySymbol.trim(),
+      locale: params.locale.trim(),
+      passcode_hash: params.passcodeHash || null,
+      is_claimed: 1,
+      created_at: now,
+      updated_at: now,
+    })
+    .execute()
+
+  return {
+    operatorName: params.operatorName.trim(),
+    operatorEmail: params.operatorEmail.trim(),
+    operatorRole: params.operatorRole?.trim() || 'Creative & Tech Operator',
+    currency: params.currency.trim(),
+    currencySymbol: params.currencySymbol.trim(),
+    locale: params.locale.trim(),
+    isClaimed: true,
+    updatedAt: now,
+  }
+}
+
+export async function updateWorkspaceSettings(params: {
+  operatorName?: string
+  operatorEmail?: string
+  operatorRole?: string
+  currency?: string
+  currencySymbol?: string
+  locale?: string
+  passcodeHash?: string
+}): Promise<WorkspaceSettings> {
+  await ensureDbInitialized()
+  const now = new Date().toISOString()
+  const existing = await getWorkspaceSettings()
+
+  if (!existing) {
+    // If not existing, insert as initial
+    return claimWorkspace({
+      operatorName: params.operatorName || 'Oliver Seidl',
+      operatorEmail: params.operatorEmail || 'oliver@seidltech.cz',
+      operatorRole: params.operatorRole || 'Creative & Tech Operator',
+      currency: params.currency || 'CZK',
+      currencySymbol: params.currencySymbol || 'Kč',
+      locale: params.locale || 'cs-CZ',
+      passcodeHash: params.passcodeHash,
+    })
+  }
+
+  const newName = params.operatorName !== undefined ? params.operatorName.trim() : existing.operatorName
+  const newEmail = params.operatorEmail !== undefined ? params.operatorEmail.trim() : existing.operatorEmail
+  const newRole = params.operatorRole !== undefined ? params.operatorRole.trim() : existing.operatorRole
+  const newCurrency = params.currency !== undefined ? params.currency.trim() : existing.currency
+  const newSymbol = params.currencySymbol !== undefined ? params.currencySymbol.trim() : existing.currencySymbol
+  const newLocale = params.locale !== undefined ? params.locale.trim() : existing.locale
+
+  await db
+    .updateTable('workspace_settings')
+    .set({
+      operator_name: newName,
+      operator_email: newEmail,
+      operator_role: newRole,
+      currency: newCurrency,
+      currency_symbol: newSymbol,
+      locale: newLocale,
+      ...(params.passcodeHash ? { passcode_hash: params.passcodeHash } : {}),
+      updated_at: now,
+    })
+    .where('id', '=', 'current')
+    .execute()
+
+  return {
+    operatorName: newName,
+    operatorEmail: newEmail,
+    operatorRole: newRole,
+    currency: newCurrency,
+    currencySymbol: newSymbol,
+    locale: newLocale,
+    isClaimed: true,
+    updatedAt: now,
+  }
 }
 

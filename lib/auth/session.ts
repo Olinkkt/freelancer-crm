@@ -4,6 +4,10 @@ import { cookies, headers } from 'next/headers'
 const COOKIE_NAME = 'crm_operator_session'
 const SESSION_MAX_AGE_SECONDS = 30 * 24 * 60 * 60 // 30 days
 
+export function hashPasscode(passcode: string): string {
+  return crypto.createHash('sha256').update(passcode.trim()).digest('hex')
+}
+
 export function isAuthRequired(): boolean {
   const secret = process.env.AUTH_SECRET
   return Boolean(secret && secret.trim().length > 0)
@@ -140,18 +144,25 @@ export async function checkIsAuthenticated(req?: Request): Promise<boolean> {
 
 export async function setOperatorSession(): Promise<void> {
   const token = createSessionToken()
-  const cookieStore = await cookies()
-
-  cookieStore.set(COOKIE_NAME, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
-    maxAge: SESSION_MAX_AGE_SECONDS,
-  })
+  try {
+    const cookieStore = await cookies()
+    cookieStore.set(COOKIE_NAME, token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: SESSION_MAX_AGE_SECONDS,
+    })
+  } catch {
+    // cookies() might not be available outside Next.js request context (e.g., node test runner)
+  }
 }
 
 export async function clearOperatorSession(): Promise<void> {
-  const cookieStore = await cookies()
-  cookieStore.delete(COOKIE_NAME)
+  try {
+    const cookieStore = await cookies()
+    cookieStore.delete(COOKIE_NAME)
+  } catch {
+    // cookies() might not be available outside Next.js request context
+  }
 }

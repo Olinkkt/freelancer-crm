@@ -2,7 +2,12 @@ import { describe, it, before, beforeEach, afterEach, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { db } from '@/lib/db/client'
 import { ensureDbInitialized } from '@/lib/db/init'
-import { getAuthStatus, loginOperator } from '@/app/actions/auth'
+import {
+  getAuthStatus,
+  loginOperator,
+  claimWorkspaceAction,
+  updateWorkspaceSettingsAction,
+} from '@/app/actions/auth'
 import {
   fetchWorkspaceData,
   createDealAction,
@@ -195,6 +200,73 @@ describe('Server Actions Integration', () => {
       // 9. Delete deal action
       const deleted = await deleteDealAction(deal.id)
       assert.equal(deleted, true)
+    })
+  })
+
+  describe('First-Run Setup Wizard & Workspace Settings', () => {
+    beforeEach(async () => {
+      delete process.env.AUTH_SECRET
+      await db.deleteFrom('workspace_settings').execute()
+    })
+
+    it('claims workspace and locks it from subsequent claims', async () => {
+      let status = await getAuthStatus()
+      assert.equal(status.isSetupComplete, false)
+
+      // First run claim
+      const claimRes = await claimWorkspaceAction({
+        operatorName: 'Alex River',
+        operatorEmail: 'alex@river.dev',
+        operatorRole: 'Mobile Architect',
+        currency: 'EUR',
+        currencySymbol: '€',
+        locale: 'de-DE',
+        passcode: 'mypass123',
+      })
+
+      assert.equal(claimRes.success, true)
+      assert.equal(claimRes.settings?.operatorName, 'Alex River')
+      assert.equal(claimRes.settings?.currency, 'EUR')
+      assert.equal(claimRes.settings?.currencySymbol, '€')
+
+      // Verification: Setup is now marked complete
+      status = await getAuthStatus()
+      assert.equal(status.isSetupComplete, true)
+      assert.equal(status.settings?.operatorName, 'Alex River')
+
+      // Second claim attempt should fail
+      const secondClaim = await claimWorkspaceAction({
+        operatorName: 'Intruder',
+        operatorEmail: 'intruder@bad.com',
+        currency: 'USD',
+        currencySymbol: '$',
+        locale: 'en-US',
+      })
+      assert.equal(secondClaim.success, false)
+      assert.equal(secondClaim.error, 'Workspace is already claimed.')
+    })
+
+    it('updates workspace settings when authenticated', async () => {
+      // Claim initial
+      await claimWorkspaceAction({
+        operatorName: 'Taylor Swift',
+        operatorEmail: 'taylor@music.com',
+        currency: 'USD',
+        currencySymbol: '$',
+        locale: 'en-US',
+      })
+
+      // Update settings
+      const updateRes = await updateWorkspaceSettingsAction({
+        operatorRole: 'Lead Producer & Songwriter',
+        currency: 'GBP',
+        currencySymbol: '£',
+      })
+
+      assert.equal(updateRes.success, true)
+      assert.equal(updateRes.settings?.operatorRole, 'Lead Producer & Songwriter')
+      assert.equal(updateRes.settings?.currency, 'GBP')
+      assert.equal(updateRes.settings?.currencySymbol, '£')
     })
   })
 })

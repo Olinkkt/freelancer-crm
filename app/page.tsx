@@ -36,6 +36,7 @@ import {
   exportFollowUpsCSV,
 } from '@/lib/csv-export'
 import { getFormattedToday, getDynamicGreeting } from '@/lib/date-utils'
+import { OPERATOR_CONFIG, formatMoney, getOperatorInitials } from '@/lib/config'
 import { CalendarView } from '@/components/calendar/calendar-view'
 import { Deal, Contact, Company, Activity, FollowUpItem, DealStage } from '@/lib/crm-types'
 import {
@@ -55,12 +56,15 @@ import { NewContactModal } from '@/components/modals/new-contact-modal'
 import { NewCompanyModal } from '@/components/modals/new-company-modal'
 import { LogCallModal } from '@/components/modals/log-call-modal'
 import { EditFollowUpModal } from '@/components/modals/edit-follow-up-modal'
+import { EditSettingsModal } from '@/components/modals/edit-settings-modal'
 import { DealDetailDrawer } from '@/components/drawers/deal-detail-drawer'
 import { DealKanban } from '@/components/deals/deal-kanban'
 import { ToastHUD, ToastHUDItem } from '@/components/ui/toast-hud'
 import { MarkdownFormatter } from '@/components/ui/markdown-formatter'
 import { OperatorGate } from '@/components/auth/operator-gate'
+import { SetupWizard } from '@/components/auth/setup-wizard'
 import { RowActionMenu } from '@/components/ui/row-action-menu'
+import { WorkspaceSettings } from '@/lib/crm-types'
 import {
   fetchWorkspaceData,
   createDealAction,
@@ -82,7 +86,11 @@ import {
   toggleFollowUpAction,
   syncTodosAction,
 } from '@/app/actions/crm'
-import { getAuthStatus, logoutOperator } from '@/app/actions/auth'
+import {
+  getAuthStatus,
+  logoutOperator,
+  updateWorkspaceSettingsAction,
+} from '@/app/actions/auth'
 
 
 function NavItem({
@@ -117,11 +125,11 @@ export default function Page() {
 
   // Dynamic Dashboard Date & Greeting
   const [formattedToday, setFormattedToday] = useState<string>('')
-  const [greeting, setGreeting] = useState<string>('Good morning, Oliver.')
+  const [greeting, setGreeting] = useState<string>(`Good morning, ${OPERATOR_CONFIG.firstName}.`)
 
   useEffect(() => {
     setFormattedToday(getFormattedToday())
-    setGreeting(getDynamicGreeting('Oliver'))
+    setGreeting(getDynamicGreeting(OPERATOR_CONFIG.firstName))
   }, [])
 
   // CRM Data State
@@ -164,6 +172,9 @@ export default function Page() {
   const [editingContact, setEditingContact] = useState<Contact | null>(null)
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null)
   const [editingFollowUp, setEditingFollowUp] = useState<FollowUpItem | null>(null)
+  const [isEditSettingsOpen, setIsEditSettingsOpen] = useState(false)
+  const [settingsTab, setSettingsTab] = useState<'profile' | 'shortcuts' | 'export' | 'system'>('profile')
+  const [shortcutFilter, setShortcutFilter] = useState('')
 
   // Floating Toasts / HUD
   const [toasts, setToasts] = useState<ToastHUDItem[]>([])
@@ -187,6 +198,16 @@ export default function Page() {
   const [isLoading, setIsLoading] = useState(true)
   const [authRequired, setAuthRequired] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(true)
+  const [isSetupComplete, setIsSetupComplete] = useState(true)
+  const [currentSettings, setCurrentSettings] = useState<WorkspaceSettings>({
+    operatorName: OPERATOR_CONFIG.name,
+    operatorEmail: OPERATOR_CONFIG.email,
+    operatorRole: OPERATOR_CONFIG.role,
+    currency: OPERATOR_CONFIG.currency,
+    currencySymbol: OPERATOR_CONFIG.currencySymbol,
+    locale: OPERATOR_CONFIG.locale,
+    isClaimed: false,
+  })
   const [dbStatus, setDbStatus] = useState<'checking' | 'connected' | 'error'>('checking')
 
   const loadData = useCallback(async () => {
@@ -194,8 +215,15 @@ export default function Page() {
       const auth = await getAuthStatus()
       setAuthRequired(auth.required)
       setIsAuthenticated(auth.authenticated)
+      setIsSetupComplete(auth.isSetupComplete)
 
-      if (auth.authenticated || !auth.required) {
+      if (auth.settings) {
+        setCurrentSettings(auth.settings)
+        const firstName = auth.settings.operatorName.trim().split(' ')[0]
+        setGreeting(getDynamicGreeting(firstName))
+      }
+
+      if (auth.isSetupComplete && (auth.authenticated || !auth.required)) {
         const data = await fetchWorkspaceData()
         setDeals(data.deals)
         setCompanies(data.companies)
@@ -205,6 +233,9 @@ export default function Page() {
         setCompletedFollowUps(
           data.followUps.filter((f) => f.completed).map((f) => f.id)
         )
+        if (data.settings) {
+          setCurrentSettings(data.settings)
+        }
         setDbStatus('connected')
       }
     } catch (err: any) {
@@ -643,6 +674,8 @@ export default function Page() {
   const handleMoveDealStage = async (dealId: string, newStage: DealStage) => {
     const isClosed = newStage === 'Won' || newStage === 'Paid'
     const isPaid = newStage === 'Paid'
+    const isWon = newStage === 'Won'
+
     setDeals((prev) =>
       prev.map((d) => {
         if (d.id === dealId) {
@@ -651,14 +684,31 @@ export default function Page() {
             stage: newStage,
             probability: isClosed ? '100%' : d.probability,
             color: isClosed ? 'green' : 'blue',
-            next: isPaid ? '' : d.next,
-            nextDueDate: isPaid ? undefined : d.nextDueDate,
+            next: isPaid ? 'Request testimonial & case study review' : isWon ? 'Kickoff meeting & design sprint' : d.next,
+            nextDueDate: isPaid ? 'In 3 days' : isWon ? 'Tomorrow, 10:00' : d.nextDueDate,
           }
         }
         return d
       })
     )
-    addToast(`Moved deal to ${newStage}`)
+
+    if (isPaid) {
+      const deal = deals.find((d) => d.id === dealId)
+      if (deal) {
+        const toComplete = followUps
+          .filter((f) => f.company === deal.company && !completedFollowUps.includes(f.id))
+          .map((f) => f.id)
+        if (toComplete.length > 0) {
+          setCompletedFollowUps((prev) => [...new Set([...prev, ...toComplete])])
+        }
+      }
+      addToast('Project completed & 100% paid!')
+    } else if (isWon) {
+      addToast('Deal Won! Active client project started.')
+    } else {
+      addToast(`Moved deal to ${newStage}`)
+    }
+
     try {
       const updated = await moveDealStageAction(dealId, newStage)
       if (updated) {
@@ -701,7 +751,7 @@ export default function Page() {
     0
   )
   const activeProjectsCount = deals.filter(
-    (d) => d.stage !== 'Lead' && d.stage !== 'Won' && d.stage !== 'Paid'
+    (d) => d.stage === 'Won'
   ).length
   const dueTodayFollowUpsCount = followUps.filter(
     (f) => f.day.toLowerCase() === 'today' && !completedFollowUps.includes(f.id)
@@ -741,6 +791,22 @@ export default function Page() {
     )
   }
 
+  // 1. FIRST-RUN SETUP WIZARD (Claim workspace)
+  if (!isSetupComplete) {
+    return (
+      <SetupWizard
+        onSetupComplete={(newSettings) => {
+          setCurrentSettings(newSettings)
+          setIsSetupComplete(true)
+          setIsAuthenticated(true)
+          loadData()
+          addToast(`Welcome to your cockpit, ${newSettings.operatorName}!`)
+        }}
+      />
+    )
+  }
+
+  // 2. OPERATOR LOCK GATE
   if (authRequired && !isAuthenticated) {
     return (
       <OperatorGate
@@ -758,8 +824,8 @@ export default function Page() {
       <aside className="sidebar">
 
         <div className="brand">
-          <span className="brand-mark">S</span>
-          <span>Oliver Seidl</span>
+          <span className="brand-mark">{currentSettings.operatorName.charAt(0) || 'S'}</span>
+          <span>{currentSettings.operatorName}</span>
         </div>
         <nav className="nav-group" aria-label="Primary navigation">
           <p className="nav-label">Workspace</p>
@@ -842,8 +908,8 @@ export default function Page() {
               <span className="search-shortcut">Ctrl+K</span>
             </button>
 
-            <button className="avatar" title="Oliver Seidl">
-              OS
+            <button className="avatar" title={currentSettings.operatorName}>
+              {getOperatorInitials(currentSettings.operatorName)}
             </button>
           </div>
         </header>
@@ -1590,191 +1656,295 @@ export default function Page() {
                   <p className="eyebrow">Workspace preferences</p>
                   <h1>Settings & System</h1>
                   <p className="subcopy">
-                    Personal operator cockpit preferences, account details, and high-velocity keyboard controls.
+                    Operator cockpit preferences, velocity controls, data portability, and deployment architecture.
                   </p>
                 </div>
               </section>
 
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 max-w-5xl">
-                {/* CARD 1: YOUR PROFILE */}
-                <div className="panel lg:col-span-5 flex flex-col justify-between">
-                  <div>
-                    <div className="panel-heading">
-                      <div>
-                        <p className="section-kicker">Operator Account</p>
-                        <h2>Your Profile</h2>
-                      </div>
-                      <span className="status-pill active">Active</span>
+              {/* ATTIO TAB BAR */}
+              <div className="tabs mb-8">
+                <button
+                  type="button"
+                  className={settingsTab === 'profile' ? 'tab-active' : ''}
+                  onClick={() => setSettingsTab('profile')}
+                >
+                  General & Profile
+                </button>
+                <button
+                  type="button"
+                  className={settingsTab === 'shortcuts' ? 'tab-active' : ''}
+                  onClick={() => setSettingsTab('shortcuts')}
+                >
+                  Keyboard Shortcuts
+                </button>
+                <button
+                  type="button"
+                  className={settingsTab === 'export' ? 'tab-active' : ''}
+                  onClick={() => setSettingsTab('export')}
+                >
+                  Data & Portability
+                </button>
+                <button
+                  type="button"
+                  className={settingsTab === 'system' ? 'tab-active' : ''}
+                  onClick={() => setSettingsTab('system')}
+                >
+                  System & Deployment
+                </button>
+              </div>
+
+              {/* TAB 1: GENERAL & PROFILE */}
+              {settingsTab === 'profile' && (
+                <div className="space-y-8 max-w-4xl">
+                  {/* SECTION 1: OPERATOR IDENTITY */}
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start pb-8 border-b border-[#e4e7ec]">
+                    <div className="md:col-span-4">
+                      <h3 className="text-[15px] font-semibold text-[#1c1d1f] tracking-tight">Operator Identity</h3>
+                      <p className="text-[13px] text-[#6f7988] mt-1 leading-relaxed">
+                        Your personal operator profile, contact email, and active title shown across client communications and exports.
+                      </p>
                     </div>
-
-                    <div className="settings-profile mt-4">
-                      <span className="avatar large">OS</span>
-                      <div>
-                        <strong>Oliver Seidl</strong>
-                        <span>oliver@seidltech.cz</span>
-                      </div>
-                    </div>
-
-                    <div className="mt-5 space-y-3 text-[12px]">
-                      <div className="flex items-center justify-between py-1.5 border-b border-[#f0f1f3]">
-                        <span className="text-[#6f7988]">Operator Role</span>
-                        <strong className="text-[#1c1d1f]">Creative & Tech Operator</strong>
-                      </div>
-                      <div className="flex items-center justify-between py-1.5 border-b border-[#f0f1f3]">
-                        <span className="text-[#6f7988]">Default Currency</span>
-                        <strong className="font-mono text-[#1c1d1f]">CZK (Kč)</strong>
-                      </div>
-                      <div className="flex items-center justify-between py-1.5 border-b border-[#f0f1f3]">
-                        <span className="text-[#6f7988]">Timezone</span>
-                        <span className="text-[#505967]">Europe/Prague (CET)</span>
-                      </div>
-                      <div className="flex items-center justify-between py-1.5 border-b border-[#f0f1f3]">
-                        <span className="text-[#6f7988]">Workflow Engine</span>
-                        <span className="text-[#266df0] font-semibold">GTD Mandatory Next Action</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="pt-6 mt-4 border-t border-[#f0f1f3] flex items-center justify-between">
-                    {authRequired ? (
-                      <button
-                        onClick={handleLockWorkspace}
-                        className="px-3 py-1.5 bg-[#1c1d1f] hover:bg-[#101113] text-white text-[11px] font-medium rounded-[7px] transition-colors cursor-pointer flex items-center gap-1.5"
-                      >
-                        Lock Workspace
-                      </button>
-                    ) : (
-                      <span className="text-[11px] text-[#6f7988]">
-                        Operator Gate: <strong className="text-[#505967] font-medium">Dev / Open</strong>
-                      </span>
-                    )}
-                    <span className="text-[10px] text-[#9fa1a7]">v1.0.4 • Personal Cockpit</span>
-                  </div>
-                </div>
-
-                {/* CARD 2: KEYBOARD SHORTCUTS (TOP 10 + READ MORE) */}
-                <div className="panel lg:col-span-7 flex flex-col justify-between">
-                  <div>
-                    <div className="panel-heading">
-                      <div>
-                        <p className="section-kicker">Operator Velocity</p>
-                        <h2>Keyboard Shortcuts</h2>
-                      </div>
-                      <span className="px-2 py-0.5 text-[10px] font-mono font-semibold rounded-[7px] bg-[#e9f0ff] text-[#266df0]">
-                        Top 10 Core
-                      </span>
-                    </div>
-
-                    <p className="text-[12px] text-[#6f7988] mt-2 mb-3">
-                      Superhuman & Linear speed. Execute actions with single keystrokes without reaching for your mouse.
-                    </p>
-
-                    {/* Top 10 Compact List */}
-                    <div className="space-y-1">
-                      {[
-                        { label: 'Universal Command Palette', keys: ['Ctrl+K'], tag: 'Global', primary: true },
-                        { label: 'Quick-add new deal drawer', keys: ['N'], tag: 'Capture', primary: false },
-                        { label: 'Quick-add new contact drawer', keys: ['C'], tag: 'Capture', primary: false },
-                        { label: 'Quick-log call / meeting note', keys: ['L'], tag: 'Capture', primary: false },
-                        { label: 'Navigate Kanban stage columns', keys: ['←', '→'], tag: 'Kanban', primary: false },
-                        { label: 'Select deal card in column', keys: ['↑', '↓'], tag: 'Kanban', primary: false },
-                        { label: 'Cycle forward through deals', keys: ['Tab'], tag: 'Kanban', primary: false },
-                        { label: 'Inspect deal (slide-over drawer)', keys: ['↵'], tag: 'Kanban', primary: false },
-                        { label: 'Shift deal stage left / right', keys: ['[', ']'], tag: 'Kanban', primary: false },
-                        { label: 'Jump to Dashboard view', keys: ['G', 'D'], tag: 'Nav', primary: false },
-                      ].map((item, idx) => (
-                        <div
-                          key={idx}
-                          className="flex items-center justify-between py-1.5 px-2.5 rounded-[10px] text-[12px] hover:bg-[#fafbfc] transition-colors border-b border-[#f7f8fa] last:border-b-0"
-                        >
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span
-                              className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                                item.primary ? 'bg-[#266df0]' : 'bg-[#9fa1a7]'
-                              }`}
-                            />
-                            <span className="text-[#232529] font-medium truncate">{item.label}</span>
+                    <div className="md:col-span-8">
+                      <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-[rgba(28,40,64,0.04)_0px_2px_4px_-1px]">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                          <div className="flex items-center gap-4 min-w-0">
+                            <span className="avatar large shrink-0 font-semibold text-[15px]">
+                              {getOperatorInitials(currentSettings.operatorName)}
+                            </span>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <strong className="text-[16px] font-semibold text-[#1c1d1f] tracking-tight truncate">
+                                  {currentSettings.operatorName}
+                                </strong>
+                                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#027a48] bg-[#ecfdf3] border border-[#d1fadf] px-2 py-0.5 rounded-[7px]">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-[#12b76a]" />
+                                  Active
+                                </span>
+                              </div>
+                              <span className="text-[13px] text-[#6f7988] truncate block mt-0.5">
+                                {currentSettings.operatorEmail}
+                              </span>
+                              <div className="mt-2">
+                                <span className="inline-flex items-center text-[11px] font-medium text-[#2e3238] bg-[#f4f5f6] border border-[#e4e7ec] px-2.5 py-0.5 rounded-[7px]">
+                                  {currentSettings.operatorRole}
+                                </span>
+                              </div>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-1 shrink-0 ml-3">
-                            {item.keys.map((k, kIdx) => (
-                              <kbd
-                                key={kIdx}
-                                className="px-1.5 py-0.5 min-w-[20px] text-center text-[10px] font-mono font-semibold text-[#505967] bg-[#f4f5f6] border border-[#dce0e8] rounded-[5px] shadow-2xs"
-                              >
-                                {k}
-                              </kbd>
-                            ))}
-                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setIsEditSettingsOpen(true)}
+                            className="select-button self-start sm:self-center shrink-0"
+                          >
+                            <Edit3 size={13} className="text-[#6f7988]" />
+                            <span>Edit Profile</span>
+                          </button>
                         </div>
-                      ))}
+                      </div>
                     </div>
                   </div>
 
-                  {/* Read More Trigger Bar */}
-                  <div className="pt-6 mt-4 border-t border-[#f0f1f3] flex items-center justify-between">
-                    <button
-                      onClick={() => setIsShortcutsOpen(true)}
-                      className="select-button"
-                    >
-                      Read more <ArrowUpRight size={14} />
-                    </button>
-                    <span className="text-[10px] text-[#9fa1a7] hidden sm:inline-flex items-center gap-1">
-                      <span>Or press</span>
-                      <kbd className="px-1.5 py-0.5 bg-[#f4f5f6] border border-[#e4e7ec] rounded font-mono text-[10px] text-[#6f7988]">
-                        ?
-                      </kbd>
-                      <span>anywhere</span>
-                    </span>
+                  {/* SECTION 2: REGIONAL & CURRENCY */}
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start pb-8 border-b border-[#e4e7ec]">
+                    <div className="md:col-span-4">
+                      <h3 className="text-[15px] font-semibold text-[#1c1d1f] tracking-tight">Regional & Currency</h3>
+                      <p className="text-[13px] text-[#6f7988] mt-1 leading-relaxed">
+                        Default currency standard, regional number formatting, and workflow momentum methodology.
+                      </p>
+                    </div>
+                    <div className="md:col-span-8">
+                      <div className="bg-white border border-[#e4e7ec] rounded-xl divide-y divide-[#f0f1f3] shadow-[rgba(28,40,64,0.04)_0px_2px_4px_-1px] text-[13px]">
+                        <div className="flex items-center justify-between p-4">
+                          <div>
+                            <span className="text-[#1c1d1f] font-medium block">Default Currency</span>
+                            <span className="text-[#6f7988] text-[12px]">Applied to deal pipeline values and revenue rollups</span>
+                          </div>
+                          <strong className="font-mono text-[#1c1d1f]">
+                            {currentSettings.currency} <span className="text-[#8f99a8] font-normal">({currentSettings.currencySymbol.trim()})</span>
+                          </strong>
+                        </div>
+                        <div className="flex items-center justify-between p-4">
+                          <div>
+                            <span className="text-[#1c1d1f] font-medium block">Workspace Locale</span>
+                            <span className="text-[#6f7988] text-[12px]">Regional date conventions and numeric grouping</span>
+                          </div>
+                          <span className="font-mono text-[#505967]">{currentSettings.locale}</span>
+                        </div>
+                        <div className="flex items-center justify-between p-4">
+                          <div>
+                            <span className="text-[#1c1d1f] font-medium block">Workflow Engine</span>
+                            <span className="text-[#6f7988] text-[12px]">David Allen Getting Things Done paradigm</span>
+                          </div>
+                          <span className="text-[#266df0] font-medium">GTD Mandatory Next Action</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* SECTION 3: WORKSPACE SECURITY */}
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+                    <div className="md:col-span-4">
+                      <h3 className="text-[15px] font-semibold text-[#1c1d1f] tracking-tight">Security & Gatekeeper</h3>
+                      <p className="text-[13px] text-[#6f7988] mt-1 leading-relaxed">
+                        Control workspace access protection, cryptographic session tokens, and lock status.
+                      </p>
+                    </div>
+                    <div className="md:col-span-8">
+                      <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-[rgba(28,40,64,0.04)_0px_2px_4px_-1px]">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <strong className="text-[15px] font-semibold text-[#1c1d1f] tracking-tight">
+                                {authRequired ? 'Master Passcode Protected' : 'Open Development Mode'}
+                              </strong>
+                              <span className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-[7px] border ${
+                                authRequired
+                                  ? 'text-[#027a48] bg-[#ecfdf3] border-[#d1fadf]'
+                                  : 'text-[#6f7988] bg-[#f4f5f6] border-[#e4e7ec]'
+                              }`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${authRequired ? 'bg-[#12b76a]' : 'bg-[#9fa1a7]'}`} />
+                                {authRequired ? 'Protected' : 'Open Access'}
+                              </span>
+                            </div>
+                            <p className="text-[12px] text-[#6f7988] mt-1">
+                              {authRequired
+                                ? 'Cryptographic HMAC-SHA256 session token active with 30-day rolling expiration.'
+                                : 'Workspace is accessible locally without a gate. You can configure a master passcode anytime.'}
+                            </p>
+                          </div>
+                          {authRequired ? (
+                            <button
+                              type="button"
+                              onClick={handleLockWorkspace}
+                              className="primary-button text-[12px] py-1.5 px-3 min-h-0 self-start sm:self-center shrink-0"
+                            >
+                              Lock Workspace
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setIsEditSettingsOpen(true)}
+                              className="select-button text-[12px] self-start sm:self-center shrink-0"
+                            >
+                              Configure Passcode
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
+              )}
 
-                {/* CARD 3: BACKEND INFRASTRUCTURE & PERSISTENCE */}
-                <div className="panel lg:col-span-12">
-                  <div className="panel-heading">
+              {/* TAB 2: KEYBOARD SHORTCUTS */}
+              {settingsTab === 'shortcuts' && (
+                <div className="space-y-6 max-w-4xl">
+                  {/* SEARCH & VELOCITY BANNER */}
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pb-4 border-b border-[#e4e7ec]">
                     <div>
-                      <p className="section-kicker">Deployment & Persistence</p>
-                      <h2>Backend Infrastructure</h2>
+                      <h3 className="text-[16px] font-semibold text-[#1c1d1f] tracking-tight">Linear Velocity Controls</h3>
+                      <p className="text-[13px] text-[#6f7988] mt-0.5">
+                        Execute actions with single keystrokes without reaching for your mouse.
+                      </p>
                     </div>
-                    <span className={`px-2 py-0.5 text-[10px] font-mono font-semibold rounded-[7px] ${
-                      dbStatus === 'connected' ? 'bg-[#e6f9ed] text-[#137a38]' : 'bg-[#fff1f1] text-[#c02b2b]'
-                    }`}>
-                      {dbStatus === 'connected' ? '● Database Online' : '○ Checking Connection'}
-                    </span>
-                  </div>
-                  <p className="text-[12px] text-[#6f7988] mt-2 mb-4">
-                    Unified Next.js 16 full-stack architecture running standalone on Coolify. Zero external latency, minimal RAM footprint.
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-[12px]">
-                    <div className="p-3 rounded-[9px] bg-[#f8f9fa] border border-[#edf0f3]">
-                      <span className="text-[#6f7988] text-[11px] block mb-1">Database Engine</span>
-                      <strong className="text-[#1c1d1f]">PostgreSQL / SQLite</strong>
-                      <small className="block text-[#8f99a8] text-[10px] mt-0.5">Persistent disk volume</small>
-                    </div>
-                    <div className="p-3 rounded-[9px] bg-[#f8f9fa] border border-[#edf0f3]">
-                      <span className="text-[#6f7988] text-[11px] block mb-1">Healthcheck Endpoint</span>
-                      <a href="/api/health" target="_blank" rel="noreferrer" className="text-[#266df0] hover:underline inline-flex items-center gap-1 font-mono">
-                        /api/health <ArrowUpRight size={12} />
-                      </a>
-                      <small className="block text-[#8f99a8] text-[10px] mt-0.5">Rolling zero-downtime</small>
-                    </div>
-                    <div className="p-3 rounded-[9px] bg-[#f8f9fa] border border-[#edf0f3]">
-                      <span className="text-[#6f7988] text-[11px] block mb-1">Security Gate</span>
-                      <strong className={authRequired ? 'text-[#137a38]' : 'text-amber-600'}>
-                        {authRequired ? 'Active (AUTH_SECRET)' : 'Inactive (Set AUTH_SECRET)'}
-                      </strong>
-                      <small className="block text-[#8f99a8] text-[10px] mt-0.5">HMAC-SHA256 session token</small>
+                    <div className="relative min-w-[240px]">
+                      <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9fa1a7]" />
+                      <input
+                        type="text"
+                        value={shortcutFilter}
+                        onChange={(e) => setShortcutFilter(e.target.value)}
+                        placeholder="Search shortcuts..."
+                        className="w-full pl-8 pr-3 py-1.5 text-[12px] bg-white border border-[#e4e7ec] rounded-[10px] focus:outline-none focus:border-[#266df0] focus:ring-1 focus:ring-[#266df0] placeholder:text-[#9fa1a7]"
+                      />
                     </div>
                   </div>
+
+                  {/* SHORTCUT GROUPS */}
+                  {[
+                    {
+                      category: 'Global & Quick Capture',
+                      items: [
+                        { label: 'Universal Command Palette', keys: ['Ctrl+K'], note: 'Search deals, contacts, views' },
+                        { label: 'Quick-add new deal drawer', keys: ['N'], note: 'Instant lead capture slide-over' },
+                        { label: 'Quick-add new contact drawer', keys: ['C'], note: 'Register new client contact' },
+                        { label: 'Quick-log call / meeting note', keys: ['L'], note: 'Log notes and next actions' },
+                        { label: 'Keyboard shortcut cheat-sheet', keys: ['?'], note: 'Open floating shortcut modal' },
+                      ],
+                    },
+                    {
+                      category: 'Kanban Pipeline Velocity',
+                      items: [
+                        { label: 'Navigate Kanban stage columns', keys: ['←', '→'], note: 'Shift active column focus' },
+                        { label: 'Select deal card in column', keys: ['↑', '↓'], note: 'Navigate deal cards' },
+                        { label: 'Cycle forward through deals', keys: ['Tab'], note: 'Fast linear card cycling' },
+                        { label: 'Inspect deal (slide-over drawer)', keys: ['↵'], note: 'Open full deal inspector' },
+                        { label: 'Shift deal stage left / right', keys: ['[', ']'], note: 'Advance or revert stage' },
+                      ],
+                    },
+                    {
+                      category: 'Workspace Navigation (Go-to)',
+                      items: [
+                        { label: 'Jump to Dashboard overview', keys: ['G', 'D'], note: 'Daily executive brief' },
+                        { label: 'Jump to Deals pipeline', keys: ['G', 'P'], note: 'Kanban stages and values' },
+                        { label: 'Jump to Companies directory', keys: ['G', 'C'], note: 'Client account rollups' },
+                        { label: 'Jump to Contacts directory', keys: ['G', 'T'], note: 'People touch history' },
+                        { label: 'Jump to Activities log', keys: ['G', 'A'], note: 'Audited interactions' },
+                        { label: 'Jump to Settings view', keys: ['G', 'S'], note: 'Workspace preferences' },
+                      ],
+                    },
+                  ]
+                    .map((group) => ({
+                      ...group,
+                      items: group.items.filter((item) =>
+                        !shortcutFilter.trim() ||
+                        item.label.toLowerCase().includes(shortcutFilter.toLowerCase()) ||
+                        item.keys.some((k) => k.toLowerCase().includes(shortcutFilter.toLowerCase())) ||
+                        item.note.toLowerCase().includes(shortcutFilter.toLowerCase())
+                      ),
+                    }))
+                    .filter((group) => group.items.length > 0)
+                    .map((group, gIdx) => (
+                      <div key={gIdx} className="bg-white border border-[#e4e7ec] rounded-xl overflow-hidden shadow-[rgba(28,40,64,0.04)_0px_2px_4px_-1px]">
+                        <div className="px-4 py-2.5 bg-[#fafbfc] border-b border-[#e4e7ec]">
+                          <span className="text-[12px] font-semibold text-[#1c1d1f]">{group.category}</span>
+                        </div>
+                        <div className="divide-y divide-[#f0f1f3]">
+                          {group.items.map((item, idx) => (
+                            <div key={idx} className="flex items-center justify-between px-4 py-3 hover:bg-[#fafbfc] transition-colors">
+                              <div className="min-w-0 pr-4">
+                                <span className="text-[13px] font-medium text-[#1c1d1f] block truncate">{item.label}</span>
+                                <span className="text-[11px] text-[#6f7988] block truncate">{item.note}</span>
+                              </div>
+                              <div className="flex items-center gap-1 shrink-0">
+                                {item.keys.map((k, kIdx) => (
+                                  <kbd
+                                    key={kIdx}
+                                    className="px-2 py-0.5 min-w-[22px] text-center text-[11px] font-mono font-semibold text-[#505967] bg-[#f4f5f6] border border-[#dce0e8] rounded-[5px] shadow-2xs"
+                                  >
+                                    {k}
+                                  </kbd>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
                 </div>
+              )}
 
-                {/* CARD 4: DATA EXPORT & PORTABILITY (.CSV) */}
-                <div className="panel lg:col-span-12">
-                  <div className="panel-heading">
+              {/* TAB 3: DATA & PORTABILITY */}
+              {settingsTab === 'export' && (
+                <div className="space-y-6 max-w-4xl">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-[#e4e7ec]">
                     <div>
-                      <p className="section-kicker">Data Ownership & Portability</p>
-                      <h2>1-Click CSV Data Export</h2>
+                      <h3 className="text-[16px] font-semibold text-[#1c1d1f] tracking-tight">Data Ownership & Portability</h3>
+                      <p className="text-[13px] text-[#6f7988] mt-0.5">
+                        Download complete RFC-4180 unencrypted CSV archives with UTF-8 BOM encoding for direct import into Notion, Excel, or Google Sheets.
+                      </p>
                     </div>
                     <button
+                      type="button"
                       onClick={() => {
                         exportDealsCSV(deals)
                         exportCompaniesCSV(companies)
@@ -1783,132 +1953,141 @@ export default function Page() {
                         exportFollowUpsCSV(followUps)
                         addToast('All workspace data exported (5 CSV files)', 'Export')
                       }}
-                      className="primary-button text-[12px] py-1.5 px-3"
+                      className="primary-button text-[12px] py-1.5 px-3 min-h-0 shrink-0"
                     >
-                      <Download size={14} /> Export All (5 CSVs)
+                      <Download size={13} />
+                      <span>Export All (5 CSVs)</span>
                     </button>
                   </div>
-                  <p className="text-[12px] text-[#6f7988] mt-2 mb-4">
-                    Instantly download complete, unencrypted RFC-4180 compliant CSV spreadsheets with UTF-8 BOM encoding for direct import into Excel, Google Sheets, or Notion.
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-[12px]">
-                    {/* Deals Export */}
-                    <div className="p-3.5 rounded-[9px] bg-[#f8f9fa] border border-[#edf0f3] flex flex-col justify-between">
-                      <div>
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-[#6f7988] text-[11px] font-medium">Deals Pipeline</span>
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#e9f0ff] text-[#266df0]">
-                            {deals.length} records
-                          </span>
-                        </div>
-                        <strong className="text-[#1c1d1f] text-[13px] block">Deals Export</strong>
-                        <small className="block text-[#8f99a8] text-[10px] mt-0.5">Stages, values, next actions</small>
-                      </div>
-                      <button
-                        onClick={() => {
-                          exportDealsCSV(deals)
-                          addToast(`Exported ${deals.length} deals to CSV`, 'CSV')
-                        }}
-                        className="mt-3 w-full py-1.5 px-2 bg-white hover:bg-[#edf2f7] border border-[#dce0e8] text-[#1c1d1f] rounded-[6px] font-medium text-[11px] transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
-                      >
-                        <Download size={13} className="text-[#266df0]" /> Download .csv
-                      </button>
-                    </div>
 
-                    {/* Companies Export */}
-                    <div className="p-3.5 rounded-[9px] bg-[#f8f9fa] border border-[#edf0f3] flex flex-col justify-between">
-                      <div>
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-[#6f7988] text-[11px] font-medium">Accounts</span>
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#e9f0ff] text-[#266df0]">
-                            {companies.length} records
-                          </span>
+                  <div className="bg-white border border-[#e4e7ec] rounded-xl overflow-hidden shadow-[rgba(28,40,64,0.04)_0px_2px_4px_-1px]">
+                    <div className="divide-y divide-[#f0f1f3]">
+                      {[
+                        {
+                          title: 'Deals Pipeline',
+                          desc: 'Stages, deal values, probability, next actions, contacts, deliverables',
+                          count: deals.length,
+                          action: () => {
+                            exportDealsCSV(deals)
+                            addToast(`Exported ${deals.length} deals to CSV`, 'CSV')
+                          },
+                        },
+                        {
+                          title: 'Accounts & Companies',
+                          desc: 'Company directory, client types, primary contacts, deal counts, pipeline values',
+                          count: companies.length,
+                          action: () => {
+                            exportCompaniesCSV(companies)
+                            addToast(`Exported ${companies.length} companies to CSV`, 'CSV')
+                          },
+                        },
+                        {
+                          title: 'People Directory',
+                          desc: 'Contact names, email addresses, phone numbers, roles, touch timestamps',
+                          count: contacts.length,
+                          action: () => {
+                            exportContactsCSV(contacts)
+                            addToast(`Exported ${contacts.length} contacts to CSV`, 'CSV')
+                          },
+                        },
+                        {
+                          title: 'Activity History',
+                          desc: 'Meeting notes, call summaries, status audits, linked deal references',
+                          count: activities.length,
+                          action: () => {
+                            exportActivitiesCSV(activities)
+                            addToast(`Exported ${activities.length} activities to CSV`, 'CSV')
+                          },
+                        },
+                        {
+                          title: 'GTD Follow-up Queue',
+                          desc: 'Next actions, scheduled times, urgency indicators, completion states',
+                          count: followUps.length,
+                          action: () => {
+                            exportFollowUpsCSV(followUps)
+                            addToast(`Exported ${followUps.length} follow-ups to CSV`, 'CSV')
+                          },
+                        },
+                      ].map((item, idx) => (
+                        <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 hover:bg-[#fafbfc] transition-colors">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <strong className="text-[14px] font-semibold text-[#1c1d1f]">{item.title}</strong>
+                              <span className="text-[11px] font-mono font-medium text-[#266df0] bg-[#e9f0ff] px-2 py-0.5 rounded-[7px]">
+                                {item.count} records
+                              </span>
+                            </div>
+                            <p className="text-[12px] text-[#6f7988] mt-0.5">{item.desc}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={item.action}
+                            className="select-button self-start sm:self-center shrink-0"
+                          >
+                            <Download size={13} className="text-[#266df0]" />
+                            <span>Download .csv</span>
+                          </button>
                         </div>
-                        <strong className="text-[#1c1d1f] text-[13px] block">Companies Export</strong>
-                        <small className="block text-[#8f99a8] text-[10px] mt-0.5">Metrics, revenue, contacts</small>
-                      </div>
-                      <button
-                        onClick={() => {
-                          exportCompaniesCSV(companies)
-                          addToast(`Exported ${companies.length} companies to CSV`, 'CSV')
-                        }}
-                        className="mt-3 w-full py-1.5 px-2 bg-white hover:bg-[#edf2f7] border border-[#dce0e8] text-[#1c1d1f] rounded-[6px] font-medium text-[11px] transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
-                      >
-                        <Download size={13} className="text-[#266df0]" /> Download .csv
-                      </button>
-                    </div>
-
-                    {/* Contacts Export */}
-                    <div className="p-3.5 rounded-[9px] bg-[#f8f9fa] border border-[#edf0f3] flex flex-col justify-between">
-                      <div>
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-[#6f7988] text-[11px] font-medium">People Directory</span>
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#e9f0ff] text-[#266df0]">
-                            {contacts.length} records
-                          </span>
-                        </div>
-                        <strong className="text-[#1c1d1f] text-[13px] block">Contacts Export</strong>
-                        <small className="block text-[#8f99a8] text-[10px] mt-0.5">Emails, phones, touches</small>
-                      </div>
-                      <button
-                        onClick={() => {
-                          exportContactsCSV(contacts)
-                          addToast(`Exported ${contacts.length} contacts to CSV`, 'CSV')
-                        }}
-                        className="mt-3 w-full py-1.5 px-2 bg-white hover:bg-[#edf2f7] border border-[#dce0e8] text-[#1c1d1f] rounded-[6px] font-medium text-[11px] transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
-                      >
-                        <Download size={13} className="text-[#266df0]" /> Download .csv
-                      </button>
-                    </div>
-
-                    {/* Activities Export */}
-                    <div className="p-3.5 rounded-[9px] bg-[#f8f9fa] border border-[#edf0f3] flex flex-col justify-between">
-                      <div>
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-[#6f7988] text-[11px] font-medium">Activity Log</span>
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#e9f0ff] text-[#266df0]">
-                            {activities.length} records
-                          </span>
-                        </div>
-                        <strong className="text-[#1c1d1f] text-[13px] block">Activities Export</strong>
-                        <small className="block text-[#8f99a8] text-[10px] mt-0.5">Call logs, notes, audits</small>
-                      </div>
-                      <button
-                        onClick={() => {
-                          exportActivitiesCSV(activities)
-                          addToast(`Exported ${activities.length} activities to CSV`, 'CSV')
-                        }}
-                        className="mt-3 w-full py-1.5 px-2 bg-white hover:bg-[#edf2f7] border border-[#dce0e8] text-[#1c1d1f] rounded-[6px] font-medium text-[11px] transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
-                      >
-                        <Download size={13} className="text-[#266df0]" /> Download .csv
-                      </button>
-                    </div>
-
-                    {/* Follow-ups Export */}
-                    <div className="p-3.5 rounded-[9px] bg-[#f8f9fa] border border-[#edf0f3] flex flex-col justify-between">
-                      <div>
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-[#6f7988] text-[11px] font-medium">GTD Queue</span>
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#e9f0ff] text-[#266df0]">
-                            {followUps.length} records
-                          </span>
-                        </div>
-                        <strong className="text-[#1c1d1f] text-[13px] block">Follow-ups Export</strong>
-                        <small className="block text-[#8f99a8] text-[10px] mt-0.5">Tasks, deadlines, status</small>
-                      </div>
-                      <button
-                        onClick={() => {
-                          exportFollowUpsCSV(followUps)
-                          addToast(`Exported ${followUps.length} follow-ups to CSV`, 'CSV')
-                        }}
-                        className="mt-3 w-full py-1.5 px-2 bg-white hover:bg-[#edf2f7] border border-[#dce0e8] text-[#1c1d1f] rounded-[6px] font-medium text-[11px] transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
-                      >
-                        <Download size={13} className="text-[#266df0]" /> Download .csv
-                      </button>
+                      ))}
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
+
+              {/* TAB 4: SYSTEM & DEPLOYMENT */}
+              {settingsTab === 'system' && (
+                <div className="space-y-6 max-w-4xl">
+                  <div className="flex items-center justify-between pb-4 border-b border-[#e4e7ec]">
+                    <div>
+                      <h3 className="text-[16px] font-semibold text-[#1c1d1f] tracking-tight">Deployment & Architecture</h3>
+                      <p className="text-[13px] text-[#6f7988] mt-0.5">
+                        Unified Next.js 16 full-stack architecture running standalone on Coolify. Zero external latency, minimal RAM footprint.
+                      </p>
+                    </div>
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-mono font-medium rounded-[7px] border ${
+                      dbStatus === 'connected'
+                        ? 'text-[#027a48] bg-[#ecfdf3] border-[#d1fadf]'
+                        : 'text-[#b42318] bg-[#fef3f2] border-[#fee4e2]'
+                    }`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${dbStatus === 'connected' ? 'bg-[#12b76a]' : 'bg-[#f04438]'}`} />
+                      {dbStatus === 'connected' ? 'Database Online' : 'Checking Connection'}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="bg-white border border-[#e4e7ec] rounded-xl p-4 shadow-[rgba(28,40,64,0.04)_0px_2px_4px_-1px]">
+                      <span className="text-[11px] font-medium text-[#6f7988] block mb-1">Database Engine</span>
+                      <strong className="text-[14px] text-[#1c1d1f] font-semibold block">PostgreSQL / SQLite (LibSQL)</strong>
+                      <p className="text-[12px] text-[#8f99a8] mt-1">Persistent local volume with WAL mode and 5000ms busy timeout.</p>
+                    </div>
+
+                    <div className="bg-white border border-[#e4e7ec] rounded-xl p-4 shadow-[rgba(28,40,64,0.04)_0px_2px_4px_-1px]">
+                      <span className="text-[11px] font-medium text-[#6f7988] block mb-1">Healthcheck Endpoint</span>
+                      <a
+                        href="/api/health"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[14px] font-semibold text-[#266df0] hover:underline inline-flex items-center gap-1 font-mono"
+                      >
+                        /api/health <ArrowUpRight size={13} />
+                      </a>
+                      <p className="text-[12px] text-[#8f99a8] mt-1">Rolling zero-downtime container monitoring for Coolify / Docker.</p>
+                    </div>
+
+                    <div className="bg-white border border-[#e4e7ec] rounded-xl p-4 shadow-[rgba(28,40,64,0.04)_0px_2px_4px_-1px]">
+                      <span className="text-[11px] font-medium text-[#6f7988] block mb-1">Cryptographic Security</span>
+                      <strong className="text-[14px] text-[#1c1d1f] font-semibold block">HMAC-SHA256 Token</strong>
+                      <p className="text-[12px] text-[#8f99a8] mt-1">Web Crypto API with HttpOnly SameSite=Lax cookie session validation.</p>
+                    </div>
+
+                    <div className="bg-white border border-[#e4e7ec] rounded-xl p-4 shadow-[rgba(28,40,64,0.04)_0px_2px_4px_-1px]">
+                      <span className="text-[11px] font-medium text-[#6f7988] block mb-1">Software License</span>
+                      <strong className="text-[14px] text-[#1c1d1f] font-semibold block">AGPL-3.0 Open Source</strong>
+                      <p className="text-[12px] text-[#8f99a8] mt-1">Freelancer CRM v1.0.4 • Solo Operator Personal Cockpit.</p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </>
 
           ) : (
@@ -2439,6 +2618,20 @@ export default function Page() {
         activities={activities}
         onAddActivity={(act) => handleLogActivity(act)}
         onOpenLogCallModal={() => setIsLogCallOpen(true)}
+        onToast={(msg) => addToast(msg)}
+      />
+
+      {/* EDIT SETTINGS & PREFERENCES MODAL */}
+      <EditSettingsModal
+        isOpen={isEditSettingsOpen}
+        onClose={() => setIsEditSettingsOpen(false)}
+        currentSettings={currentSettings}
+        onSettingsUpdated={(updated) => {
+          setCurrentSettings(updated)
+          const firstName = updated.operatorName.trim().split(' ')[0]
+          setGreeting(getDynamicGreeting(firstName))
+          addToast('Preferences saved successfully')
+        }}
       />
 
       {/* FLOATING TOAST HUD */}

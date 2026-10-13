@@ -23,6 +23,7 @@ export interface InvoiceMilestone {
   status: 'Draft' | 'Sent' | 'Paid' | 'Overdue'
   dueDate?: string
   paidAt?: string
+  paymentLink?: string
 }
 
 export interface Deal {
@@ -93,11 +94,23 @@ export interface FollowUpItem {
   completed?: boolean
 }
 
+export interface WorkspaceSettings {
+  operatorName: string
+  operatorEmail: string
+  operatorRole: string
+  currency: string
+  currencySymbol: string
+  locale: string
+  isClaimed: boolean
+  updatedAt?: string
+}
+
 export interface WorkspaceData {
   deals: Deal[]
   companies: Company[]
   contacts: Contact[]
   activities: Activity[]
   followUps: FollowUpItem[]
+  settings?: WorkspaceSettings
 }
 

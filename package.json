@@ -1,6 +1,7 @@
 {
-  "name": "my-project",
+  "name": "freelancer-crm",
   "version": "0.1.0",
+  "license": "AGPL-3.0-only",
   "private": true,
   "packageManager": "pnpm@12.3.4",
   "scripts": {

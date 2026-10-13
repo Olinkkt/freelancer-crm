@@ -1,12 +1,15 @@
 import { sql } from 'kysely'
 import { db } from './client'
 
+const SCHEMA_VERSION = 2
+
 const globalForInit = globalThis as unknown as {
   dbInitPromise?: Promise<void>
+  dbSchemaVersion?: number
 }
 
-export async function ensureDbInitialized(): Promise<void> {
-  if (globalForInit.dbInitPromise) {
+export async function ensureDbInitialized(force = false): Promise<void> {
+  if (!force && globalForInit.dbInitPromise && globalForInit.dbSchemaVersion === SCHEMA_VERSION) {
     return globalForInit.dbInitPromise
   }
 
@@ -112,6 +115,23 @@ export async function ensureDbInitialized(): Promise<void> {
       );
     `.execute(db)
 
+    // 6. Workspace Settings & First-Run Setup
+    await sql`
+      CREATE TABLE IF NOT EXISTS workspace_settings (
+        id TEXT PRIMARY KEY,
+        operator_name TEXT NOT NULL,
+        operator_email TEXT NOT NULL,
+        operator_role TEXT NOT NULL DEFAULT 'Creative & Tech Operator',
+        currency TEXT NOT NULL DEFAULT 'CZK',
+        currency_symbol TEXT NOT NULL DEFAULT 'Kč',
+        locale TEXT NOT NULL DEFAULT 'cs-CZ',
+        passcode_hash TEXT,
+        is_claimed INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+    `.execute(db)
+
     // Helpful query indexes for fast lookups
     try {
       await sql`CREATE INDEX IF NOT EXISTS idx_deals_stage ON deals(stage);`.execute(db)
@@ -124,10 +144,15 @@ export async function ensureDbInitialized(): Promise<void> {
     }
   })()
 
-  globalForInit.dbInitPromise = initPromise.catch((err) => {
-    globalForInit.dbInitPromise = undefined
-    throw err
-  })
+  globalForInit.dbInitPromise = initPromise
+    .then(() => {
+      globalForInit.dbSchemaVersion = SCHEMA_VERSION
+    })
+    .catch((err) => {
+      globalForInit.dbInitPromise = undefined
+      globalForInit.dbSchemaVersion = undefined
+      throw err
+    })
 
   return globalForInit.dbInitPromise
 }

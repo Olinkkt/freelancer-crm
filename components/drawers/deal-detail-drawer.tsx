@@ -38,6 +38,7 @@ interface DealDetailDrawerProps {
   activities?: Activity[]
   onAddActivity?: (activity: Omit<Activity, 'id'>) => void
   onOpenLogCallModal?: () => void
+  onToast?: (message: string) => void
 }
 
 const STAGES: DealStage[] = [
@@ -58,6 +59,7 @@ export function DealDetailDrawer({
   activities = [],
   onAddActivity,
   onOpenLogCallModal,
+  onToast,
 }: DealDetailDrawerProps) {
   const [currentDeal, setCurrentDeal] = useState<Deal | null>(deal)
   const [activeTab, setActiveTab] = useState<'overview' | 'deliverables'>('overview')
@@ -84,18 +86,87 @@ export function DealDetailDrawer({
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, onClose])
 
+  const dealInvoices = React.useMemo(() => {
+    if (!currentDeal) return []
+    if (currentDeal.invoices && currentDeal.invoices.length > 0) {
+      return currentDeal.invoices
+    }
+    if (currentDeal.rawAmount > 0) {
+      const half = Math.round(currentDeal.rawAmount * 0.5)
+      const rest = currentDeal.rawAmount - half
+      const isPaidStage = currentDeal.stage === 'Paid'
+      return [
+        {
+          id: `inv-${currentDeal.id}-deposit`,
+          type: 'Deposit' as const,
+          label: '50% Upfront Deposit Invoice',
+          amount: half,
+          formattedAmount: `${half.toLocaleString('cs-CZ').replace(/\\s/g, ' ')} Kč`,
+          percentage: 50,
+          status: (isPaidStage ? 'Paid' : 'Sent') as InvoiceMilestone['status'],
+          dueDate: 'Kickoff',
+          paidAt: isPaidStage ? 'Received' : undefined,
+        },
+        {
+          id: `inv-${currentDeal.id}-final`,
+          type: 'Final' as const,
+          label: '50% Final Handover Invoice',
+          amount: rest,
+          formattedAmount: `${rest.toLocaleString('cs-CZ').replace(/\\s/g, ' ')} Kč`,
+          percentage: 50,
+          status: (isPaidStage ? 'Paid' : 'Draft') as InvoiceMilestone['status'],
+          dueDate: 'On Completion',
+          paidAt: isPaidStage ? 'Received' : undefined,
+        },
+      ]
+    }
+    return []
+  }, [currentDeal?.id, currentDeal?.invoices, currentDeal?.rawAmount, currentDeal?.stage])
+
   if (!isOpen || !currentDeal) return null
 
   const handleStageChange = (newStage: DealStage) => {
     const isClosed = newStage === 'Won' || newStage === 'Paid'
     const isPaid = newStage === 'Paid'
+    const isWon = newStage === 'Won'
+
+    // Smart invoice sync
+    let updatedInvoices = currentDeal.invoices ? [...currentDeal.invoices] : [...dealInvoices]
+    if (isWon) {
+      updatedInvoices = updatedInvoices.map((inv) =>
+        inv.type === 'Deposit' && inv.status !== 'Paid'
+          ? { ...inv, status: 'Paid', paidAt: 'Received' }
+          : inv
+      )
+    } else if (isPaid) {
+      updatedInvoices = updatedInvoices.map((inv) => ({
+        ...inv,
+        status: 'Paid',
+        paidAt: inv.paidAt || 'Received',
+      }))
+    }
+
+    // Smart next action sync
+    let nextAction = currentDeal.next
+    let nextDueDate = currentDeal.nextDueDate
+    if (isWon) {
+      if (!nextAction || nextAction.toLowerCase().includes('proposal') || nextAction.toLowerCase().includes('deposit')) {
+        nextAction = 'Kickoff meeting & design sprint'
+        nextDueDate = 'Tomorrow, 10:00'
+      }
+    } else if (isPaid) {
+      nextAction = 'Request testimonial & case study review'
+      nextDueDate = 'In 3 days'
+    }
+
     const updated: Deal = {
       ...currentDeal,
       stage: newStage,
       probability: isClosed ? '100%' : currentDeal.probability,
       color: isClosed ? 'green' : (currentDeal.color || 'blue'),
-      next: isPaid ? '' : currentDeal.next,
-      nextDueDate: isPaid ? undefined : currentDeal.nextDueDate,
+      next: nextAction,
+      nextDueDate: nextDueDate,
+      invoices: updatedInvoices,
     }
     setCurrentDeal(updated)
     onUpdateDeal(updated)
@@ -303,6 +374,56 @@ export function DealDetailDrawer({
                     <p className="text-[13px] font-semibold text-[#1c1d1f]">{currentDeal.next}</p>
                   </div>
                 ) : null}
+
+                {/* Post-Delivery High-Leverage Follow-Up Prompts */}
+                {currentDeal.stage === 'Paid' && (
+                  <div className="p-4 bg-[#eaf8f0] border border-[#b8eccb] rounded-[12px] space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#1f7a47] uppercase tracking-wider">
+                        <Check size={14} />
+                        <span>Project Completed & 100% Paid</span>
+                      </div>
+                      <span className="text-[10px] font-medium text-[#1f7a47] bg-[#d5f4e2] px-2 py-0.5 rounded-[7px]">
+                        Post-Delivery
+                      </span>
+                    </div>
+                    <p className="text-[12px] text-[#234d34]">
+                      Turn this finished project into referrals and recurring revenue:
+                    </p>
+                    <div className="flex items-center gap-2 flex-wrap pt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = {
+                            ...currentDeal,
+                            next: 'Request testimonial & case study review',
+                            nextDueDate: 'In 3 days',
+                          }
+                          setCurrentDeal(updated)
+                          onUpdateDeal(updated)
+                        }}
+                        className="px-2.5 py-1.5 bg-white hover:bg-[#f3fbf6] text-[#1f7a47] border border-[#a2e3b9] text-[11px] font-semibold rounded-[8px] shadow-2xs transition-colors cursor-pointer"
+                      >
+                        + Request Testimonial (in 3 days)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = {
+                            ...currentDeal,
+                            next: 'Pitch monthly maintenance retainer (8 000 Kč/mo)',
+                            nextDueDate: 'In 14 days',
+                          }
+                          setCurrentDeal(updated)
+                          onUpdateDeal(updated)
+                        }}
+                        className="px-2.5 py-1.5 bg-white hover:bg-[#f3fbf6] text-[#1f7a47] border border-[#a2e3b9] text-[11px] font-semibold rounded-[8px] shadow-2xs transition-colors cursor-pointer"
+                      >
+                        + Pitch Monthly Retainer (in 14 days)
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* Contact Information */}
                 <div className="space-y-2 pt-2 border-t border-[#f0f1f3]">
@@ -520,9 +641,11 @@ export function DealDetailDrawer({
                   dealValue={currentDeal.value}
                   rawAmount={currentDeal.rawAmount}
                   deliverables={currentDeal.deliverables || []}
-                  invoices={currentDeal.invoices || []}
+                  invoices={dealInvoices}
                   onChangeDeliverables={handleChangeDeliverables}
                   onChangeInvoices={handleChangeInvoices}
+                  onAutoAdvanceStage={(stage) => handleStageChange(stage)}
+                  onToast={onToast}
                 />
               </div>
             )}

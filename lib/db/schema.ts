@@ -78,10 +78,25 @@ export interface FollowUpTable {
   created_at: string
 }
 
+export interface WorkspaceSettingsTable {
+  id: string
+  operator_name: string
+  operator_email: string
+  operator_role: string
+  currency: string
+  currency_symbol: string
+  locale: string
+  passcode_hash: string | null
+  is_claimed: number // 0 or 1
+  created_at: string
+  updated_at: string
+}
+
 export interface Database {
   companies: CompanyTable
   contacts: ContactTable
   deals: DealTable
   activities: ActivityTable
   follow_ups: FollowUpTable
+  workspace_settings: WorkspaceSettingsTable
 }

@@ -23,6 +23,7 @@ import {
   matchMilestoneToWorkweek,
   getDateString,
 } from '@/lib/date-utils'
+import { OPERATOR_CONFIG, getOperatorInitials } from '@/lib/config'
 
 interface CalendarViewProps {
   deals?: Deal[]
@@ -141,9 +142,9 @@ export function CalendarView({ deals = [], followUps = [], onOpenDeal }: Calenda
               colorTheme: d.color,
             },
             {
-              id: 'os',
-              name: 'Oliver Seidl',
-              initials: 'OS',
+              id: 'operator',
+              name: OPERATOR_CONFIG.name,
+              initials: getOperatorInitials(OPERATOR_CONFIG.name),
               colorTheme: 'dark',
             },
           ],
@@ -552,9 +553,9 @@ export function CalendarView({ deals = [], followUps = [], onOpenDeal }: Calenda
             colorTheme: d.color,
           },
           {
-            id: 'os',
-            name: 'Oliver Seidl',
-            initials: 'OS',
+            id: 'operator',
+            name: OPERATOR_CONFIG.name,
+            initials: getOperatorInitials(OPERATOR_CONFIG.name),
             colorTheme: 'dark' as const,
           },
         ],

@@ -31,6 +31,7 @@ export function NewDealModal({
   dealToEdit,
   onUpdateDeal,
 }: NewDealModalProps) {
+  const [mode, setMode] = useState<'quick' | 'detailed'>('quick')
   const [title, setTitle] = useState('')
   const [company, setCompany] = useState('')
   const [value, setValue] = useState('')
@@ -44,6 +45,7 @@ export function NewDealModal({
   useEffect(() => {
     if (isOpen) {
       if (dealToEdit) {
+        setMode('detailed')
         setTitle(dealToEdit.title || '')
         setCompany(dealToEdit.company || initialCompany || companies[0]?.name || '')
         setValue(dealToEdit.value || '')
@@ -53,12 +55,13 @@ export function NewDealModal({
         setNextDueDate(dealToEdit.nextDueDate || '')
         setNotes(dealToEdit.notes || '')
       } else {
+        setMode('quick')
         setTitle('')
         setCompany(initialCompany || companies[0]?.name || '')
         setValue('25 000 Kč')
         setStage('Lead')
-        setProbability('30%')
-        setNextAction('Send intro email & discovery questionnaire')
+        setProbability('20%')
+        setNextAction('Discovery call & initial scope review')
         setNextDueDate('Tomorrow, 10:00')
         setNotes('')
       }
@@ -108,11 +111,11 @@ export function NewDealModal({
         company: company.trim(),
         value: formattedVal || '—',
         rawAmount: numeric,
-        stage,
-        probability,
+        stage: mode === 'quick' ? 'Lead' : stage,
+        probability: mode === 'quick' ? '20%' : probability,
         next: isPaid ? '' : (nextAction.trim() || 'Schedule next step'),
         nextDueDate: isPaid ? undefined : (nextDueDate.trim() || 'This week'),
-        color: colorMap[stage] || 'blue',
+        color: colorMap[mode === 'quick' ? 'Lead' : stage] || 'blue',
         notes: notes.trim(),
         createdAt: 'Just now',
       })
@@ -141,21 +144,50 @@ export function NewDealModal({
         onKeyDown={handleKeyDown}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#edf0f3] bg-[#fafbfc]">
+        <div className="flex items-center justify-between px-6 py-3.5 border-b border-[#edf0f3] bg-[#fafbfc]">
           <div className="flex items-center gap-2">
             <span className="px-2 py-0.5 text-[10px] font-mono font-medium bg-[#e9f0ff] text-[#266df0] rounded-[7px] border border-[#d6e3fc]">
               Hotkey: N
             </span>
-            <h2 className="text-[16px] font-semibold text-[#1c1d1f] tracking-tight">
-              {dealToEdit ? 'Edit Deal' : 'Create New Deal'}
+            <h2 className="text-[15px] font-semibold text-[#1c1d1f] tracking-tight">
+              {dealToEdit ? 'Edit Deal' : 'Capture Opportunity'}
             </h2>
           </div>
-          <button
-            onClick={onClose}
-            className="w-7 h-7 rounded-[10px] flex items-center justify-center text-[#9fa1a7] hover:text-[#1c1d1f] hover:bg-[#edf0f3] transition-colors"
-          >
-            <X size={16} />
-          </button>
+
+          <div className="flex items-center gap-2">
+            {!dealToEdit && (
+              <div className="flex items-center bg-[#f0f2f5] p-0.5 rounded-[8px] text-[11px] font-medium">
+                <button
+                  type="button"
+                  onClick={() => setMode('quick')}
+                  className={`px-2.5 py-1 rounded-[6px] transition-all cursor-pointer ${
+                    mode === 'quick'
+                      ? 'bg-white text-[#1c1d1f] font-semibold shadow-xs'
+                      : 'text-[#6f7988] hover:text-[#1c1d1f]'
+                  }`}
+                >
+                  ⚡ Quick (5s)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMode('detailed')}
+                  className={`px-2.5 py-1 rounded-[6px] transition-all cursor-pointer ${
+                    mode === 'detailed'
+                      ? 'bg-white text-[#1c1d1f] font-semibold shadow-xs'
+                      : 'text-[#6f7988] hover:text-[#1c1d1f]'
+                  }`}
+                >
+                  Detailed
+                </button>
+              </div>
+            )}
+            <button
+              onClick={onClose}
+              className="w-7 h-7 rounded-[10px] flex items-center justify-center text-[#9fa1a7] hover:text-[#1c1d1f] hover:bg-[#edf0f3] transition-colors"
+            >
+              <X size={16} />
+            </button>
+          </div>
         </div>
 
         {/* Form Body */}
@@ -209,47 +241,55 @@ export function NewDealModal({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-[#505967] mb-1.5">
-                Pipeline Stage
-              </label>
-              <select
-                value={stage}
-                onChange={(e) => setStage(e.target.value as DealStage)}
-                className="w-full h-10 px-3 border border-[#e4e7ec] rounded-[10px] text-[13px] text-[#1c1d1f] bg-white focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
-              >
-                {STAGES.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-            </div>
+          {/* Detailed Mode: Pipeline Stage & Probability */}
+          {mode === 'detailed' && (
+            <div className="grid grid-cols-2 gap-3 animate-in fade-in duration-150">
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#505967] mb-1.5">
+                  Pipeline Stage
+                </label>
+                <select
+                  value={stage}
+                  onChange={(e) => setStage(e.target.value as DealStage)}
+                  className="w-full h-10 px-3 border border-[#e4e7ec] rounded-[10px] text-[13px] text-[#1c1d1f] bg-white focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
+                >
+                  {STAGES.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-[#505967] mb-1.5">
-                Win Probability
-              </label>
-              <select
-                value={probability}
-                onChange={(e) => setProbability(e.target.value)}
-                className="w-full h-10 px-3 border border-[#e4e7ec] rounded-[10px] text-[13px] text-[#1c1d1f] bg-white focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
-              >
-                <option value="20%">20% — Lead</option>
-                <option value="40%">40% — Qualified</option>
-                <option value="70%">70% — Proposal</option>
-                <option value="100%">100% — Won / Paid</option>
-              </select>
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#505967] mb-1.5">
+                  Win Probability
+                </label>
+                <select
+                  value={probability}
+                  onChange={(e) => setProbability(e.target.value)}
+                  className="w-full h-10 px-3 border border-[#e4e7ec] rounded-[10px] text-[13px] text-[#1c1d1f] bg-white focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
+                >
+                  <option value="20%">20% — Lead</option>
+                  <option value="40%">40% — Qualified</option>
+                  <option value="70%">70% — Proposal</option>
+                  <option value="100%">100% — Won / Paid</option>
+                </select>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Mandatory Next Action GTD Prompt (hidden when stage is Paid) */}
           {stage !== 'Paid' && (
             <div className="p-3.5 bg-[#f8faff] border border-[#d6e3fc] rounded-[12px] space-y-2">
-              <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#266df0] uppercase tracking-wider">
-                <AlertCircle size={14} />
-                <span>Mandatory Next Action (GTD Rule)</span>
+              <div className="flex items-center justify-between text-[11px] font-bold text-[#266df0] uppercase tracking-wider">
+                <div className="flex items-center gap-1.5">
+                  <AlertCircle size={14} />
+                  <span>Mandatory Next Action (GTD Rule)</span>
+                </div>
+                {mode === 'quick' && (
+                  <span className="text-[10px] lowercase font-normal text-[#6f7988]">auto-defaults to Lead</span>
+                )}
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <input
@@ -270,18 +310,21 @@ export function NewDealModal({
             </div>
           )}
 
-          <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-[#505967] mb-1.5">
-              Operator Notes / Scoping scratchpad
-            </label>
-            <textarea
-              rows={2}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Initial requirements, key contacts, or budget parameters..."
-              className="w-full p-3 border border-[#e4e7ec] rounded-[10px] text-[12px] text-[#1c1d1f] placeholder:text-[#9fa1a7] focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15 resize-none"
-            />
-          </div>
+          {/* Detailed Mode: Operator Notes */}
+          {mode === 'detailed' && (
+            <div className="animate-in fade-in duration-150">
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-[#505967] mb-1.5">
+                Operator Notes / Scoping scratchpad
+              </label>
+              <textarea
+                rows={2}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Initial requirements, key contacts, or budget parameters..."
+                className="w-full p-3 border border-[#e4e7ec] rounded-[10px] text-[12px] text-[#1c1d1f] placeholder:text-[#9fa1a7] focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15 resize-none"
+              />
+            </div>
+          )}
 
           <div className="pt-2 flex items-center justify-between">
             <span className="text-[11px] text-[#9fa1a7] font-mono">

@@ -1,0 +1,48 @@
+/**
+ * Client-accessible configuration with sensible defaults.
+ * Configured via NEXT_PUBLIC_* environment variables or fallback values.
+ */
+
+export interface OperatorConfig {
+  name: string
+  firstName: string
+  email: string
+  role: string
+  currency: string
+  currencySymbol: string
+  locale: string
+  appTitle: string
+}
+
+export const OPERATOR_CONFIG: OperatorConfig = {
+  name: process.env.NEXT_PUBLIC_OPERATOR_NAME || 'Oliver Seidl',
+  firstName: (process.env.NEXT_PUBLIC_OPERATOR_NAME || 'Oliver Seidl').trim().split(' ')[0],
+  email: process.env.NEXT_PUBLIC_OPERATOR_EMAIL || 'oliver@seidltech.cz',
+  role: process.env.NEXT_PUBLIC_OPERATOR_ROLE || 'Creative & Tech Operator',
+  currency: process.env.NEXT_PUBLIC_DEFAULT_CURRENCY || 'CZK',
+  currencySymbol: process.env.NEXT_PUBLIC_CURRENCY_SYMBOL || 'Kč',
+  locale: process.env.NEXT_PUBLIC_LOCALE || 'cs-CZ',
+  appTitle: process.env.NEXT_PUBLIC_APP_TITLE || 'Freelancer CRM',
+}
+
+/**
+ * Formats a numeric currency amount using the configured currency and locale.
+ */
+export function formatMoney(amount: number): string {
+  const formatted = amount.toLocaleString(OPERATOR_CONFIG.locale).replace(/\s/g, ' ')
+  // Check if symbol goes before (e.g., $, €, £) or after (e.g., Kč)
+  if (['$', '€', '£'].includes(OPERATOR_CONFIG.currencySymbol)) {
+    return `${OPERATOR_CONFIG.currencySymbol}${formatted}`
+  }
+  return `${formatted} ${OPERATOR_CONFIG.currencySymbol}`
+}
+
+/**
+ * Returns initials from full operator name (e.g. "Oliver Seidl" -> "OS")
+ */
+export function getOperatorInitials(name: string = OPERATOR_CONFIG.name): string {
+  const parts = name.trim().split(/\s+/)
+  if (parts.length === 0) return 'OP'
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+}

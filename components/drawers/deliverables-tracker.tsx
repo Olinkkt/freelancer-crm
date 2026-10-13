@@ -13,6 +13,10 @@ import {
   Send,
   AlertCircle,
   Calendar,
+  Copy,
+  Check,
+  Sparkles,
+  Link2,
 } from 'lucide-react'
 import { DeliverableItem, InvoiceMilestone } from '@/lib/crm-types'
 
@@ -24,6 +28,8 @@ interface DeliverablesTrackerProps {
   invoices: InvoiceMilestone[]
   onChangeDeliverables: (items: DeliverableItem[]) => void
   onChangeInvoices: (items: InvoiceMilestone[]) => void
+  onAutoAdvanceStage?: (stage: 'Won' | 'Paid', reason: string) => void
+  onToast?: (message: string) => void
 }
 
 export function DeliverablesTracker({
@@ -34,9 +40,12 @@ export function DeliverablesTracker({
   invoices,
   onChangeDeliverables,
   onChangeInvoices,
+  onAutoAdvanceStage,
+  onToast,
 }: DeliverablesTrackerProps) {
   const [newTitle, setNewTitle] = useState('')
   const [isAdding, setIsAdding] = useState(false)
+  const [copiedInvoiceId, setCopiedInvoiceId] = useState<string | null>(null)
 
   // Deliverable calculations
   const totalDeliverables = deliverables.length
@@ -99,19 +108,91 @@ export function DeliverablesTracker({
     setIsAdding(false)
   }
 
+  const handleApplyTemplate = (type: 'web' | 'brand' | 'retainer') => {
+    let templateItems: string[] = []
+    if (type === 'web') {
+      templateItems = [
+        '1. UX Wireframes & Architecture Approval',
+        '2. Interactive Prototype & Frontend Build',
+        '3. CMS & Payment Gateway Integration',
+        '4. Production Deployment & Domain Handover',
+      ]
+    } else if (type === 'brand') {
+      templateItems = [
+        '1. Brand Strategy & Moodboard Direction',
+        '2. Logo Suite, Color Palette & Typography',
+        '3. Brand Guidelines & Asset Handover',
+      ]
+    } else if (type === 'retainer') {
+      templateItems = [
+        '1. Monthly Sprint Planning & Scope Confirmation',
+        '2. Priority Feature Delivery & Bug Fixes',
+        '3. End-of-month Review & KPI Performance Report',
+      ]
+    }
+
+    const newItems: DeliverableItem[] = templateItems.map((title, i) => ({
+      id: `del-${Date.now()}-${i}`,
+      title,
+      status: 'Pending',
+      clientSignOff: false,
+    }))
+
+    onChangeDeliverables([...deliverables, ...newItems])
+    if (onToast) {
+      onToast(`Applied ${type === 'web' ? 'Web Project' : type === 'brand' ? 'Design' : 'Retainer'} template (${templateItems.length} items)`)
+    }
+  }
+
+  const handleCopyPaymentLink = (inv: InvoiceMilestone, e: React.MouseEvent) => {
+    e.stopPropagation()
+    const fallbackLink = `https://pay.fakturoid.cz/qr?amount=${inv.amount}&vs=${Date.now().toString().slice(-6)}&currency=CZK`
+    const link = inv.paymentLink || fallbackLink
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(link)
+    }
+    setCopiedInvoiceId(inv.id)
+    if (onToast) {
+      onToast(`Copied payment link for ${inv.label}`)
+    }
+    setTimeout(() => {
+      setCopiedInvoiceId(null)
+    }, 2000)
+  }
+
   const handleToggleInvoicePaid = (id: string) => {
+    let triggeredStage: 'Won' | 'Paid' | null = null
+    let triggeredReason = ''
+
     const updated = invoices.map((inv) => {
       if (inv.id === id) {
         const isPaid = inv.status === 'Paid'
+        const nextStatus = (isPaid ? 'Sent' : 'Paid') as InvoiceMilestone['status']
+        if (nextStatus === 'Paid') {
+          if (inv.type === 'Deposit') {
+            triggeredStage = 'Won'
+            triggeredReason = '50% Deposit Received! Project Kicked Off'
+          }
+        }
         return {
           ...inv,
-          status: (isPaid ? 'Sent' : 'Paid') as InvoiceMilestone['status'],
+          status: nextStatus,
           paidAt: isPaid ? undefined : 'Just now',
         }
       }
       return inv
     })
+
+    const allPaid = updated.length > 0 && updated.every((x) => x.status === 'Paid')
+    if (allPaid) {
+      triggeredStage = 'Paid'
+      triggeredReason = '100% Invoices Collected! Project Handed Over'
+    }
+
     onChangeInvoices(updated)
+    if (triggeredStage && onAutoAdvanceStage) {
+      onAutoAdvanceStage(triggeredStage, triggeredReason)
+    }
   }
 
   return (
@@ -144,6 +225,35 @@ export function DeliverablesTracker({
             className="bg-[#266df0] h-full transition-all duration-300"
             style={{ width: `${progressPercent}%` }}
           />
+        </div>
+
+        {/* Scope Templates Bar */}
+        <div className="flex items-center gap-1.5 pt-1 overflow-x-auto pb-1 text-[10px]">
+          <span className="text-[#8f99a8] font-medium flex items-center gap-1 shrink-0">
+            <Sparkles size={11} className="text-[#266df0]" />
+            Templates:
+          </span>
+          <button
+            type="button"
+            onClick={() => handleApplyTemplate('web')}
+            className="px-2 py-0.5 rounded-[6px] bg-[#f0f2f5] hover:bg-[#e4e7ec] text-[#505967] hover:text-[#1c1d1f] font-medium transition-colors shrink-0 cursor-pointer"
+          >
+            + Web Build (4 milestones)
+          </button>
+          <button
+            type="button"
+            onClick={() => handleApplyTemplate('brand')}
+            className="px-2 py-0.5 rounded-[6px] bg-[#f0f2f5] hover:bg-[#e4e7ec] text-[#505967] hover:text-[#1c1d1f] font-medium transition-colors shrink-0 cursor-pointer"
+          >
+            + Brand & Identity (3)
+          </button>
+          <button
+            type="button"
+            onClick={() => handleApplyTemplate('retainer')}
+            className="px-2 py-0.5 rounded-[6px] bg-[#f0f2f5] hover:bg-[#e4e7ec] text-[#505967] hover:text-[#1c1d1f] font-medium transition-colors shrink-0 cursor-pointer"
+          >
+            + Monthly Retainer (3)
+          </button>
         </div>
 
         {/* Deliverables List */}
@@ -265,7 +375,7 @@ export function DeliverablesTracker({
           {invoices.map((inv) => (
             <div
               key={inv.id}
-              className="p-3 bg-[#fafbfc] border border-[#edf0f3] rounded-[10px] flex items-center justify-between"
+              className="p-3 bg-[#fafbfc] border border-[#edf0f3] rounded-[10px] flex items-center justify-between gap-2"
             >
               <div className="space-y-0.5 min-w-0">
                 <div className="flex items-center gap-2">
@@ -293,17 +403,32 @@ export function DeliverablesTracker({
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => handleToggleInvoicePaid(inv.id)}
-                className={`px-2.5 py-1 text-[11px] font-medium rounded-[7px] border transition-all cursor-pointer ${
-                  inv.status === 'Paid'
-                    ? 'bg-[#f0f2f5] text-[#505967] border-[#dce0e8] hover:bg-[#e4e7ec]'
-                    : 'bg-[#232529] text-white border-[#232529] hover:bg-[#101113] shadow-xs'
-                }`}
-              >
-                {inv.status === 'Paid' ? 'Mark Unpaid' : 'Mark as Paid'}
-              </button>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={(e) => handleCopyPaymentLink(inv, e)}
+                  title="Copy payment link / QR code URL"
+                  className="p-1.5 rounded-[7px] text-[#6f7988] hover:text-[#1c1d1f] bg-white border border-[#e4e7ec] hover:border-[#cad0d9] transition-colors cursor-pointer"
+                >
+                  {copiedInvoiceId === inv.id ? (
+                    <Check size={13} className="text-[#3b9b6d]" />
+                  ) : (
+                    <Link2 size={13} />
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleToggleInvoicePaid(inv.id)}
+                  className={`px-2.5 py-1 text-[11px] font-medium rounded-[7px] border transition-all cursor-pointer ${
+                    inv.status === 'Paid'
+                      ? 'bg-[#f0f2f5] text-[#505967] border-[#dce0e8] hover:bg-[#e4e7ec]'
+                      : 'bg-[#232529] text-white border-[#232529] hover:bg-[#101113] shadow-xs'
+                  }`}
+                >
+                  {inv.status === 'Paid' ? 'Mark Unpaid' : 'Mark as Paid'}
+                </button>
+              </div>
             </div>
           ))}
         </div>

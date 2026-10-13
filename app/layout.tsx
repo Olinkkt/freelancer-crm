@@ -11,8 +11,10 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'SeidlTech CRM — Sales workspace',
-  description: 'A focused CRM dashboard for leads, deals, follow-ups, and client relationships.',
+  title: process.env.NEXT_PUBLIC_APP_TITLE
+    ? `${process.env.NEXT_PUBLIC_APP_TITLE} — Sales workspace`
+    : 'Freelancer CRM — Solo Operator Workspace',
+  description: 'A focused, keyboard-driven CRM for leads, deals, deliverable milestones, and client invoicing.',
   generator: 'v0.app',
   icons: {
     icon: [

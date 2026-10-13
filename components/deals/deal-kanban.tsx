@@ -685,6 +685,11 @@ export function DealKanban({
                               <Clock size={11} className="text-[#266df0] shrink-0" />
                               <span className="truncate font-medium">{deal.next}</span>
                             </div>
+                          ) : deal.stage !== 'Paid' ? (
+                            <div className="mt-2 flex items-center gap-1.5 text-[10px] text-[#b54708] bg-[#fff9f0] p-1.5 rounded-[7px] border border-[#fedf89]">
+                              <AlertCircle size={11} className="text-[#b54708] shrink-0" />
+                              <span className="truncate font-semibold">Needs next action</span>
+                            </div>
                           ) : null}
                         </div>
                       )

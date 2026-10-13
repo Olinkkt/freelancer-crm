@@ -1156,3 +1156,163 @@ export async function updateWorkspaceSettings(params: {
   }
 }
 
+// -------------------------------------------------------------
+// WORKSPACE RESTORE / IMPORT
+// -------------------------------------------------------------
+export async function restoreWorkspaceData(snapshot: {
+  deals?: Deal[]
+  companies?: Company[]
+  contacts?: Contact[]
+  activities?: Activity[]
+  followUps?: FollowUpItem[]
+  settings?: WorkspaceSettings
+}): Promise<{
+  dealsCount: number
+  companiesCount: number
+  contactsCount: number
+  activitiesCount: number
+  followUpsCount: number
+}> {
+  await ensureDbInitialized()
+  const now = new Date().toISOString()
+
+  // 1. Wipe existing tables cleanly
+  await db.deleteFrom('follow_ups').execute()
+  await db.deleteFrom('activities').execute()
+  await db.deleteFrom('deals').execute()
+  await db.deleteFrom('contacts').execute()
+  await db.deleteFrom('companies').execute()
+
+  // 2. Insert companies
+  if (snapshot.companies && snapshot.companies.length > 0) {
+    for (const c of snapshot.companies) {
+      await db
+        .insertInto('companies')
+        .values({
+          id: c.id,
+          name: c.name,
+          type: c.type || 'Direct Client',
+          contact: c.contact || '',
+          email: c.email || '',
+          deals: c.deals || 0,
+          value: c.value || '0 Kč',
+          status: c.status || 'Active',
+          color: (c.color as any) || 'blue',
+          created_at: now,
+          updated_at: now,
+        })
+        .execute()
+    }
+  }
+
+  // 3. Insert contacts
+  if (snapshot.contacts && snapshot.contacts.length > 0) {
+    for (const ct of snapshot.contacts) {
+      await db
+        .insertInto('contacts')
+        .values({
+          id: ct.id,
+          name: ct.name,
+          company: ct.company,
+          company_id: (ct as any).companyId ?? null,
+          role: ct.role ?? null,
+          email: ct.email || '',
+          phone: ct.phone ?? null,
+          deals: ct.deals || 0,
+          last_touch: ct.lastTouch || 'Today',
+          color: (ct.color as any) || 'blue',
+          created_at: now,
+          updated_at: now,
+        })
+        .execute()
+    }
+  }
+
+  // 4. Insert deals
+  if (snapshot.deals && snapshot.deals.length > 0) {
+    for (const d of snapshot.deals) {
+      await db
+        .insertInto('deals')
+        .values({
+          id: d.id,
+          title: d.title,
+          company: d.company,
+          company_id: (d as any).companyId ?? null,
+          value: d.value,
+          raw_amount: d.rawAmount ?? 0,
+          stage: d.stage,
+          probability: d.probability,
+          next: d.next,
+          next_due_date: d.nextDueDate ?? null,
+          color: d.color ?? 'blue',
+          contact_name: d.contactName ?? null,
+          contact_email: d.contactEmail ?? null,
+          notes: d.notes ?? null,
+          start_date: d.startDate ?? null,
+          end_date: (d as any).endDate ?? null,
+          deliverables: d.deliverables ? JSON.stringify(d.deliverables) : null,
+          invoices: d.invoices ? JSON.stringify(d.invoices) : null,
+          created_at: now,
+          updated_at: now,
+        })
+        .execute()
+    }
+  }
+
+  // 5. Insert activities
+  if (snapshot.activities && snapshot.activities.length > 0) {
+    for (const a of snapshot.activities) {
+      await db
+        .insertInto('activities')
+        .values({
+          id: a.id,
+          deal_id: a.dealId ?? null,
+          type: a.type,
+          title: a.title,
+          person: a.person,
+          company: a.company,
+          date: a.date,
+          status: a.status,
+          color: a.color ?? 'blue',
+          summary: a.summary ?? null,
+          created_at: now,
+        })
+        .execute()
+    }
+  }
+
+  // 6. Insert follow_ups
+  if (snapshot.followUps && snapshot.followUps.length > 0) {
+    for (const f of snapshot.followUps) {
+      await db
+        .insertInto('follow_ups')
+        .values({
+          id: f.id,
+          deal_id: (f as any).dealId ?? null,
+          day: f.day || 'Today',
+          company: f.company,
+          action: f.action,
+          time: f.time,
+          tone: f.tone || 'neutral',
+          completed: f.completed ? 1 : 0,
+          created_at: now,
+        })
+        .execute()
+    }
+  }
+
+  // 7. Update workspace settings if provided
+  if (snapshot.settings) {
+    await updateWorkspaceSettings(snapshot.settings)
+  }
+
+  return {
+    dealsCount: snapshot.deals?.length || 0,
+    companiesCount: snapshot.companies?.length || 0,
+    contactsCount: snapshot.contacts?.length || 0,
+    activitiesCount: snapshot.activities?.length || 0,
+    followUpsCount: snapshot.followUps?.length || 0,
+  }
+}
+
+

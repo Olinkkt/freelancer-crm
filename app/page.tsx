@@ -27,6 +27,7 @@ import {
   Banknote,
   CheckCircle2,
   Edit3,
+  Upload,
 } from 'lucide-react'
 import {
   exportDealsCSV,
@@ -2039,6 +2040,73 @@ export default function Page() {
                       ))}
                     </div>
                   </div>
+
+                  {/* SELF-HOSTED COMPLETE DATABASE BACKUP & RESTORE */}
+                  <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-[rgba(28,40,64,0.04)_0px_2px_4px_-1px] space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <strong className="text-[15px] font-semibold text-[#1c1d1f]">Database Snapshot (JSON)</strong>
+                          <span className="text-[10px] font-mono font-medium text-[#027a48] bg-[#ecfdf3] border border-[#d1fadf] px-2 py-0.5 rounded-[6px]">
+                            Recommended for Self-Hosters
+                          </span>
+                        </div>
+                        <p className="text-[12px] text-[#6f7988] mt-1 leading-relaxed">
+                          Export or restore a complete self-contained snapshot of all deals, accounts, contacts, timeline interactions, follow-ups, and workspace configuration. Perfect for Coolify volume backups or migrating servers.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 pt-2 border-t border-[#f0f1f3] flex-wrap">
+                      <a
+                        href="/api/backup"
+                        download
+                        onClick={() => addToast('Downloading complete database snapshot...', 'Backup')}
+                        className="primary-button text-[12px] py-1.5 px-3 min-h-0"
+                      >
+                        <Download size={13} />
+                        <span>Download Full Database Backup</span>
+                      </a>
+
+                      <label className="select-button cursor-pointer text-[12px] py-1.5 px-3 min-h-0">
+                        <Upload size={13} className="text-[#266df0]" />
+                        <span>Restore from JSON File</span>
+                        <input
+                          type="file"
+                          accept=".json,application/json"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0]
+                            if (!file) return
+                            if (!window.confirm('⚠️ Caution: Restoring from a backup will replace current workspace records. Continue?')) {
+                              e.target.value = ''
+                              return
+                            }
+                            try {
+                              const text = await file.text()
+                              const json = JSON.parse(text)
+                              const res = await fetch('/api/backup', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(json),
+                              })
+                              const result = await res.json()
+                              if (res.ok && result.success) {
+                                addToast('Workspace successfully restored! Reloading data...', 'Restore')
+                                await loadData()
+                              } else {
+                                addToast(result.error || 'Failed to restore workspace', undefined, 'warning')
+                              }
+                            } catch (err: any) {
+                              addToast(`Invalid backup file: ${err.message}`, undefined, 'warning')
+                            } finally {
+                              e.target.value = ''
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -2437,17 +2505,29 @@ export default function Page() {
                               <span>{deal.company}</span>
                             </div>
                           </div>
-                          <span className="stage-pill">{deal.stage}</span>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="stage-pill">{deal.stage}</span>
+                            {deal.stage === 'Won' && deal.deliverables && deal.deliverables.length > 0 && (
+                              <span className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded-[5px] bg-[#e9f0ff] text-[#266df0] border border-[#d2e3fc]">
+                                {deal.deliverables.filter((d) => d.status === 'Done').length}/{deal.deliverables.length} done
+                              </span>
+                            )}
+                          </div>
                           <strong className="font-mono tabular-nums">{deal.value}</strong>
                           <span className="probability font-mono">{deal.probability}</span>
                           <span className="next-action flex items-center gap-1">
-                            {deal.stage === 'Paid' || !deal.next ? (
+                            {deal.stage === 'Paid' ? (
                               <span className="text-[#8f99a8]">—</span>
-                            ) : (
+                            ) : deal.next ? (
                               <>
-                                <Clock size={12} className="text-[#266df0]" />
-                                <span>{deal.next}</span>
+                                <Clock size={12} className="text-[#266df0] shrink-0" />
+                                <span className="truncate">{deal.next}</span>
                               </>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#b54708] bg-[#fff9f0] border border-[#fedf89] px-2 py-0.5 rounded-[6px]">
+                                <AlertCircle size={11} className="shrink-0" />
+                                <span>Needs action</span>
+                              </span>
                             )}
                           </span>
                           <RowActionMenu

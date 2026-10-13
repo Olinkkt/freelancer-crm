@@ -359,6 +359,90 @@ export function DealDetailDrawer({
                   </div>
                 </div>
 
+                {/* Active Project Cockpit (Won = Active Working Stage) */}
+                {currentDeal.stage === 'Won' && (
+                  <div className="p-4 bg-[#f0f5ff] border border-[#c3d9ff] rounded-[12px] space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#266df0] uppercase tracking-wider">
+                        <Sparkles size={14} />
+                        <span>Active Project Execution</span>
+                      </div>
+                      <span className="text-[10px] font-semibold text-[#266df0] bg-[#e1edff] px-2 py-0.5 rounded-[7px]">
+                        In Progress
+                      </span>
+                    </div>
+
+                    <div className="text-[12px] text-[#2c3f60] flex items-center justify-between">
+                      <span>Deliverables Progress:</span>
+                      <strong className="font-semibold text-[#1c1d1f]">
+                        {currentDeal.deliverables?.filter((d) => d.status === 'Done').length || 0} of{' '}
+                        {currentDeal.deliverables?.length || 0} complete
+                      </strong>
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div className="w-full bg-[#d6e4ff] h-1.5 rounded-full overflow-hidden">
+                      <div
+                        className="bg-[#266df0] h-full transition-all duration-300"
+                        style={{
+                          width: `${
+                            currentDeal.deliverables && currentDeal.deliverables.length > 0
+                              ? Math.round(
+                                  (currentDeal.deliverables.filter((d) => d.status === 'Done').length /
+                                    currentDeal.deliverables.length) *
+                                    100
+                                )
+                              : 0
+                          }%`,
+                        }}
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('deliverables')}
+                        className="px-2.5 py-1.5 bg-white hover:bg-[#f5f8ff] text-[#266df0] border border-[#b8d2fe] text-[11px] font-semibold rounded-[8px] shadow-2xs transition-colors cursor-pointer"
+                      >
+                        Review Milestones & Scope →
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const allDel = (currentDeal.deliverables || []).map((d) => ({
+                            ...d,
+                            status: 'Done' as const,
+                            clientSignOff: true,
+                          }))
+                          const allInv = (currentDeal.invoices || []).map((inv) => ({
+                            ...inv,
+                            status: 'Paid' as const,
+                            paidAt: 'Just now',
+                          }))
+                          const updated: Deal = {
+                            ...currentDeal,
+                            stage: 'Paid',
+                            probability: '100%',
+                            deliverables: allDel,
+                            invoices: allInv,
+                            next: 'Request testimonial & case study review',
+                            nextDueDate: 'In 3 days',
+                          }
+                          setCurrentDeal(updated)
+                          onUpdateDeal(updated)
+                          if (onToast) {
+                            onToast(`🎉 Project completed & marked as Paid!`)
+                          }
+                        }}
+                        className="px-2.5 py-1.5 bg-[#16a34a] hover:bg-[#15803d] text-white text-[11px] font-semibold rounded-[8px] shadow-2xs transition-colors cursor-pointer inline-flex items-center gap-1"
+                      >
+                        <Check size={12} strokeWidth={2.5} />
+                        <span>Complete & Mark Paid</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {/* Mandatory Next Action (GTD Rule) */}
                 {currentDeal.stage !== 'Paid' && currentDeal.next ? (
                   <div className="p-4 bg-[#f8faff] border border-[#d6e3fc] rounded-[12px] space-y-2">
@@ -372,6 +456,32 @@ export function DealDetailDrawer({
                       </span>
                     </div>
                     <p className="text-[13px] font-semibold text-[#1c1d1f]">{currentDeal.next}</p>
+                  </div>
+                ) : currentDeal.stage !== 'Paid' ? (
+                  /* GTD Alert: Missing next action! */
+                  <div className="p-3 bg-[#fff9f0] border border-[#fedf89] rounded-[12px] flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle size={15} className="text-[#b54708] shrink-0" />
+                      <div>
+                        <span className="text-[12px] font-bold text-[#b54708] block">No Next Action Scheduled</span>
+                        <span className="text-[11px] text-[#7a2e0e]">Deals without clear next steps stall.</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const updated = {
+                          ...currentDeal,
+                          next: 'Follow up regarding next milestone',
+                          nextDueDate: 'Tomorrow, 10:00',
+                        }
+                        setCurrentDeal(updated)
+                        onUpdateDeal(updated)
+                      }}
+                      className="px-2 py-1 bg-white hover:bg-[#fff6ed] text-[#b54708] border border-[#fec84b] text-[11px] font-semibold rounded-[7px] cursor-pointer"
+                    >
+                      + Set Quick Next Action
+                    </button>
                   </div>
                 ) : null}
 

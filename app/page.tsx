@@ -942,7 +942,7 @@ export default function Page() {
                     {totalPipelineAmount.toLocaleString('cs-CZ').replace(/\s/g, ' ')} Kč
                   </strong>
                   <small>
-                    <span className="positive">+12.4%</span> vs last month
+                    {deals.length === 0 ? 'No active pipeline' : `Across ${deals.length} total opportunities`}
                   </small>
                 </div>
                 <div>
@@ -1018,12 +1018,16 @@ export default function Page() {
                 <div>
                   <span className="metric-label">Total activities</span>
                   <strong>{activities.length}</strong>
-                  <small>+8 added this month</small>
+                  <small>Recorded touchpoints</small>
                 </div>
                 <div>
                   <span className="metric-label">Due today</span>
-                  <strong>2</strong>
-                  <small>Keep momentum going</small>
+                  <strong>
+                    {activities.filter((a) => a.status === 'Due today').length}
+                  </strong>
+                  <small>
+                    {activities.filter((a) => a.status === 'Upcoming').length} upcoming scheduled
+                  </small>
                 </div>
                 <div>
                   <span className="metric-label">Completed</span>
@@ -1264,17 +1268,21 @@ export default function Page() {
                 <div>
                   <span className="metric-label">Total contacts</span>
                   <strong>{contacts.length}</strong>
-                  <small>+4 added this month</small>
+                  <small>Across {companies.length} client accounts</small>
                 </div>
                 <div>
-                  <span className="metric-label">Recently contacted</span>
-                  <strong>18</strong>
-                  <small>75% of your directory</small>
+                  <span className="metric-label">Active pipeline</span>
+                  <strong>
+                    {contacts.filter((c) => c.deals > 0).length}
+                  </strong>
+                  <small>Tied to active opportunities</small>
                 </div>
                 <div>
                   <span className="metric-label">Open opportunities</span>
                   <strong>{openDealsCount}</strong>
-                  <small>Across {companies.length} companies</small>
+                  <small className="font-mono">
+                    {totalPipelineAmount.toLocaleString('cs-CZ').replace(/\s/g, ' ')} Kč in pipeline
+                  </small>
                 </div>
               </section>
 

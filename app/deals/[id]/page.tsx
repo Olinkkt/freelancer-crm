@@ -303,6 +303,38 @@ export default function DealProjectPage() {
   const doneDeliverables = deal.deliverables?.filter((d) => d.status === 'Done').length || 0
   const progressPercent = totalDeliverables > 0 ? Math.round((doneDeliverables / totalDeliverables) * 100) : 0
 
+  const rawDealAmount = deal.rawAmount || parseInt(deal.value.replace(/[^0-9]/g, '')) || 0
+  const halfInvoiceAmount = Math.round(rawDealAmount * 0.5)
+  const restInvoiceAmount = rawDealAmount - halfInvoiceAmount
+
+  const activeInvoices: InvoiceMilestone[] =
+    deal.invoices && deal.invoices.length > 0
+      ? deal.invoices
+      : [
+          {
+            id: `inv-${deal.id}-deposit`,
+            type: 'Deposit',
+            label: '50% Upfront Deposit Invoice',
+            amount: halfInvoiceAmount,
+            formattedAmount: `${halfInvoiceAmount.toLocaleString('cs-CZ').replace(/\s/g, ' ')} Kč`,
+            percentage: 50,
+            status: deal.stage === 'Won' || deal.stage === 'Paid' ? 'Paid' : 'Sent',
+            dueDate: 'Kickoff',
+            paidAt: deal.stage === 'Won' || deal.stage === 'Paid' ? 'Received' : undefined,
+          },
+          {
+            id: `inv-${deal.id}-final`,
+            type: 'Final',
+            label: '50% Final Handover Invoice',
+            amount: restInvoiceAmount,
+            formattedAmount: `${restInvoiceAmount.toLocaleString('cs-CZ').replace(/\s/g, ' ')} Kč`,
+            percentage: 50,
+            status: deal.stage === 'Paid' ? 'Paid' : 'Draft',
+            dueDate: 'On Completion',
+            paidAt: deal.stage === 'Paid' ? 'Received' : undefined,
+          },
+        ]
+
   return (
     <div className="min-h-screen bg-[#f7f8fa] text-[#1c1d1f] flex flex-col">
       <ToastHUD toasts={toasts} onDismiss={dismissToast} />
@@ -800,31 +832,13 @@ export default function DealProjectPage() {
                   Commercial Invoices
                 </h3>
                 <span className="text-[11px] font-mono font-semibold text-[#1f7a47]">
-                  {deal.invoices?.filter((i) => i.status === 'Paid').length || 0} / {deal.invoices?.length || 2} Paid
+                  {activeInvoices.filter((i) => i.status === 'Paid').length} / {activeInvoices.length} Paid
                 </span>
               </div>
 
               {/* Invoices list */}
               <div className="space-y-3">
-                {(deal.invoices && deal.invoices.length > 0
-                  ? deal.invoices
-                  : [
-                      {
-                        id: 'inv-upfront',
-                        name: '50% Upfront Deposit Invoice',
-                        amount: Math.round((deal.rawAmount || parseInt(deal.value.replace(/[^0-9]/g, '')) || 0) * 0.5),
-                        status: 'Sent' as const,
-                        dueDate: 'Kickoff',
-                      },
-                      {
-                        id: 'inv-final',
-                        name: '50% Final Handover Invoice',
-                        amount: Math.round((deal.rawAmount || parseInt(deal.value.replace(/[^0-9]/g, '')) || 0) * 0.5),
-                        status: 'Draft' as const,
-                        dueDate: 'On Completion',
-                      },
-                    ]
-                ).map((inv) => {
+                {activeInvoices.map((inv) => {
                   const isPaid = inv.status === 'Paid'
                   return (
                     <div
@@ -837,7 +851,7 @@ export default function DealProjectPage() {
                     >
                       <div className="flex items-center justify-between mb-1.5">
                         <span className="text-[12px] font-semibold text-[#1c1d1f] truncate">
-                          {inv.name}
+                          {inv.label}
                         </span>
                         <span
                           className={`text-[10px] font-bold px-2 py-0.5 rounded-[6px] ${
@@ -875,9 +889,13 @@ export default function DealProjectPage() {
                         <button
                           type="button"
                           onClick={() => {
-                            const updatedInvoices = (deal.invoices || []).map((i) =>
+                            const updatedInvoices = activeInvoices.map((i) =>
                               i.id === inv.id
-                                ? { ...i, status: isPaid ? ('Sent' as const) : ('Paid' as const), paidAt: isPaid ? undefined : 'Just now' }
+                                ? {
+                                    ...i,
+                                    status: (isPaid ? (i.type === 'Deposit' ? 'Sent' : 'Draft') : 'Paid') as InvoiceMilestone['status'],
+                                    paidAt: isPaid ? undefined : 'Just now',
+                                  }
                                 : i
                             )
                             handleUpdateDeal({ ...deal, invoices: updatedInvoices })

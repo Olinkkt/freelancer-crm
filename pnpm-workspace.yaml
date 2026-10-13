@@ -6,6 +6,3 @@ minimumReleaseAgeExclude:
 
 allowBuilds:
   esbuild: true
-
-onlyBuiltDependencies:
-  - esbuild

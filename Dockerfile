@@ -1,18 +1,21 @@
-# Production Next.js Dockerfile for Coolify Deployment
-# Multi-stage build with Standalone Output
+# Production Next.js Dockerfile for Coolify / Docker Deployment
+# Multi-stage build with Standalone Output & pnpm
 
 FROM node:20-alpine AS base
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable
 
-# Stage 1: Install dependencies only when needed
+# Stage 1: Install dependencies
 FROM base AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Install dependencies using package-lock
-COPY package.json package-lock.json* ./
-RUN npm ci
+# Copy package manifests and lockfiles
+COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml* ./
+RUN pnpm install --frozen-lockfile
 
-# Stage 2: Rebuild the source code only when needed
+# Stage 2: Rebuild the source code
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
@@ -21,10 +24,10 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
-RUN npm run build
+RUN pnpm run build
 
-# Stage 3: Production runner, copy only necessary files
-FROM base AS runner
+# Stage 3: Production runner, copy only necessary standalone artifacts
+FROM node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
@@ -38,13 +41,11 @@ RUN adduser --system --uid 1001 nextjs
 # Copy public folder & static assets
 COPY --from=builder /app/public ./public
 
-# Set the correct permission for prerender cache and data volume
-RUN mkdir .next
-RUN chown nextjs:nodejs .next
+# Set up permissions for prerender cache and sqlite data volume
+RUN mkdir .next && chown nextjs:nodejs .next
 RUN mkdir -p /app/data && chown -R nextjs:nodejs /app/data
 
-
-# Leverage output traces to reduce image size (~140MB)
+# Leverage Next.js standalone output to keep the image minimal (~150MB)
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 

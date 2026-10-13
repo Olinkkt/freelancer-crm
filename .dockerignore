@@ -14,3 +14,9 @@ pnpm-debug.log
 calendar_component_idea.png
 .DS_Store
 *.tsbuildinfo
+data/
+*.db
+*.db-journal
+tests/
+.playwright-cli/
+.agents/

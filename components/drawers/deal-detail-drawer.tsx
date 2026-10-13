@@ -373,11 +373,21 @@ export function DealDetailDrawer({
                       </span>
                     </div>
 
+                    {/* Deliverables Progress */}
                     <div className="text-[12px] text-[#2c3f60] flex items-center justify-between">
-                      <span>Deliverables Progress:</span>
+                      <span>Deliverables:</span>
                       <strong className="font-semibold text-[#1c1d1f]">
                         {currentDeal.deliverables?.filter((d) => d.status === 'Done').length || 0} of{' '}
                         {currentDeal.deliverables?.length || 0} complete
+                      </strong>
+                    </div>
+
+                    {/* Invoices Status */}
+                    <div className="text-[12px] text-[#2c3f60] flex items-center justify-between">
+                      <span>Invoices:</span>
+                      <strong className="font-semibold text-[#1c1d1f]">
+                        {currentDeal.invoices?.filter((i) => i.status === 'Paid').length || 0} of{' '}
+                        {currentDeal.invoices?.length || 0} collected
                       </strong>
                     </div>
 
@@ -399,48 +409,99 @@ export function DealDetailDrawer({
                       />
                     </div>
 
-                    <div className="flex items-center gap-2 pt-1 flex-wrap">
-                      <button
-                        type="button"
-                        onClick={() => setActiveTab('deliverables')}
-                        className="px-2.5 py-1.5 bg-white hover:bg-[#f5f8ff] text-[#266df0] border border-[#b8d2fe] text-[11px] font-semibold rounded-[8px] shadow-2xs transition-colors cursor-pointer"
-                      >
-                        Review Milestones & Scope →
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const allDel = (currentDeal.deliverables || []).map((d) => ({
-                            ...d,
-                            status: 'Done' as const,
-                            clientSignOff: true,
-                          }))
-                          const allInv = (currentDeal.invoices || []).map((inv) => ({
-                            ...inv,
-                            status: 'Paid' as const,
-                            paidAt: 'Just now',
-                          }))
-                          const updated: Deal = {
-                            ...currentDeal,
-                            stage: 'Paid',
-                            probability: '100%',
-                            deliverables: allDel,
-                            invoices: allInv,
-                            next: 'Request testimonial & case study review',
-                            nextDueDate: 'In 3 days',
-                          }
-                          setCurrentDeal(updated)
-                          onUpdateDeal(updated)
-                          if (onToast) {
-                            onToast(`🎉 Project completed & marked as Paid!`)
-                          }
-                        }}
-                        className="px-2.5 py-1.5 bg-[#16a34a] hover:bg-[#15803d] text-white text-[11px] font-semibold rounded-[8px] shadow-2xs transition-colors cursor-pointer inline-flex items-center gap-1"
-                      >
-                        <Check size={12} strokeWidth={2.5} />
-                        <span>Complete & Mark Paid</span>
-                      </button>
-                    </div>
+                    {(() => {
+                      const totalDel = currentDeal.deliverables?.length || 0
+                      const doneDel = currentDeal.deliverables?.filter((d) => d.status === 'Done').length || 0
+                      const totalInv = currentDeal.invoices?.length || 0
+                      const paidInv = currentDeal.invoices?.filter((i) => i.status === 'Paid').length || 0
+                      const isReadyToComplete =
+                        totalDel > 0 && doneDel === totalDel && totalInv > 0 && paidInv === totalInv
+
+                      return (
+                        <div className="space-y-2 pt-1">
+                          {!isReadyToComplete && (
+                            <p className="text-[11px] text-[#556987] bg-white/70 p-2 rounded-[8px] border border-[#dce8fc]">
+                              💡 To mark as completed: all {totalDel || 'milestone'} deliverables must be marked Done and all {totalInv || 'billing'} invoices must be marked Paid.
+                            </p>
+                          )}
+
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <button
+                              type="button"
+                              onClick={() => setActiveTab('deliverables')}
+                              className="px-2.5 py-1.5 bg-white hover:bg-[#f5f8ff] text-[#266df0] border border-[#b8d2fe] text-[11px] font-semibold rounded-[8px] shadow-2xs transition-colors cursor-pointer"
+                            >
+                              Manage Milestones & Invoices →
+                            </button>
+
+                            {isReadyToComplete ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated: Deal = {
+                                    ...currentDeal,
+                                    stage: 'Paid',
+                                    probability: '100%',
+                                    next: 'Request testimonial & case study review',
+                                    nextDueDate: 'In 3 days',
+                                  }
+                                  setCurrentDeal(updated)
+                                  onUpdateDeal(updated)
+                                  if (onToast) {
+                                    onToast(`🎉 All milestones done & invoices paid! Project Completed.`)
+                                  }
+                                }}
+                                className="px-2.5 py-1.5 bg-[#16a34a] hover:bg-[#15803d] text-white text-[11px] font-semibold rounded-[8px] shadow-2xs transition-colors cursor-pointer inline-flex items-center gap-1"
+                              >
+                                <Check size={12} strokeWidth={2.5} />
+                                <span>Mark Project as Completed & Paid</span>
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (
+                                    !window.confirm(
+                                      `Mark all ${totalDel} deliverables as Done and all ${totalInv} invoices as Paid to complete this project?`
+                                    )
+                                  ) {
+                                    return
+                                  }
+                                  const allDel = (currentDeal.deliverables || []).map((d) => ({
+                                    ...d,
+                                    status: 'Done' as const,
+                                    clientSignOff: true,
+                                  }))
+                                  const allInv = (currentDeal.invoices || []).map((inv) => ({
+                                    ...inv,
+                                    status: 'Paid' as const,
+                                    paidAt: inv.paidAt || 'Just now',
+                                  }))
+                                  const updated: Deal = {
+                                    ...currentDeal,
+                                    stage: 'Paid',
+                                    probability: '100%',
+                                    deliverables: allDel,
+                                    invoices: allInv,
+                                    next: 'Request testimonial & case study review',
+                                    nextDueDate: 'In 3 days',
+                                  }
+                                  setCurrentDeal(updated)
+                                  onUpdateDeal(updated)
+                                  if (onToast) {
+                                    onToast(`🎉 All deliverables marked done & invoices paid! Project completed.`)
+                                  }
+                                }}
+                                className="px-2.5 py-1.5 bg-white hover:bg-[#edf5ee] text-[#1f7a47] border border-[#a2e3b9] text-[11px] font-semibold rounded-[8px] shadow-2xs transition-colors cursor-pointer inline-flex items-center gap-1"
+                              >
+                                <Check size={12} />
+                                <span>Settle & Complete All</span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })()}
                   </div>
                 )}
 

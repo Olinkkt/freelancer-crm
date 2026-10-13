@@ -504,9 +504,19 @@ export async function moveDealStage(dealId: string, stage: DealStage): Promise<D
   const nextAction = isPaid ? '' : existing.next
   const nextDueDate = isPaid ? null : existing.next_due_date
 
-  // Sync invoices when advancing to Won or Paid
+  // Sync deliverables and invoices when advancing to Won or Paid
   let currentInvoices = safeParseJson<InvoiceMilestone[]>(existing.invoices, [])
+  let currentDeliverables = safeParseJson<DeliverableItem[]>(existing.deliverables, [])
+
   if (isClosedWon) {
+    if (isPaid && currentDeliverables.length > 0) {
+      currentDeliverables = currentDeliverables.map((d) => ({
+        ...d,
+        status: 'Done',
+        clientSignOff: true,
+      }))
+    }
+
     if (currentInvoices.length === 0 && Number(existing.raw_amount) > 0) {
       const half = Math.round(Number(existing.raw_amount) * 0.5)
       const rest = Number(existing.raw_amount) - half
@@ -554,6 +564,7 @@ export async function moveDealStage(dealId: string, stage: DealStage): Promise<D
       color: dealColor,
       next: nextAction,
       next_due_date: nextDueDate,
+      deliverables: currentDeliverables.length > 0 ? JSON.stringify(currentDeliverables) : existing.deliverables,
       invoices: currentInvoices.length > 0 ? JSON.stringify(currentInvoices) : existing.invoices,
       updated_at: now,
     })

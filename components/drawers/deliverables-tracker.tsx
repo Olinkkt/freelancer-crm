@@ -79,6 +79,13 @@ export function DeliverablesTracker({
       return item
     })
     onChangeDeliverables(updated)
+
+    // Check if this completed the project (all deliverables done + all invoices paid)
+    const allDeliverablesDone = updated.length > 0 && updated.every((d) => d.status === 'Done')
+    const allInvoicesPaid = invoices.length > 0 && invoices.every((i) => i.status === 'Paid')
+    if (allDeliverablesDone && allInvoicesPaid && onAutoAdvanceStage) {
+      onAutoAdvanceStage('Paid', 'All deliverables finished & 100% invoices collected! Project completed')
+    }
   }
 
   const handleToggleSignOff = (id: string, e: React.MouseEvent) => {
@@ -183,10 +190,14 @@ export function DeliverablesTracker({
       return inv
     })
 
-    const allPaid = updated.length > 0 && updated.every((x) => x.status === 'Paid')
-    if (allPaid) {
+    const allInvoicesPaid = updated.length > 0 && updated.every((x) => x.status === 'Paid')
+    const allDeliverablesDone =
+      deliverables.length > 0 && deliverables.every((d) => d.status === 'Done')
+
+    // Project is only completed/paid when ALL milestones are completed AND ALL invoices are paid!
+    if (allInvoicesPaid && allDeliverablesDone) {
       triggeredStage = 'Paid'
-      triggeredReason = '100% Invoices Collected! Project Handed Over'
+      triggeredReason = 'All deliverables signed off & 100% invoices collected! Project completed'
     }
 
     onChangeInvoices(updated)

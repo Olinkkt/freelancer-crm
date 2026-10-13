@@ -676,6 +676,30 @@ export default function Page() {
     const isClosed = newStage === 'Won' || newStage === 'Paid'
     const isPaid = newStage === 'Paid'
     const isWon = newStage === 'Won'
+    const targetDeal = deals.find((d) => d.id === dealId)
+
+    // If moving to Paid (Completed Project), ensure all milestones and invoices are completed
+    let dealDeliverables = targetDeal?.deliverables
+    let dealInvoices = targetDeal?.invoices
+
+    if (isPaid && targetDeal) {
+      const hasUnfinishedDel = (targetDeal.deliverables || []).some((d) => d.status !== 'Done')
+      const hasUnpaidInv = (targetDeal.invoices || []).some((i) => i.status !== 'Paid')
+
+      if (hasUnfinishedDel || hasUnpaidInv) {
+        // Complete all deliverables & mark all invoices paid upon completion
+        dealDeliverables = (targetDeal.deliverables || []).map((d) => ({
+          ...d,
+          status: 'Done' as const,
+          clientSignOff: true,
+        }))
+        dealInvoices = (targetDeal.invoices || []).map((inv) => ({
+          ...inv,
+          status: 'Paid' as const,
+          paidAt: inv.paidAt || 'Just now',
+        }))
+      }
+    }
 
     setDeals((prev) =>
       prev.map((d) => {
@@ -685,6 +709,8 @@ export default function Page() {
             stage: newStage,
             probability: isClosed ? '100%' : d.probability,
             color: isClosed ? 'green' : 'blue',
+            deliverables: isPaid && dealDeliverables ? dealDeliverables : d.deliverables,
+            invoices: isPaid && dealInvoices ? dealInvoices : d.invoices,
             next: isPaid ? 'Request testimonial & case study review' : isWon ? 'Kickoff meeting & design sprint' : d.next,
             nextDueDate: isPaid ? 'In 3 days' : isWon ? 'Tomorrow, 10:00' : d.nextDueDate,
           }
@@ -703,7 +729,7 @@ export default function Page() {
           setCompletedFollowUps((prev) => [...new Set([...prev, ...toComplete])])
         }
       }
-      addToast('Project completed & 100% paid!')
+      addToast('🎉 All milestones completed & invoices settled! Project finished.')
     } else if (isWon) {
       addToast('Deal Won! Active client project started.')
     } else {

@@ -1,8 +1,12 @@
 {
   "name": "freelancer-crm",
   "version": "0.1.0",
+  "description": "Minimal, keyboard-driven, local-first CRM for solo software engineers and freelancers",
   "license": "AGPL-3.0-only",
-  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Olinkkt/freelancer-crm.git"
+  },
   "packageManager": "pnpm@12.3.4",
   "scripts": {
     "dev": "next dev",

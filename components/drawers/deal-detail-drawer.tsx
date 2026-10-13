@@ -22,6 +22,7 @@ import {
   MessageSquare,
   ChevronDown,
   ChevronUp,
+  Sparkles,
 } from 'lucide-react'
 import { Deal, DealStage, DeliverableItem, InvoiceMilestone, Activity } from '@/lib/crm-types'
 import { ScratchpadEditor } from './scratchpad-editor'

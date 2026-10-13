@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Sparkles, ArrowRight, ShieldCheck, User, Mail, DollarSign, Lock, AlertCircle, Loader2 } from 'lucide-react'
+import { Sparkles, ArrowRight, ShieldCheck, User, Mail, DollarSign, Lock, AlertCircle, Loader2, Globe } from 'lucide-react'
 import { claimWorkspaceAction } from '@/app/actions/auth'
 import { WorkspaceSettings } from '@/lib/crm-types'
 
@@ -10,13 +10,25 @@ interface SetupWizardProps {
 }
 
 const CURRENCIES = [
+  { code: 'CZK', symbol: 'Kč', label: 'CZK (Kč) — Czech Koruna', locale: 'cs-CZ' },
   { code: 'USD', symbol: '$', label: 'USD ($) — United States Dollar', locale: 'en-US' },
   { code: 'EUR', symbol: '€', label: 'EUR (€) — Euro', locale: 'de-DE' },
   { code: 'GBP', symbol: '£', label: 'GBP (£) — British Pound', locale: 'en-GB' },
-  { code: 'CZK', symbol: 'Kč', label: 'CZK (Kč) — Czech Koruna', locale: 'cs-CZ' },
   { code: 'CAD', symbol: '$', label: 'CAD ($) — Canadian Dollar', locale: 'en-CA' },
   { code: 'AUD', symbol: '$', label: 'AUD ($) — Australian Dollar', locale: 'en-AU' },
   { code: 'CHF', symbol: 'CHF', label: 'CHF — Swiss Franc', locale: 'de-CH' },
+]
+
+const LOCALES = [
+  { code: 'cs-CZ', label: 'cs-CZ — Čeština (Česká republika)' },
+  { code: 'sk-SK', label: 'sk-SK — Slovenčina (Slovensko)' },
+  { code: 'en-US', label: 'en-US — English (United States)' },
+  { code: 'en-GB', label: 'en-GB — English (United Kingdom)' },
+  { code: 'de-DE', label: 'de-DE — Deutsch (Deutschland)' },
+  { code: 'de-CH', label: 'de-CH — Deutsch (Schweiz)' },
+  { code: 'fr-FR', label: 'fr-FR — Français (France)' },
+  { code: 'es-ES', label: 'es-ES — Español (España)' },
+  { code: 'pl-PL', label: 'pl-PL — Polski (Polska)' },
 ]
 
 export function SetupWizard({ onSetupComplete }: SetupWizardProps) {
@@ -24,6 +36,7 @@ export function SetupWizard({ onSetupComplete }: SetupWizardProps) {
   const [operatorEmail, setOperatorEmail] = useState('')
   const [operatorRole, setOperatorRole] = useState('Full-Stack Engineer & Consultant')
   const [selectedCurrency, setSelectedCurrency] = useState(CURRENCIES[0])
+  const [selectedLocale, setSelectedLocale] = useState(CURRENCIES[0].locale)
   const [passcode, setPasscode] = useState('')
   const [confirmPasscode, setConfirmPasscode] = useState('')
   const [loading, setLoading] = useState(false)
@@ -51,7 +64,7 @@ export function SetupWizard({ onSetupComplete }: SetupWizardProps) {
         operatorRole: operatorRole.trim(),
         currency: selectedCurrency.code,
         currencySymbol: selectedCurrency.symbol,
-        locale: selectedCurrency.locale,
+        locale: selectedLocale.trim(),
         passcode: passcode.trim() || undefined,
       })
 
@@ -147,7 +160,7 @@ export function SetupWizard({ onSetupComplete }: SetupWizardProps) {
             {/* Default Currency */}
             <div>
               <label className="block text-xs font-medium text-[#c5cdd8] mb-1.5">
-                Default Currency & Regional Format *
+                Default Currency *
               </label>
               <div className="relative">
                 <DollarSign size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#636c7e]" />
@@ -155,7 +168,10 @@ export function SetupWizard({ onSetupComplete }: SetupWizardProps) {
                   value={selectedCurrency.code}
                   onChange={(e) => {
                     const found = CURRENCIES.find((c) => c.code === e.target.value)
-                    if (found) setSelectedCurrency(found)
+                    if (found) {
+                      setSelectedCurrency(found)
+                      setSelectedLocale(found.locale)
+                    }
                   }}
                   className="w-full h-10 pl-9 pr-8 bg-[#0f1115] border border-[#282c37] rounded-lg text-sm text-white focus:outline-none focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6] cursor-pointer appearance-none"
                 >
@@ -169,6 +185,33 @@ export function SetupWizard({ onSetupComplete }: SetupWizardProps) {
                   ▼
                 </div>
               </div>
+            </div>
+
+            {/* Regional Locale */}
+            <div>
+              <label className="block text-xs font-medium text-[#c5cdd8] mb-1.5">
+                Workspace Regional Locale (Formát data a čísel) *
+              </label>
+              <div className="relative">
+                <Globe size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#636c7e]" />
+                <select
+                  value={selectedLocale}
+                  onChange={(e) => setSelectedLocale(e.target.value)}
+                  className="w-full h-10 pl-9 pr-8 bg-[#0f1115] border border-[#282c37] rounded-lg text-sm text-white focus:outline-none focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6] cursor-pointer appearance-none"
+                >
+                  {LOCALES.map((l) => (
+                    <option key={l.code} value={l.code} className="bg-[#16181d] text-white">
+                      {l.label}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[#636c7e] pointer-events-none text-xs">
+                  ▼
+                </div>
+              </div>
+              <p className="text-[11px] text-[#8f99a8] mt-1">
+                Určuje způsob formátování kalendářních datumů a oddělovače tisíců.
+              </p>
             </div>
 
             {/* Master Passcode */}

@@ -89,7 +89,39 @@ export function formatWeekRange(days: { fullDate: Date }[]): string {
 }
 
 /**
+ * Strips diacritics / accents from text (e.g. "pondělí" -> "pondeli")
+ */
+export function stripDiacritics(str: string): string {
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+}
+
+/**
+ * Checks whether a due date string indicates "today" (supports English & Czech)
+ */
+export function isDueToday(dueDate?: string | null): boolean {
+  if (!dueDate) return false
+  const norm = stripDiacritics(dueDate.toLowerCase())
+  return /\b(today|dnes|dneska)\b/i.test(norm)
+}
+
+const CZECH_MONTHS: Record<number, string[]> = {
+  1: ['leden', 'ledna', 'led'],
+  2: ['unor', 'unora', 'uno'],
+  3: ['brezen', 'brezna', 'bre'],
+  4: ['duben', 'dubna', 'dub'],
+  5: ['kveten', 'kvetna', 'kve'],
+  6: ['cerven', 'cervna', 'cer'],
+  7: ['cervenec', 'cervence', 'cvc'],
+  8: ['srpen', 'srpna', 'srp'],
+  9: ['zari', 'zar'],
+  10: ['rijen', 'rijna', 'rij'],
+  11: ['listopad', 'listopadu', 'lis'],
+  12: ['prosinec', 'prosince', 'pro'],
+}
+
+/**
  * Matches a deal's nextDueDate string against the active workweek's days.
+ * Supports English and Czech natural expressions, ISO dates, and Czech dot formats.
  * Returns dayIndex (0-4), dateString, and startHour, or null if outside this week.
  */
 export function matchMilestoneToWorkweek(
@@ -98,6 +130,7 @@ export function matchMilestoneToWorkweek(
 ): { dayIndex: number; dateString: string; startHour: number } | null {
   if (!dueDateStr || dueDateStr.toLowerCase() === 'done') return null
   const due = dueDateStr.toLowerCase().trim()
+  const dueNorm = stripDiacritics(due)
 
   // 1. Check for exact ISO date (YYYY-MM-DD)
   const isoMatch = due.match(/\b(\d{4}-\d{2}-\d{2})\b/)
@@ -114,8 +147,31 @@ export function matchMilestoneToWorkweek(
     return null
   }
 
-  // 2. Relative "today"
-  if (due.includes('today')) {
+  // 2. Check for Czech numeric date format (DD.MM. or DD. MM. or DD.MM.YYYY)
+  const czechDateMatch = due.match(/\b(\d{1,2})\.\s*(\d{1,2})\.(?:\s*(\d{4}))?/)
+  if (czechDateMatch) {
+    const dayNum = parseInt(czechDateMatch[1], 10)
+    const monthNum = parseInt(czechDateMatch[2], 10)
+    const yearNum = czechDateMatch[3] ? parseInt(czechDateMatch[3], 10) : undefined
+
+    const idx = days.findIndex((d) => {
+      const fd = d.fullDate
+      const matchDayMonth = fd.getDate() === dayNum && fd.getMonth() + 1 === monthNum
+      return yearNum ? matchDayMonth && fd.getFullYear() === yearNum : matchDayMonth
+    })
+
+    if (idx !== -1) {
+      return {
+        dayIndex: idx,
+        dateString: getDateString(days[idx].fullDate),
+        startHour: extractStartHour(due, 10.0),
+      }
+    }
+    return null
+  }
+
+  // 3. Relative "today" / "dnes" / "dneska"
+  if (/\b(today|dnes|dneska)\b/i.test(dueNorm)) {
     const todayIdx = days.findIndex((d) => d.isToday)
     if (todayIdx !== -1) {
       return {
@@ -127,8 +183,8 @@ export function matchMilestoneToWorkweek(
     return null
   }
 
-  // 3. Relative "tomorrow"
-  if (due.includes('tomorrow')) {
+  // 4. Relative "tomorrow" / "zítra" / "zitra" / "zitrek"
+  if (/\b(tomorrow|zitra|zitrek)\b/i.test(dueNorm)) {
     const todayIdx = days.findIndex((d) => d.isToday)
     if (todayIdx !== -1 && todayIdx + 1 < days.length) {
       return {
@@ -140,16 +196,29 @@ export function matchMilestoneToWorkweek(
     return null
   }
 
-  // 4. Day names (mon, tue, wed, thu, fri)
+  // 5. Relative "in 2 days" / "pozitri" / "za 2 dny"
+  if (/\b(pozitri|pozitrek)\b/i.test(dueNorm) || dueNorm.includes('in 2 days') || dueNorm.includes('za 2 dny')) {
+    const todayIdx = days.findIndex((d) => d.isToday)
+    if (todayIdx !== -1 && todayIdx + 2 < days.length) {
+      return {
+        dayIndex: todayIdx + 2,
+        dateString: getDateString(days[todayIdx + 2].fullDate),
+        startHour: extractStartHour(due, 10.0),
+      }
+    }
+    return null
+  }
+
+  // 6. Day names (English and Czech)
   const dayKeywords = [
-    { key: 'mon', idx: 0 },
-    { key: 'tue', idx: 1 },
-    { key: 'wed', idx: 2 },
-    { key: 'thu', idx: 3 },
-    { key: 'fri', idx: 4 },
+    { regex: /\b(mon|monday|pondeli|po)\b/i, idx: 0 },
+    { regex: /\b(tue|tuesday|utery|ut)\b/i, idx: 1 },
+    { regex: /\b(wed|wednesday|streda|st)\b/i, idx: 2 },
+    { regex: /\b(thu|thursday|ctvrtek|ct)\b/i, idx: 3 },
+    { regex: /\b(fri|friday|patek|pa)\b/i, idx: 4 },
   ]
-  for (const { key, idx } of dayKeywords) {
-    if (due.includes(key)) {
+  for (const { regex, idx } of dayKeywords) {
+    if (regex.test(dueNorm)) {
       return {
         dayIndex: idx,
         dateString: getDateString(days[idx].fullDate),
@@ -158,16 +227,41 @@ export function matchMilestoneToWorkweek(
     }
   }
 
-  // 5. Month + day string matching, e.g. "sep 22", "sep 25", "oct 2"
+  // 7. Month + day string matching (English & Czech)
   for (let i = 0; i < days.length; i++) {
     const d = days[i].fullDate
     const monthShort = d.toLocaleDateString('en-US', { month: 'short' }).toLowerCase()
     const dayNum = String(d.getDate())
-    if (due.includes(`${monthShort} ${dayNum}`) || due.includes(`${monthShort}. ${dayNum}`)) {
+    const monthNum = d.getMonth() + 1
+
+    // English: "sep 22", "sep. 22", "22 sep"
+    if (
+      dueNorm.includes(`${monthShort} ${dayNum}`) ||
+      dueNorm.includes(`${monthShort}. ${dayNum}`) ||
+      dueNorm.includes(`${dayNum} ${monthShort}`) ||
+      dueNorm.includes(`${dayNum}. ${monthShort}`)
+    ) {
       return {
         dayIndex: i,
         dateString: getDateString(d),
         startHour: extractStartHour(due, 10.0),
+      }
+    }
+
+    // Czech: "22. zari", "22 zari", "zari 22"
+    const czechAliases = CZECH_MONTHS[monthNum] || []
+    for (const alias of czechAliases) {
+      if (
+        dueNorm.includes(`${dayNum}. ${alias}`) ||
+        dueNorm.includes(`${dayNum}.${alias}`) ||
+        dueNorm.includes(`${dayNum} ${alias}`) ||
+        dueNorm.includes(`${alias} ${dayNum}`)
+      ) {
+        return {
+          dayIndex: i,
+          dateString: getDateString(d),
+          startHour: extractStartHour(due, 10.0),
+        }
       }
     }
   }
@@ -185,21 +279,53 @@ export function matchMilestoneToWorkweek(
 /**
  * Extracts start hour decimal (e.g. 14.5 for 14:30) or returns fallback
  */
-function extractStartHour(due: string, defaultHour: number): number {
-  if (due.includes('14:30') || due.includes('2:30')) return 14.5
-  if (due.includes('10:00') || due.includes('10 am')) return 10.0
-  if (due.includes('09:00') || due.includes('9 am') || due.includes('9:00')) return 9.0
-  if (due.includes('11:00') || due.includes('11 am')) return 11.0
-  if (due.includes('13:00') || due.includes('1 pm') || due.includes('1:00')) return 13.0
-  if (due.includes('15:00') || due.includes('3 pm')) return 15.0
+export function extractStartHour(due: string, defaultHour: number = 10.0): number {
+  const dueNorm = stripDiacritics(due.toLowerCase())
 
-  const timeMatch = due.match(/\b(\d{1,2}):(\d{2})\b/)
+  if (dueNorm.includes('14:30') || dueNorm.includes('14.30') || dueNorm.includes('2:30')) return 14.5
+  if (dueNorm.includes('10:00') || dueNorm.includes('10.00') || dueNorm.includes('10 am')) return 10.0
+  if (dueNorm.includes('09:00') || dueNorm.includes('9 am') || dueNorm.includes('9:00') || dueNorm.includes('9.00')) return 9.0
+  if (dueNorm.includes('11:00') || dueNorm.includes('11.00') || dueNorm.includes('11 am')) return 11.0
+  if (dueNorm.includes('13:00') || dueNorm.includes('13.00') || dueNorm.includes('1 pm') || dueNorm.includes('1:00')) return 13.0
+  if (dueNorm.includes('15:00') || dueNorm.includes('15.00') || dueNorm.includes('3 pm')) return 15.0
+
+  // 1. Time formatted as HH:MM
+  const timeMatch = dueNorm.match(/\b(\d{1,2}):(\d{2})\b/)
   if (timeMatch) {
     const h = parseInt(timeMatch[1], 10)
     const m = parseInt(timeMatch[2], 10)
-    if (h >= 9 && h <= 15) {
+    if (h >= 7 && h <= 21) {
       return h + Math.round(m / 15) * 0.25
     }
   }
+
+  // 2. Czech time with dot: HH.MM (e.g. 14.30, not followed by another dot like 22.09.)
+  const timeDotMatch = dueNorm.match(/\b([01]?\d|2[0-3])\.(\d{2})(?!\.)\b/)
+  if (timeDotMatch) {
+    const h = parseInt(timeDotMatch[1], 10)
+    const m = parseInt(timeDotMatch[2], 10)
+    if (h >= 7 && h <= 21) {
+      return h + Math.round(m / 15) * 0.25
+    }
+  }
+
+  // 3. Czech preposition or hour suffix (e.g. "v 10", "ve 14", "10h", "14 hod", "14 hodin")
+  const prepMatch = dueNorm.match(/\b(?:v|ve)\s*(\d{1,2})\b/)
+  if (prepMatch) {
+    const h = parseInt(prepMatch[1], 10)
+    if (h >= 7 && h <= 21) {
+      return h
+    }
+  }
+
+  const suffixMatch = dueNorm.match(/\b(\d{1,2})\s*(?:h|hod|hodin)\b/)
+  if (suffixMatch) {
+    const h = parseInt(suffixMatch[1], 10)
+    if (h >= 7 && h <= 21) {
+      return h
+    }
+  }
+
   return defaultHour
 }
+

@@ -30,7 +30,7 @@ import { Deal, DealStage, DeliverableItem, InvoiceMilestone, Activity } from '@/
 import { ScratchpadEditor } from './scratchpad-editor'
 import { DeliverablesTracker } from './deliverables-tracker'
 import { MarkdownFormatter } from '../ui/markdown-formatter'
-import { formatDealValue } from '@/lib/config'
+import { formatDealValue, formatMoney } from '@/lib/config'
 
 interface DealDetailDrawerProps {
   deal: Deal | null
@@ -116,7 +116,7 @@ export function DealDetailDrawer({
           type: 'Deposit' as const,
           label: '50% Upfront Deposit Invoice',
           amount: half,
-          formattedAmount: `${half.toLocaleString('cs-CZ').replace(/\\s/g, ' ')} Kč`,
+          formattedAmount: formatMoney(half),
           percentage: 50,
           status: (isPaidStage ? 'Paid' : 'Sent') as InvoiceMilestone['status'],
           dueDate: 'Kickoff',
@@ -127,7 +127,7 @@ export function DealDetailDrawer({
           type: 'Final' as const,
           label: '50% Final Handover Invoice',
           amount: rest,
-          formattedAmount: `${rest.toLocaleString('cs-CZ').replace(/\\s/g, ' ')} Kč`,
+          formattedAmount: formatMoney(rest),
           percentage: 50,
           status: (isPaidStage ? 'Paid' : 'Draft') as InvoiceMilestone['status'],
           dueDate: 'On Completion',

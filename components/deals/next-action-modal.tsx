@@ -12,6 +12,7 @@ import {
   Zap,
 } from 'lucide-react'
 import { Deal } from './types'
+import { isDueToday } from '@/lib/date-utils'
 
 interface NextActionModalProps {
   isOpen: boolean
@@ -60,7 +61,7 @@ export function NextActionModal({
       } else {
         setAction(deal.nextAction || '')
         setDueDate(deal.nextDueDate || 'Tomorrow 10:00')
-        setTone(deal.nextDueTone || (deal.nextDueDate?.toLowerCase().includes('today') ? 'urgent' : 'normal'))
+        setTone(deal.nextDueTone || (isDueToday(deal.nextDueDate) ? 'urgent' : 'normal'))
       }
     }
   }, [deal, isCompletingPrevious])
@@ -276,7 +277,7 @@ export function NextActionModal({
                 value={dueDate}
                 onChange={(e) => {
                   setDueDate(e.target.value)
-                  if (e.target.value.toLowerCase().includes('today')) {
+                  if (isDueToday(e.target.value)) {
                     setTone('urgent')
                   } else {
                     setTone('normal')

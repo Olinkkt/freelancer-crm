@@ -3,6 +3,7 @@
 import React from 'react'
 import { Check, Clock, AlertTriangle } from 'lucide-react'
 import { Deal } from './types'
+import { isDueToday } from '@/lib/date-utils'
 
 interface DealNextActionCellProps {
   deal: Deal
@@ -38,7 +39,7 @@ export function DealNextActionCell({
 
   const isToday =
     deal.nextDueTone === 'urgent' ||
-    deal.nextDueDate?.toLowerCase().includes('today')
+    isDueToday(deal.nextDueDate)
 
   return (
     <div className="next-action-cell" onClick={(e) => e.stopPropagation()}>

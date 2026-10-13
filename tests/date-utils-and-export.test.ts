@@ -102,7 +102,74 @@ describe('Date Utilities & Workweek Navigation', () => {
     assert.equal(matchThu.dayIndex, 3)
     assert.equal(matchThu.startHour, 11.0)
   })
+
+  it('matchMilestoneToWorkweek supports Czech date and time formats', () => {
+    const tuesday = new Date(2026, 8, 22) // Tue Sep 22, 2026
+    const days = getWorkweekDays(0, tuesday) // Mon Sep 21 - Fri Sep 25
+
+    // Relative "dnes" -> Tue (idx 1)
+    const matchDnes = matchMilestoneToWorkweek('dnes 14:30', days)
+    assert.ok(matchDnes)
+    assert.equal(matchDnes.dayIndex, 1)
+    assert.equal(matchDnes.startHour, 14.5)
+
+    // Relative "zítra" -> Wed (idx 2)
+    const matchZitra = matchMilestoneToWorkweek('zítra v 10:00', days)
+    assert.ok(matchZitra)
+    assert.equal(matchZitra.dayIndex, 2)
+    assert.equal(matchZitra.startHour, 10.0)
+
+    // Relative "zitra" without diacritics and Czech preposition "ve 14"
+    const matchZitraVe14 = matchMilestoneToWorkweek('zitra ve 14', days)
+    assert.ok(matchZitraVe14)
+    assert.equal(matchZitraVe14.dayIndex, 2)
+    assert.equal(matchZitraVe14.startHour, 14.0)
+
+    // Day names with and without diacritics
+    const matchPo = matchMilestoneToWorkweek('pondělí 13:00', days)
+    assert.ok(matchPo)
+    assert.equal(matchPo.dayIndex, 0)
+    assert.equal(matchPo.startHour, 13.0)
+
+    const matchCt = matchMilestoneToWorkweek('čtvrtek 14.30', days)
+    assert.ok(matchCt)
+    assert.equal(matchCt.dayIndex, 3)
+    assert.equal(matchCt.startHour, 14.5)
+
+    const matchPa = matchMilestoneToWorkweek('pátek 09:00', days)
+    assert.ok(matchPa)
+    assert.equal(matchPa.dayIndex, 4)
+    assert.equal(matchPa.startHour, 9.0)
+
+    // Czech short day abbreviations: "st 11:00"
+    const matchSt = matchMilestoneToWorkweek('st 11:00', days)
+    assert.ok(matchSt)
+    assert.equal(matchSt.dayIndex, 2)
+    assert.equal(matchSt.startHour, 11.0)
+
+    // Czech numerical date: "24.9." -> Thu Sep 24
+    const matchCzechNumDate = matchMilestoneToWorkweek('24.9.', days)
+    assert.ok(matchCzechNumDate)
+    assert.equal(matchCzechNumDate.dayIndex, 3)
+
+    // Czech numerical date with space and year: "21. 9. 2026 15:00" -> Mon Sep 21
+    const matchCzechNumDateWithYear = matchMilestoneToWorkweek('21. 9. 2026 15:00', days)
+    assert.ok(matchCzechNumDateWithYear)
+    assert.equal(matchCzechNumDateWithYear.dayIndex, 0)
+    assert.equal(matchCzechNumDateWithYear.startHour, 15.0)
+
+    // Czech month name: "24. září 11:00" -> Thu Sep 24
+    const matchCzechMonth = matchMilestoneToWorkweek('24. září 11:00', days)
+    assert.ok(matchCzechMonth)
+    assert.equal(matchCzechMonth.dayIndex, 3)
+    assert.equal(matchCzechMonth.startHour, 11.0)
+
+    // Czech numerical date outside active week -> null
+    const matchOutsideCzech = matchMilestoneToWorkweek('15.10.', days)
+    assert.equal(matchOutsideCzech, null)
+  })
 })
+
 
 describe('CSV Generation & Data Export', () => {
   it('generateCSV correctly escapes quotes, commas, and handles nulls', () => {

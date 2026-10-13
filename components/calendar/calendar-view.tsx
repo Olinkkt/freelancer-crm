@@ -31,9 +31,9 @@ interface CalendarViewProps {
   onOpenDeal?: (deal: Deal) => void
 }
 
-const HOUR_HEIGHT = 88 // height per hour row in pixels (compact & sleek)
-const START_HOUR = 9 // 09:00
-const END_HOUR = 15 // 15:00 (shows 09:00, 10:00, 11:00, 12:00, 13:00, 14:00, 15:00)
+const HOUR_HEIGHT = 80 // height per hour row in pixels
+const START_HOUR = 7 // 07:00
+const END_HOUR = 21 // 21:00 (full workday & evening schedule)
 const HOURS = Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, i) => START_HOUR + i)
 
 export function formatHourMinute(hour: number): string {
@@ -176,6 +176,7 @@ export function CalendarView({ deals = [], followUps = [], onOpenDeal }: Calenda
   const [isResizing, setIsResizing] = useState(false)
 
   const dayColumnRefs = useRef<(HTMLDivElement | null)[]>([])
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
   const justFinishedDragRef = useRef(false)
   const dragStateRef = useRef<DragState | null>(null)
   const resizeStateRef = useRef<ResizeState | null>(null)
@@ -187,6 +188,14 @@ export function CalendarView({ deals = [], followUps = [], onOpenDeal }: Calenda
   useEffect(() => {
     resizeStateRef.current = resizeState
   }, [resizeState])
+
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      // Auto-scroll to 08:30 AM
+      const targetScroll = Math.max(0, (8.5 - START_HOUR) * HOUR_HEIGHT)
+      scrollContainerRef.current.scrollTop = targetScroll
+    }
+  }, [])
 
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -768,43 +777,49 @@ export function CalendarView({ deals = [], followUps = [], onOpenDeal }: Calenda
           </label>
         </div>
 
-        {/* Days Header Row */}
-        <div className="grid grid-cols-[68px_repeat(5,minmax(0,1fr))] bg-[#fafbfc] border-b border-[#edf0f3]">
-          {/* Clean corner cell without arrows */}
-          <div className="border-r border-[#edf0f3] py-3 bg-[#fafbfc]" />
+        {/* Scrollable Viewport for Time Schedule */}
+        <div
+          ref={scrollContainerRef}
+          className="overflow-y-auto overflow-x-auto max-h-[600px] xl:max-h-[680px] border-t border-[#edf0f3] scroll-smooth"
+        >
+          <div className="min-w-[720px] relative">
+            {/* Days Header Row (Sticky at top of time scroll) */}
+            <div className="sticky top-0 z-30 grid grid-cols-[68px_repeat(5,minmax(0,1fr))] bg-[#fafbfc] border-b border-[#edf0f3] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              {/* Clean corner cell without arrows */}
+              <div className="border-r border-[#edf0f3] py-3 bg-[#fafbfc]" />
 
-          {/* Day Columns Headers */}
-          {days.map((day) => {
-            const isToday = day.isToday
+              {/* Day Columns Headers */}
+              {days.map((day) => {
+                const isToday = day.isToday
 
-            return (
-              <div
-                key={day.dayName}
-                className={`py-3 px-3 border-r border-[#edf0f3] last:border-r-0 text-center transition-colors ${
-                  isToday ? 'bg-[#f1f5ff]' : ''
-                }`}
-              >
-                <div
-                  className={`text-[10px] font-bold uppercase tracking-wider ${
-                    isToday ? 'text-[#266df0]' : 'text-[#8f99a8]'
-                  }`}
-                >
-                  <strong
-                    className={`block text-[17px] font-bold tracking-tight mb-0.5 ${
-                      isToday ? 'text-[#266df0]' : 'text-[#505967]'
+                return (
+                  <div
+                    key={day.dayName}
+                    className={`py-3 px-3 border-r border-[#edf0f3] last:border-r-0 text-center transition-colors ${
+                      isToday ? 'bg-[#f1f5ff]' : 'bg-[#fafbfc]'
                     }`}
                   >
-                    {day.dayNumber}
-                  </strong>
-                  <span>{day.dayName}</span>
-                </div>
-              </div>
-            )
-          })}
-        </div>
+                    <div
+                      className={`text-[10px] font-bold uppercase tracking-wider ${
+                        isToday ? 'text-[#266df0]' : 'text-[#8f99a8]'
+                      }`}
+                    >
+                      <strong
+                        className={`block text-[17px] font-bold tracking-tight mb-0.5 ${
+                          isToday ? 'text-[#266df0]' : 'text-[#505967]'
+                        }`}
+                      >
+                        {day.dayNumber}
+                      </strong>
+                      <span>{day.dayName}</span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
 
-        {/* Time Grid Columns */}
-        <div className="relative grid grid-cols-[68px_repeat(5,minmax(0,1fr))] min-w-[720px] overflow-x-auto bg-white">
+            {/* Time Grid Columns */}
+            <div className="relative grid grid-cols-[68px_repeat(5,minmax(0,1fr))] bg-white">
           {/* Time Labels Column */}
           <div className="border-r border-[#edf0f3] bg-[#fafbfc]/50 select-none">
             {HOURS.map((hour) => (
@@ -995,6 +1010,8 @@ export function CalendarView({ deals = [], followUps = [], onOpenDeal }: Calenda
               </div>
             )
           })}
+            </div>
+          </div>
         </div>
       </div>
 

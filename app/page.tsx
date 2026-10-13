@@ -815,7 +815,7 @@ export default function Page() {
     return {
       label: st as DealStage,
       count: stageDeals.length,
-      amount: stageSum.toLocaleString('cs-CZ').replace(/\s/g, ' ') + ' Kč',
+      amount: formatMoney(stageSum, currentSettings),
     }
   })
 
@@ -978,7 +978,7 @@ export default function Page() {
                 <div>
                   <span className="metric-label">Pipeline value</span>
                   <strong className="font-mono tabular-nums">
-                    {totalPipelineAmount.toLocaleString('cs-CZ').replace(/\s/g, ' ')} Kč
+                    {formatMoney(totalPipelineAmount, currentSettings)}
                   </strong>
                   <small>
                     {deals.length === 0 ? 'No active pipeline' : `Across ${deals.length} total opportunities`}
@@ -987,7 +987,7 @@ export default function Page() {
                 <div>
                   <span className="metric-label">Expected close</span>
                   <strong className="font-mono tabular-nums">
-                    {expectedCloseAmount.toLocaleString('cs-CZ').replace(/\s/g, ' ')} Kč
+                    {formatMoney(expectedCloseAmount, currentSettings)}
                   </strong>
                   <small>
                     {closingDeals.length} deal{closingDeals.length === 1 ? '' : 's'} closing soon
@@ -1003,6 +1003,7 @@ export default function Page() {
               {/* Kanban Board Component */}
               <DealKanban
                 deals={deals}
+                settings={currentSettings}
                 onOpenDeal={(deal) => {
                   setSelectedDeal(deal)
                   setIsDealDrawerOpen(true)
@@ -1320,7 +1321,7 @@ export default function Page() {
                   <span className="metric-label">Open opportunities</span>
                   <strong>{openDealsCount}</strong>
                   <small className="font-mono">
-                    {totalPipelineAmount.toLocaleString('cs-CZ').replace(/\s/g, ' ')} Kč in pipeline
+                    {formatMoney(totalPipelineAmount, currentSettings)} in pipeline
                   </small>
                 </div>
               </section>
@@ -1526,7 +1527,7 @@ export default function Page() {
                   <span className="metric-label">Open opportunities</span>
                   <strong>{openDealsCount}</strong>
                   <small className="font-mono">
-                    {totalPipelineAmount.toLocaleString('cs-CZ').replace(/\s/g, ' ')} Kč in pipeline
+                    {formatMoney(totalPipelineAmount, currentSettings)} in pipeline
                   </small>
                 </div>
               </section>
@@ -2223,7 +2224,7 @@ export default function Page() {
                   </div>
                   <span className="metric-label">Pipeline value</span>
                   <strong className="font-mono tabular-nums">
-                    {totalPipelineAmount.toLocaleString('cs-CZ').replace(/\s/g, ' ')} Kč
+                    {formatMoney(totalPipelineAmount, currentSettings)}
                   </strong>
                   <small>
                     {deals.length === 0 ? 'No active deals' : `${deals.length} total deals`}
@@ -2236,7 +2237,7 @@ export default function Page() {
                   </div>
                   <span className="metric-label">This month</span>
                   <strong className="font-mono tabular-nums">
-                    {expectedCloseAmount.toLocaleString('cs-CZ').replace(/\s/g, ' ')} Kč
+                    {formatMoney(expectedCloseAmount, currentSettings)}
                   </strong>
                   <small>
                     {closingDeals.length > 0
@@ -2682,6 +2683,7 @@ export default function Page() {
         initialCompany={prefilledCompany}
         dealToEdit={editingDeal}
         onUpdateDeal={handleUpdateDeal}
+        settings={currentSettings}
       />
 
       {/* QUICK ADD / EDIT CONTACT MODAL (C) */}

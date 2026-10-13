@@ -19,6 +19,7 @@ import {
   Link2,
 } from 'lucide-react'
 import { DeliverableItem, InvoiceMilestone } from '@/lib/crm-types'
+import { formatMoney } from '@/lib/config'
 
 interface DeliverablesTrackerProps {
   dealTitle: string
@@ -369,7 +370,7 @@ export function DeliverablesTracker({
             </span>
             <div className="flex items-baseline gap-2">
               <span className="text-[13px] font-bold font-mono text-[#1c1d1f]">
-                {totalPaid.toLocaleString('cs-CZ').replace(/\s/g, ' ')} Kč paid
+                {formatMoney(totalPaid)} paid
               </span>
               <span className="text-[11px] text-[#8f99a8] font-mono">
                 of {dealValue}

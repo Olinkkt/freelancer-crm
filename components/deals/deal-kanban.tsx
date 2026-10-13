@@ -28,7 +28,8 @@ import {
 } from 'lucide-react'
 import { Deal, DealStage } from '@/lib/crm-types'
 import { RowActionMenu } from '@/components/ui/row-action-menu'
-import { formatDealValue } from '@/lib/config'
+import { formatDealValue, formatMoney } from '@/lib/config'
+import { WorkspaceSettings } from '@/lib/crm-types'
 
 interface DealKanbanProps {
   deals: Deal[]
@@ -38,6 +39,7 @@ interface DealKanbanProps {
   onDeleteDeal?: (dealId: string) => void
   onLogInteraction?: (deal: Deal) => void
   onEditDeal?: (deal: Deal) => void
+  settings?: WorkspaceSettings
 }
 
 const STAGES: DealStage[] = [
@@ -56,6 +58,7 @@ export function DealKanban({
   onDeleteDeal,
   onLogInteraction,
   onEditDeal,
+  settings,
 }: DealKanbanProps) {
   const router = useRouter()
   const [focusedColIndex, setFocusedColIndex] = useState<number>(0)
@@ -346,7 +349,7 @@ export function DealKanban({
   }, [deals])
 
   const formatKc = (num: number) => {
-    return num.toLocaleString('cs-CZ').replace(/\s/g, ' ') + ' Kč'
+    return formatMoney(num, settings)
   }
 
   return (
@@ -637,7 +640,7 @@ export function DealKanban({
                           {/* Financial Value & Probability */}
                           <div className="mt-2.5 flex items-baseline justify-between pt-2 border-t border-[#f5f6f8]">
                             <span className="text-[13px] font-bold font-mono tabular-nums text-[#1c1d1f]">
-                              {formatDealValue(deal.value)}
+                              {formatDealValue(deal.value, settings)}
                             </span>
                             <span className="text-[10px] font-mono font-medium text-[#6f7988]">
                               {deal.probability}

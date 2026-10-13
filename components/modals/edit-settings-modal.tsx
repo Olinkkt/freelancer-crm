@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState } from 'react'
-import { X, User, Mail, DollarSign, Lock, AlertCircle, Loader2, Save } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { X, User, Mail, DollarSign, Lock, AlertCircle, Loader2, Save, Globe } from 'lucide-react'
 import { updateWorkspaceSettingsAction } from '@/app/actions/auth'
 import { WorkspaceSettings } from '@/lib/crm-types'
 
@@ -13,13 +13,25 @@ interface EditSettingsModalProps {
 }
 
 const CURRENCIES = [
+  { code: 'CZK', symbol: 'Kč', label: 'CZK (Kč) — Czech Koruna', locale: 'cs-CZ' },
   { code: 'USD', symbol: '$', label: 'USD ($) — United States Dollar', locale: 'en-US' },
   { code: 'EUR', symbol: '€', label: 'EUR (€) — Euro', locale: 'de-DE' },
   { code: 'GBP', symbol: '£', label: 'GBP (£) — British Pound', locale: 'en-GB' },
-  { code: 'CZK', symbol: 'Kč', label: 'CZK (Kč) — Czech Koruna', locale: 'cs-CZ' },
   { code: 'CAD', symbol: '$', label: 'CAD ($) — Canadian Dollar', locale: 'en-CA' },
   { code: 'AUD', symbol: '$', label: 'AUD ($) — Australian Dollar', locale: 'en-AU' },
   { code: 'CHF', symbol: 'CHF', label: 'CHF — Swiss Franc', locale: 'de-CH' },
+]
+
+const LOCALES = [
+  { code: 'cs-CZ', label: 'cs-CZ — Čeština (Česká republika)' },
+  { code: 'sk-SK', label: 'sk-SK — Slovenčina (Slovensko)' },
+  { code: 'en-US', label: 'en-US — English (United States)' },
+  { code: 'en-GB', label: 'en-GB — English (United Kingdom)' },
+  { code: 'de-DE', label: 'de-DE — Deutsch (Deutschland)' },
+  { code: 'de-CH', label: 'de-CH — Deutsch (Schweiz)' },
+  { code: 'fr-FR', label: 'fr-FR — Français (France)' },
+  { code: 'es-ES', label: 'es-ES — Español (España)' },
+  { code: 'pl-PL', label: 'pl-PL — Polski (Polska)' },
 ]
 
 export function EditSettingsModal({
@@ -34,10 +46,26 @@ export function EditSettingsModal({
   const initialCurrency =
     CURRENCIES.find((c) => c.code === currentSettings.currency) || CURRENCIES[0]
   const [currency, setCurrency] = useState(initialCurrency)
+  const [locale, setLocale] = useState(currentSettings.locale || initialCurrency.locale || 'cs-CZ')
   const [newPasscode, setNewPasscode] = useState('')
   const [confirmPasscode, setConfirmPasscode] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (isOpen) {
+      setName(currentSettings.operatorName || '')
+      setEmail(currentSettings.operatorEmail || '')
+      setRole(currentSettings.operatorRole || '')
+      const found =
+        CURRENCIES.find((c) => c.code === currentSettings.currency) || CURRENCIES[0]
+      setCurrency(found)
+      setLocale(currentSettings.locale || found.locale || 'cs-CZ')
+      setNewPasscode('')
+      setConfirmPasscode('')
+      setError(null)
+    }
+  }, [isOpen, currentSettings])
 
   if (!isOpen) return null
 
@@ -63,7 +91,7 @@ export function EditSettingsModal({
         operatorRole: role.trim(),
         currency: currency.code,
         currencySymbol: currency.symbol,
-        locale: currency.locale,
+        locale: locale.trim(),
         newPasscode: newPasscode.trim() || undefined,
       })
 
@@ -160,13 +188,16 @@ export function EditSettingsModal({
 
           <div>
             <label className="block text-[11px] font-bold uppercase tracking-wider text-[#505967] mb-1.5">
-              Currency & Regional Format *
+              Currency *
             </label>
             <select
               value={currency.code}
               onChange={(e) => {
                 const found = CURRENCIES.find((c) => c.code === e.target.value)
-                if (found) setCurrency(found)
+                if (found) {
+                  setCurrency(found)
+                  setLocale(found.locale)
+                }
               }}
               className="w-full h-10 px-3 border border-[#e4e7ec] rounded-[10px] text-[13px] text-[#1c1d1f] bg-white focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15 cursor-pointer"
             >
@@ -176,6 +207,27 @@ export function EditSettingsModal({
                 </option>
               ))}
             </select>
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-[#505967] mb-1.5 flex items-center gap-1.5">
+              <Globe size={13} className="text-[#6f7988]" />
+              Workspace Regional Locale *
+            </label>
+            <select
+              value={locale}
+              onChange={(e) => setLocale(e.target.value)}
+              className="w-full h-10 px-3 border border-[#e4e7ec] rounded-[10px] text-[13px] text-[#1c1d1f] bg-white focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15 cursor-pointer"
+            >
+              {LOCALES.map((l) => (
+                <option key={l.code} value={l.code}>
+                  {l.label}
+                </option>
+              ))}
+            </select>
+            <span className="block text-[11px] text-[#8f99a8] mt-1">
+              Controls date conventions and numeric formatting.
+            </span>
           </div>
 
           <div className="pt-2 border-t border-[#f0f1f3]">

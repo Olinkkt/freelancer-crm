@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { X, CirclePlus, ArrowUpRight, Calendar, AlertCircle } from 'lucide-react'
-import { Deal, DealStage, Company } from '@/lib/crm-types'
+import { Deal, DealStage, Company, WorkspaceSettings } from '@/lib/crm-types'
+import { formatMoney } from '@/lib/config'
 
 interface NewDealModalProps {
   isOpen: boolean
@@ -12,6 +13,7 @@ interface NewDealModalProps {
   initialCompany?: string
   dealToEdit?: Deal | null
   onUpdateDeal?: (deal: Deal) => void
+  settings?: WorkspaceSettings
 }
 
 const STAGES: DealStage[] = [
@@ -30,6 +32,7 @@ export function NewDealModal({
   initialCompany,
   dealToEdit,
   onUpdateDeal,
+  settings,
 }: NewDealModalProps) {
   const [mode, setMode] = useState<'quick' | 'detailed'>('quick')
   const [title, setTitle] = useState('')
@@ -58,7 +61,7 @@ export function NewDealModal({
         setMode('quick')
         setTitle('')
         setCompany(initialCompany || companies[0]?.name || '')
-        setValue('25 000 Kč')
+        setValue(formatMoney(25000, settings))
         setStage('Lead')
         setProbability('20%')
         setNextAction('Discovery call & initial scope review')
@@ -69,7 +72,7 @@ export function NewDealModal({
         titleInputRef.current?.focus()
       }, 50)
     }
-  }, [isOpen, companies, initialCompany, dealToEdit])
+  }, [isOpen, companies, initialCompany, dealToEdit, settings])
 
   if (!isOpen) return null
 
@@ -79,7 +82,7 @@ export function NewDealModal({
 
     // Clean number from value
     const numeric = parseInt(value.replace(/[^0-9]/g, '')) || 0
-    const formattedVal = value.includes('Kč') ? value.trim() : `${value.trim()} Kč`
+    const formattedVal = formatMoney(numeric, settings)
 
     const colorMap: Record<DealStage, Deal['color']> = {
       Lead: 'blue',
@@ -229,13 +232,13 @@ export function NewDealModal({
 
             <div>
               <label className="block text-[11px] font-bold uppercase tracking-wider text-[#505967] mb-1.5">
-                Value (Kč)
+                Value ({settings?.currencySymbol?.trim() || 'Kč'})
               </label>
               <input
                 type="text"
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
-                placeholder="25 000 Kč"
+                placeholder={formatMoney(25000, settings)}
                 className="w-full h-10 px-3 border border-[#e4e7ec] rounded-[10px] text-[13px] font-mono tabular-nums text-[#1c1d1f] placeholder:text-[#9fa1a7] focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
               />
             </div>

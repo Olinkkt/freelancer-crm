@@ -16,14 +16,14 @@ interface EventModalProps {
   days?: DayColumn[]
 }
 
-// Generate time options from 08:00 to 18:00 in 30-min intervals
+// Generate time options from 07:00 to 21:00 in 30-min intervals
 const TIME_OPTIONS: Array<{ value: number; label: string }> = []
-for (let h = 8; h <= 18; h++) {
+for (let h = 7; h <= 21; h++) {
   TIME_OPTIONS.push({
     value: h,
     label: `${String(h).padStart(2, '0')}:00`,
   })
-  if (h < 18) {
+  if (h < 21) {
     TIME_OPTIONS.push({
       value: h + 0.5,
       label: `${String(h).padStart(2, '0')}:30`,

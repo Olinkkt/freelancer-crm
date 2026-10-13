@@ -13,6 +13,7 @@ import {
   InvoiceMilestone,
   WorkspaceSettings,
 } from '@/lib/crm-types'
+import { formatMoney } from '@/lib/config'
 
 function safeParseJson<T>(jsonStr: string | null | undefined, fallback: T): T {
   if (!jsonStr) return fallback
@@ -312,9 +313,9 @@ export async function syncCompanyMetrics(companyName: string): Promise<void> {
 
   const dealsCount = deals.length
   const totalAmount = deals.reduce((sum, d) => sum + (Number(d.raw_amount) || 0), 0)
-  const formattedValue = totalAmount > 0
-    ? totalAmount.toLocaleString('cs-CZ').replace(/\s/g, ' ') + ' Kč'
-    : '0 Kč'
+  const settings = await getWorkspaceSettings()
+  const fallback = settings || { currencySymbol: 'Kč', locale: 'cs-CZ' }
+  const formattedValue = formatMoney(totalAmount, fallback)
 
   await db
     .updateTable('companies')
@@ -578,13 +579,15 @@ export async function moveDealStage(dealId: string, stage: DealStage): Promise<D
     if (currentInvoices.length === 0 && Number(existing.raw_amount) > 0) {
       const half = Math.round(Number(existing.raw_amount) * 0.5)
       const rest = Number(existing.raw_amount) - half
+      const settings = await getWorkspaceSettings()
+      const fallback = settings || { currencySymbol: 'Kč', locale: 'cs-CZ' }
       currentInvoices = [
         {
           id: `inv-${existing.id}-deposit`,
           type: 'Deposit',
           label: '50% Upfront Deposit Invoice',
           amount: half,
-          formattedAmount: `${half.toLocaleString('cs-CZ').replace(/\s/g, ' ')} Kč`,
+          formattedAmount: formatMoney(half, fallback),
           percentage: 50,
           status: 'Paid',
           dueDate: 'Kickoff',
@@ -595,7 +598,7 @@ export async function moveDealStage(dealId: string, stage: DealStage): Promise<D
           type: 'Final',
           label: '50% Final Handover Invoice',
           amount: rest,
-          formattedAmount: `${rest.toLocaleString('cs-CZ').replace(/\s/g, ' ')} Kč`,
+          formattedAmount: formatMoney(rest, fallback),
           percentage: 50,
           status: isPaid ? 'Paid' : 'Draft',
           dueDate: 'On Completion',

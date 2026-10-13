@@ -15,6 +15,7 @@ describe('CRM Database Repository', () => {
     await db.deleteFrom('deals').execute()
     await db.deleteFrom('contacts').execute()
     await db.deleteFrom('companies').execute()
+    await db.deleteFrom('workspace_settings').execute()
   })
 
   beforeEach(async () => {
@@ -24,6 +25,7 @@ describe('CRM Database Repository', () => {
     await db.deleteFrom('deals').execute()
     await db.deleteFrom('contacts').execute()
     await db.deleteFrom('companies').execute()
+    await db.deleteFrom('workspace_settings').execute()
   })
 
   describe('Database Initialization', () => {

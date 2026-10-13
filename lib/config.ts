@@ -28,23 +28,35 @@ export const OPERATOR_CONFIG: OperatorConfig = {
 /**
  * Formats a numeric currency amount using the configured currency and locale.
  */
-export function formatMoney(amount: number): string {
-  const formatted = amount.toLocaleString(OPERATOR_CONFIG.locale).replace(/\s/g, ' ')
-  // Check if symbol goes before (e.g., $, €, £) or after (e.g., Kč)
-  if (['$', '€', '£'].includes(OPERATOR_CONFIG.currencySymbol)) {
-    return `${OPERATOR_CONFIG.currencySymbol}${formatted}`
+export function formatMoney(
+  amount: number,
+  settings?: { currency?: string; currencySymbol?: string; locale?: string }
+): string {
+  const symbol = (settings?.currencySymbol || OPERATOR_CONFIG.currencySymbol || '$').trim()
+  const locale = settings?.locale || OPERATOR_CONFIG.locale || 'en-US'
+  const formatted = amount.toLocaleString(locale).replace(/\s/g, ' ')
+  // Check if symbol goes before (e.g., $, €, £, ¥) or after (e.g., Kč, CHF)
+  if (['$', '€', '£', '¥'].includes(symbol)) {
+    return `${symbol}${formatted}`
   }
-  return `${formatted} ${OPERATOR_CONFIG.currencySymbol}`
+  return `${formatted} ${symbol}`
 }
 
 /**
  * Formats a deal value (string or number) into standard localized currency.
  */
-export function formatDealValue(value: string | number): string {
-  if (typeof value === 'number') return formatMoney(value)
+export function formatDealValue(
+  value: string | number,
+  settings?: { currency?: string; currencySymbol?: string; locale?: string }
+): string {
+  if (typeof value === 'number') return formatMoney(value, settings)
   const numeric = parseInt(String(value).replace(/[^0-9]/g, ''), 10)
-  if (isNaN(numeric) || numeric === 0) return '0 Kč'
-  return formatMoney(numeric)
+  if (isNaN(numeric) || numeric === 0) {
+    const symbol = (settings?.currencySymbol || OPERATOR_CONFIG.currencySymbol || '$').trim()
+    if (['$', '€', '£', '¥'].includes(symbol)) return `${symbol}0`
+    return `0 ${symbol}`
+  }
+  return formatMoney(numeric, settings)
 }
 
 

@@ -131,7 +131,7 @@ export function NewCompanyModal({
               ref={nameInputRef}
               type="text"
               required
-              placeholder="e.g. Stripe, Acme Corp, Seidl Studio"
+              placeholder="e.g. Stripe, Acme Corp, Vektor Labs"
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="w-full px-3 py-2 text-[13px] bg-white border border-[#dce0e5] rounded-[8px] focus:outline-none focus:border-[#266df0] focus:ring-1 focus:ring-[#266df0]"

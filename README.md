@@ -25,7 +25,7 @@
 
   <br />
 
-  <img src="./public/screenshot-board.png" alt="Freelancer CRM Kanban Board" width="100%" style="border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 40px rgba(0,0,0,0.4);" />
+  <img src="./public/mockup-board.png" alt="Freelancer CRM Kanban Board" width="100%" />
 
 </div>
 
@@ -90,7 +90,7 @@ Prevent the feast-or-famine freelance cycle with automated high-leverage trigger
 Press <kbd>O</kbd> on any deal or navigate to `/deals/[id]` to open the dedicated **Project Management Cockpit**:
 
 <div align="center">
-  <img src="./public/screenshot-project.png" alt="Freelancer CRM Project Subpage" width="100%" style="border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 40px rgba(0,0,0,0.4);" />
+  <img src="./public/mockup-project.png" alt="Freelancer CRM Project Subpage" width="100%" />
 </div>
 
 - **Progressive Disclosure**: Use the fast Kanban drawer for daily pipeline triage; press <kbd>O</kbd> when doing deep project execution.
@@ -158,8 +158,8 @@ AUTH_SECRET=your-secure-passcode
 DATABASE_URL=file:./data/freelancercrm.db
 
 # Operator Identity
-NEXT_PUBLIC_OPERATOR_NAME="Oliver"
-NEXT_PUBLIC_OPERATOR_EMAIL="oliver@example.com"
+NEXT_PUBLIC_OPERATOR_NAME="Alex Rivera"
+NEXT_PUBLIC_OPERATOR_EMAIL="alex@example.com"
 NEXT_PUBLIC_OPERATOR_ROLE="Full-Stack Engineer"
 
 # Currency & Locale (supports USD $, EUR €, GBP £, CZK Kč, etc.)

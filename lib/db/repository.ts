@@ -1181,12 +1181,12 @@ export async function updateWorkspaceSettings(params: {
   if (!existing) {
     // If not existing, insert as initial
     return claimWorkspace({
-      operatorName: params.operatorName || 'Oliver Seidl',
-      operatorEmail: params.operatorEmail || 'oliver@seidltech.cz',
-      operatorRole: params.operatorRole || 'Creative & Tech Operator',
-      currency: params.currency || 'CZK',
-      currencySymbol: params.currencySymbol || 'Kč',
-      locale: params.locale || 'cs-CZ',
+      operatorName: params.operatorName || 'Alex Rivera',
+      operatorEmail: params.operatorEmail || 'alex@example.com',
+      operatorRole: params.operatorRole || 'Full-Stack & Product Engineer',
+      currency: params.currency || 'USD',
+      currencySymbol: params.currencySymbol || '$',
+      locale: params.locale || 'en-US',
       passcodeHash: params.passcodeHash,
     })
   }

@@ -15,13 +15,13 @@ export interface OperatorConfig {
 }
 
 export const OPERATOR_CONFIG: OperatorConfig = {
-  name: process.env.NEXT_PUBLIC_OPERATOR_NAME || 'Oliver Seidl',
-  firstName: (process.env.NEXT_PUBLIC_OPERATOR_NAME || 'Oliver Seidl').trim().split(' ')[0],
-  email: process.env.NEXT_PUBLIC_OPERATOR_EMAIL || 'oliver@seidltech.cz',
-  role: process.env.NEXT_PUBLIC_OPERATOR_ROLE || 'Creative & Tech Operator',
-  currency: process.env.NEXT_PUBLIC_DEFAULT_CURRENCY || 'CZK',
-  currencySymbol: process.env.NEXT_PUBLIC_CURRENCY_SYMBOL || 'Kč',
-  locale: process.env.NEXT_PUBLIC_LOCALE || 'cs-CZ',
+  name: process.env.NEXT_PUBLIC_OPERATOR_NAME || 'Alex Rivera',
+  firstName: (process.env.NEXT_PUBLIC_OPERATOR_NAME || 'Alex Rivera').trim().split(' ')[0],
+  email: process.env.NEXT_PUBLIC_OPERATOR_EMAIL || 'alex@example.com',
+  role: process.env.NEXT_PUBLIC_OPERATOR_ROLE || 'Full-Stack & Product Engineer',
+  currency: process.env.NEXT_PUBLIC_DEFAULT_CURRENCY || 'USD',
+  currencySymbol: process.env.NEXT_PUBLIC_CURRENCY_SYMBOL || '$',
+  locale: process.env.NEXT_PUBLIC_LOCALE || 'en-US',
   appTitle: process.env.NEXT_PUBLIC_APP_TITLE || 'Freelancer CRM',
 }
 

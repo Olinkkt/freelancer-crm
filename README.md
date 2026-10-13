@@ -25,8 +25,6 @@
 
   <br />
 
-  <img src="./public/mockup-board.png" alt="Freelancer CRM Kanban Board" width="100%" />
-
 </div>
 
 ---
@@ -88,10 +86,6 @@ Prevent the feast-or-famine freelance cycle with automated high-leverage trigger
 ## 🖥️ Project Workspace
 
 Press <kbd>O</kbd> on any deal or navigate to `/deals/[id]` to open the dedicated **Project Management Cockpit**:
-
-<div align="center">
-  <img src="./public/mockup-project.png" alt="Freelancer CRM Project Subpage" width="100%" />
-</div>
 
 - **Progressive Disclosure**: Use the fast Kanban drawer for daily pipeline triage; press <kbd>O</kbd> when doing deep project execution.
 - **Auto-Syncing Markdown Notes**: Type checklist items (`- [ ]`) in the scratchpad and click **Sync Todos** to instantly register them into your global GTD follow-up inbox.

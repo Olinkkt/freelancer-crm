@@ -932,6 +932,7 @@ export default function Page() {
           <NavItem
             icon={FileText}
             label="Activities"
+            badge={String(activities.length)}
             active={activeView === 'Activities'}
             onClick={() => setActiveView('Activities')}
           />
@@ -953,7 +954,7 @@ export default function Page() {
         <div className="sidebar-bottom">
           <div className="health-dot" />
           <div>
-            <strong>All systems operational</strong>
+            <strong>Workspace synced</strong>
             <span>Last synced just now</span>
           </div>
         </div>
@@ -1108,7 +1109,11 @@ export default function Page() {
                   <strong>
                     {activities.filter((a) => a.status === 'Completed').length}
                   </strong>
-                  <small>High client touch frequency</small>
+                  <small>
+                    {activities.filter((a) => a.status === 'Completed').length >= 5
+                      ? 'High client touch frequency'
+                      : 'Completed touchpoints'}
+                  </small>
                 </div>
               </section>
 
@@ -1154,7 +1159,10 @@ export default function Page() {
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#232529] hover:bg-[#101113] text-white text-[11px] font-medium rounded-[8px] transition-colors cursor-pointer"
                       >
                         <PhoneCall size={13} />
-                        <span>Quick-log call / note (L)</span>
+                        <span>Quick-log call / note</span>
+                        <kbd className="ml-1 px-1 bg-[#3a3e45] text-white rounded text-[10px] font-mono">
+                          L
+                        </kbd>
                       </button>
                     </div>
                   ) : (
@@ -1402,7 +1410,10 @@ export default function Page() {
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#232529] hover:bg-[#101113] text-white text-[11px] font-medium rounded-[8px] transition-colors cursor-pointer"
                       >
                         <UserPlus size={13} />
-                        <span>Add contact (C)</span>
+                        <span>Add contact</span>
+                        <kbd className="ml-1 px-1 bg-[#3a3e45] text-white rounded text-[10px] font-mono">
+                          C
+                        </kbd>
                       </button>
                     </div>
                   ) : (
@@ -1622,7 +1633,10 @@ export default function Page() {
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#dce0e5] hover:bg-[#f5f7fa] text-[#1c1d1f] text-[11px] font-medium rounded-[8px] transition-colors cursor-pointer"
                         >
                           <CirclePlus size={13} />
-                          <span>Add opportunity (N)</span>
+                          <span>Add opportunity</span>
+                          <kbd className="ml-1 px-1 bg-[#e5e7eb] text-[#374151] rounded text-[10px] font-mono">
+                            N
+                          </kbd>
                         </button>
                       </div>
                     </div>
@@ -2311,7 +2325,7 @@ export default function Page() {
                   <small>
                     {dueTodayFollowUpsCount > 0 ? (
                       <>
-                        <span className="warning">{dueTodayFollowUpsCount} due today</span> keep momentum
+                        <span className="warning">{dueTodayFollowUpsCount} due today</span> · Keep momentum
                       </>
                     ) : pendingFollowUpsCount > 0 ? (
                       `${pendingFollowUpsCount} upcoming`
@@ -2544,7 +2558,10 @@ export default function Page() {
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#232529] hover:bg-[#101113] text-white text-[11px] font-medium rounded-[8px] transition-colors cursor-pointer"
                       >
                         <CirclePlus size={13} />
-                        <span>Add first deal (N)</span>
+                        <span>Add first deal</span>
+                        <kbd className="ml-1 px-1 bg-[#3a3e45] text-white rounded text-[10px] font-mono">
+                          N
+                        </kbd>
                       </button>
                     </div>
                   ) : (

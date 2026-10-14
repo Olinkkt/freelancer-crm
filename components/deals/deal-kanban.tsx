@@ -404,7 +404,7 @@ export function DealKanban({
           >
             <CirclePlus size={13} />
             <span>New deal</span>
-            <kbd className="ml-0.5 px-1 bg-[#3a3e45] text-white rounded text-[10px] font-mono">N</kbd>
+            <kbd className="ml-1 px-1 bg-[#3a3e45] text-white rounded text-[10px] font-mono">N</kbd>
           </button>
         </div>
       </div>

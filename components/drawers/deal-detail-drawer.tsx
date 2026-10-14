@@ -270,7 +270,10 @@ export function DealDetailDrawer({
                   className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-[#266df0] bg-[#e9f0ff] hover:bg-[#d8e5ff] rounded-[7px] border border-[#d6e3fc] transition-colors cursor-pointer mr-1"
                 >
                   <PhoneCall size={12} />
-                  <span>Log (L)</span>
+                  <span>Log</span>
+                  <kbd className="hidden sm:inline-block px-1 py-0.2 text-[9px] font-mono text-[#266df0] bg-[#dbe8ff] border border-[#c4dafe] rounded-[4px]">
+                    L
+                  </kbd>
                 </button>
               )}
               <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono text-[#8f99a8] bg-[#f4f5f6] border border-[#e4e7ec] rounded-[5px] mr-1">
@@ -659,10 +662,13 @@ export function DealDetailDrawer({
                         <button
                           type="button"
                           onClick={onOpenLogCallModal}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-[#505967] hover:text-[#1c1d1f] bg-[#f0f2f5] hover:bg-[#e4e7ec] rounded-[7px] transition-colors cursor-pointer"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium text-[#505967] hover:text-[#1c1d1f] bg-[#f0f2f5] hover:bg-[#e4e7ec] rounded-[7px] transition-colors cursor-pointer"
                         >
                           <PhoneCall size={11} />
-                          <span>Quick Log (L)</span>
+                          <span>Quick Log</span>
+                          <kbd className="hidden sm:inline-block px-1 py-0.2 text-[9px] font-mono text-[#8f99a8] bg-white border border-[#e4e7ec] rounded-[4px]">
+                            L
+                          </kbd>
                         </button>
                       )}
                       <button
@@ -820,22 +826,6 @@ export function DealDetailDrawer({
             ) : (
               /* DELIVERABLES & INVOICES TAB (Section 3.5) */
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 bg-[#f8faff] border border-[#d6e3fc] rounded-[10px] text-[12px]">
-                  <div className="flex items-center gap-2 text-[#1c1d1f]">
-                    <Sparkles size={14} className="text-[#266df0] shrink-0" />
-                    <span className="text-[11px] text-[#505967]">
-                      Need a full-screen view for scope, specs & invoices?
-                    </span>
-                  </div>
-                  <Link
-                    href={`/deals/${currentDeal.id}`}
-                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#266df0] hover:underline shrink-0"
-                  >
-                    <span>Open Workspace</span>
-                    <ExternalLink size={11} />
-                  </Link>
-                </div>
-
                 <div>
                   <h2 className="text-[16px] font-bold text-[#1c1d1f] tracking-tight">
                     {currentDeal.title}

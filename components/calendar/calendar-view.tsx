@@ -657,7 +657,9 @@ export function CalendarView({ deals = [], followUps = [], onOpenDeal }: Calenda
           <p className="eyebrow">Workspace schedule</p>
           <h1>{todayFormatted}</h1>
           <p className="subcopy">
-            You have {todayEventsCount} meetings & milestones on your schedule today.
+            {todayEventsCount === 0
+              ? 'No items scheduled today.'
+              : `You have ${todayEventsCount} ${todayEventsCount === 1 ? 'item' : 'items'} scheduled today.`}
           </p>
         </div>
 
@@ -677,82 +679,88 @@ export function CalendarView({ deals = [], followUps = [], onOpenDeal }: Calenda
 
       {/* 2. TOP FEATURED CARDS CAROUSEL (3 cards layout) */}
       {activeFeaturedEvents.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 mb-6">
-          {activeFeaturedEvents.map((item) => {
-            const theme = THEME_STYLES[item.colorTheme] || THEME_STYLES.blue
+        <div className="mb-6">
+          <div className="text-[12px] font-bold uppercase tracking-wider text-[#6f7988] mb-2">
+            Upcoming Milestones
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+            {activeFeaturedEvents.map((item) => {
+              const theme = THEME_STYLES[item.colorTheme] || THEME_STYLES.blue
 
-            return (
-              <div
-                key={item.id}
-                className="panel flex flex-col justify-between transition-all hover:shadow-md cursor-pointer group"
-                style={{
-                  padding: '18px 20px',
-                }}
-                onClick={() => {
-                  if (item.dealId && onOpenDeal) {
-                    const d = deals.find((x) => x.id === item.dealId)
-                    if (d) {
-                      onOpenDeal(d)
-                      return
+              return (
+                <div
+                  key={item.id}
+                  className="panel flex flex-col justify-between transition-all hover:shadow-md cursor-pointer group"
+                  style={{
+                    padding: '18px 20px',
+                  }}
+                  onClick={() => {
+                    if (item.dealId && onOpenDeal) {
+                      const d = deals.find((x) => x.id === item.dealId)
+                      if (d) {
+                        onOpenDeal(d)
+                        return
+                      }
                     }
-                  }
-                  showToast(`Opening ${item.company} schedule`)
-                }}
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span
-                      className="stage-pill"
-                      style={{
-                        background: theme.pillBg,
-                        color: theme.pillText,
-                        fontWeight: 600,
-                        padding: '3px 8px',
-                        fontSize: '10px',
-                      }}
-                    >
-                      {item.company}
-                    </span>
-                    <span className="text-[11px] font-medium text-[#6f7988] flex items-center gap-1">
-                      <Clock size={12} className="text-[#9fa1a7]" /> {item.time}
-                    </span>
+                    showToast(`Opening ${item.company} schedule`)
+                  }}
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span
+                        className="stage-pill"
+                        style={{
+                          background: theme.pillBg,
+                          color: theme.pillText,
+                          fontWeight: 600,
+                          padding: '3px 8px',
+                          fontSize: '10px',
+                        }}
+                      >
+                        {item.company}
+                      </span>
+                      <span className="text-[11px] font-medium text-[#6f7988] flex items-center gap-1">
+                        <Clock size={12} className="text-[#9fa1a7]" /> {item.time}
+                      </span>
+                    </div>
+
+                    <h3 className="text-[13px] font-bold text-[#1c1d1f] tracking-tight group-hover:text-[#266df0] transition-colors leading-snug">
+                      {item.title}
+                    </h3>
+                    <p className="text-[11px] text-[#6f7988] mt-1 line-clamp-1">
+                      {item.subtitle}
+                    </p>
                   </div>
 
-                  <h3 className="text-[13px] font-bold text-[#1c1d1f] tracking-tight group-hover:text-[#266df0] transition-colors leading-snug">
-                    {item.title}
-                  </h3>
-                  <p className="text-[11px] text-[#6f7988] mt-1 line-clamp-1">
-                    {item.subtitle}
-                  </p>
-                </div>
+                  <div className="mt-3.5 pt-3 border-t border-[#f0f1f3] flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-[#266df0] transition-colors">
+                      {item.actionLabel}
+                    </span>
 
-                <div className="mt-3.5 pt-3 border-t border-[#f0f1f3] flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-[#266df0] transition-colors">
-                    {item.actionLabel}
-                  </span>
-
-                  <div className="flex -space-x-1.5">
-                    {item.attendees.map((attendee) => {
-                      const aTheme = (attendee.colorTheme && THEME_STYLES[attendee.colorTheme]) || THEME_STYLES.dark
-                      return (
-                        <span
-                          key={attendee.id}
-                          title={attendee.name}
-                          className="w-6 h-6 rounded-[6px] text-[9px] font-bold flex items-center justify-center ring-2 ring-white"
-                          style={{
-                            backgroundColor: aTheme.avatarBg,
-                            color: aTheme.avatarText,
-                          }}
-                        >
-                          {attendee.initials}
-                        </span>
-                      )
-                    })}
+                    <div className="flex -space-x-1.5">
+                      {item.attendees.map((attendee) => {
+                        const aTheme = (attendee.colorTheme && THEME_STYLES[attendee.colorTheme]) || THEME_STYLES.dark
+                        return (
+                          <span
+                            key={attendee.id}
+                            title={`${attendee.name} (${attendee.initials})`}
+                            aria-label={attendee.name}
+                            className="w-6 h-6 rounded-[6px] text-[9px] font-bold flex items-center justify-center ring-2 ring-white"
+                            style={{
+                              backgroundColor: aTheme.avatarBg,
+                              color: aTheme.avatarText,
+                            }}
+                          >
+                            {attendee.initials}
+                          </span>
+                        )
+                      })}
+                    </div>
                   </div>
                 </div>
-              </div>
-            )
-          })}
+              )
+            })}
+          </div>
         </div>
       )}
 

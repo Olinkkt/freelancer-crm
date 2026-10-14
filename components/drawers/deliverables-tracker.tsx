@@ -308,10 +308,10 @@ export function DeliverablesTracker({
                 <span
                   className={`px-1.5 py-0.5 text-[9px] font-mono font-semibold rounded-[5px] uppercase ${
                     item.status === 'Done'
-                      ? 'bg-[#e7f6ee] text-[#3b9b6d]'
+                      ? 'bg-[#e7f6ee] text-[#166534]'
                       : item.status === 'In Progress'
-                      ? 'bg-[#e9f0ff] text-[#266df0]'
-                      : 'bg-[#f4f5f6] text-[#8f99a8]'
+                      ? 'bg-[#e9f0ff] text-[#1d4ed8]'
+                      : 'bg-[#f0f2f5] text-[#374151]'
                   }`}
                 >
                   {item.status}
@@ -324,8 +324,8 @@ export function DeliverablesTracker({
                   title="Client sign-off flag for downstream portal"
                   className={`px-1.5 py-0.5 rounded-[5px] text-[10px] flex items-center gap-1 border transition-colors ${
                     item.clientSignOff
-                      ? 'bg-[#f0eaff] border-[#d8bbf8] text-[#805ad5] font-semibold'
-                      : 'bg-white border-[#e4e7ec] text-[#9fa1a7] hover:border-[#cad0d9]'
+                      ? 'bg-[#f0eaff] border-[#d8bbf8] text-[#6d28d9] font-semibold'
+                      : 'bg-white border-[#e4e7ec] text-[#4b5563] hover:border-[#9ca3af]'
                   }`}
                 >
                   <ShieldCheck size={11} />
@@ -400,10 +400,10 @@ export function DeliverablesTracker({
                   <span
                     className={`px-1.5 py-0.2 rounded-[5px] text-[9px] font-mono font-semibold uppercase ${
                       inv.status === 'Paid'
-                        ? 'bg-[#e7f6ee] text-[#3b9b6d]'
+                        ? 'bg-[#e7f6ee] text-[#166534]'
                         : inv.status === 'Sent'
-                        ? 'bg-[#e9f0ff] text-[#266df0]'
-                        : 'bg-[#f4f5f6] text-[#8f99a8]'
+                        ? 'bg-[#e9f0ff] text-[#1d4ed8]'
+                        : 'bg-[#f0f2f5] text-[#374151]'
                     }`}
                   >
                     {inv.status}

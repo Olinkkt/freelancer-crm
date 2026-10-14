@@ -373,7 +373,7 @@ export function DealKanban({
               className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[8px] text-[11px] font-medium border transition-colors cursor-pointer ${
                 hideEmptyStages
                   ? 'bg-[#e9f0ff] border-[#b8d1fc] text-[#266df0]'
-                  : 'bg-white border-[#e4e7ec] text-[#6f7988] hover:text-[#1c1d1f] hover:bg-[#f8faff]'
+                  : 'bg-white border-[#e4e7ec] text-[#374151] hover:text-[#1c1d1f] hover:bg-[#f8faff]'
               }`}
               title={hideEmptyStages ? 'Show all 5 stages' : `Hide ${emptyStagesCount} empty stage${emptyStagesCount > 1 ? 's' : ''}`}
             >
@@ -383,19 +383,19 @@ export function DealKanban({
           )}
         </div>
 
-        <div className="flex items-center gap-2.5 text-[11px] text-[#8f99a8]">
-          <span className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#f4f5f6] text-[#6f7988] rounded-[8px] font-mono text-[10px]">
+        <div className="flex items-center gap-2.5 text-[11px] text-[#374151]">
+          <span className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#f4f5f6] text-[#374151] rounded-[8px] font-mono text-[10px]">
             <span>Drag:</span>
-            <kbd className="text-[#1c1d1f] font-semibold">Mouse</kbd>
-            <span className="text-[#cad0d9]">•</span>
+            <kbd className="text-[#111827] font-semibold">Mouse</kbd>
+            <span className="text-[#9ca3af]">•</span>
             <span>Navigate:</span>
-            <kbd className="text-[#1c1d1f] font-semibold">← → ↑ ↓</kbd>
-            <span className="text-[#cad0d9]">•</span>
+            <kbd className="text-[#111827] font-semibold">← → ↑ ↓</kbd>
+            <span className="text-[#9ca3af]">•</span>
             <span>Shift:</span>
-            <kbd className="text-[#1c1d1f] font-semibold">[ ]</kbd>
-            <span className="text-[#cad0d9]">•</span>
+            <kbd className="text-[#111827] font-semibold">[ ]</kbd>
+            <span className="text-[#9ca3af]">•</span>
             <span>Open:</span>
-            <kbd className="text-[#1c1d1f] font-semibold">↵</kbd>
+            <kbd className="text-[#111827] font-semibold">↵</kbd>
           </span>
           <button
             type="button"

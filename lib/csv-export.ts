@@ -44,13 +44,13 @@ export function triggerDownload(content: string, filename: string): void {
 /**
  * Export Deals as CSV
  */
-export function exportDealsCSV(deals: Deal[]): void {
+export function exportDealsCSV(deals: Deal[], currency: string = 'USD'): void {
   const headers = [
     { key: 'id' as const, label: 'Deal ID' },
     { key: 'title' as const, label: 'Title' },
     { key: 'company' as const, label: 'Company' },
     { key: 'value' as const, label: 'Value (Display)' },
-    { key: 'rawAmount' as const, label: 'Raw Amount (CZK)' },
+    { key: 'rawAmount' as const, label: `Raw Amount (${currency.toUpperCase()})` },
     { key: 'stage' as const, label: 'Stage' },
     { key: 'probability' as const, label: 'Probability' },
     { key: 'next' as const, label: 'Next Action' },

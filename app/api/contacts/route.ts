@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { checkIsAuthenticated } from '@/lib/auth/session'
 import * as repo from '@/lib/db/repository'
+import { ContactCreateInputSchema } from '@/lib/validations'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,11 +22,18 @@ export async function POST(req: Request) {
   }
 
   try {
-    const body = await req.json()
-    const contact = await repo.createContact(body)
+    const rawBody = await req.json()
+    const parsed = ContactCreateInputSchema.safeParse(rawBody)
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Invalid contact input', details: parsed.error.format() },
+        { status: 400 }
+      )
+    }
+    const contact = await repo.createContact(parsed.data as any)
     return NextResponse.json(contact, { status: 201 })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Failed to create contact' }, { status: 400 })
+    return NextResponse.json({ error: 'Failed to create contact' }, { status: 400 })
   }
 }
 
@@ -37,13 +45,20 @@ export async function PUT(req: Request) {
 
   try {
     const body = await req.json()
-    if (!body?.id) {
+    if (!body?.id || typeof body.id !== 'string') {
       return NextResponse.json({ error: 'Missing contact id' }, { status: 400 })
+    }
+    const parsed = ContactCreateInputSchema.partial().safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Invalid contact update input', details: parsed.error.format() },
+        { status: 400 }
+      )
     }
     const contact = await repo.updateContact(body)
     return NextResponse.json(contact, { status: 200 })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Failed to update contact' }, { status: 400 })
+    return NextResponse.json({ error: 'Failed to update contact' }, { status: 400 })
   }
 }
 

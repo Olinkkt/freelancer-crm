@@ -52,7 +52,7 @@ export default function RootLayout({
     <html lang="en" className={inter.variable}>
       <body className={`${inter.className} antialiased`}>
         {children}
-        {process.env.NODE_ENV === 'production' && <Analytics />}
+        {process.env.NODE_ENV === 'production' && Boolean(process.env.VERCEL) && <Analytics />}
       </body>
     </html>
   )

@@ -268,5 +268,42 @@ describe('Server Actions Integration', () => {
       assert.equal(updateRes.settings?.currency, 'GBP')
       assert.equal(updateRes.settings?.currencySymbol, '£')
     })
+
+    it('requires valid AUTH_SECRET setup token when AUTH_SECRET is set', async () => {
+      process.env.AUTH_SECRET = 'admin-guard-secret'
+
+      // Attempt claim without setupToken
+      const failedClaim = await claimWorkspaceAction({
+        operatorName: 'Unauthorized Claimer',
+        operatorEmail: 'unauth@bad.com',
+        currency: 'USD',
+        currencySymbol: '$',
+        locale: 'en-US',
+      })
+      assert.equal(failedClaim.success, false)
+      assert.match(failedClaim.error || '', /AUTH_SECRET.*required/i)
+
+      // Attempt claim with wrong setupToken
+      const wrongClaim = await claimWorkspaceAction({
+        operatorName: 'Unauthorized Claimer',
+        operatorEmail: 'unauth@bad.com',
+        currency: 'USD',
+        currencySymbol: '$',
+        locale: 'en-US',
+        setupToken: 'wrong-secret',
+      })
+      assert.equal(wrongClaim.success, false)
+
+      // Successful claim with correct setupToken
+      const okClaim = await claimWorkspaceAction({
+        operatorName: 'Authorized Admin',
+        operatorEmail: 'admin@correct.com',
+        currency: 'USD',
+        currencySymbol: '$',
+        locale: 'en-US',
+        setupToken: 'admin-guard-secret',
+      })
+      assert.equal(okClaim.success, true)
+    })
   })
 })

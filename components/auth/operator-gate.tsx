@@ -7,9 +7,10 @@ import { OPERATOR_CONFIG } from '@/lib/config'
 
 interface OperatorGateProps {
   onAuthenticated: () => void
+  operatorName?: string
 }
 
-export function OperatorGate({ onAuthenticated }: OperatorGateProps) {
+export function OperatorGate({ onAuthenticated, operatorName }: OperatorGateProps) {
   const [passcode, setPasscode] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -44,7 +45,7 @@ export function OperatorGate({ onAuthenticated }: OperatorGateProps) {
             <Lock size={22} strokeWidth={2.2} />
           </div>
           <h1 className="text-xl font-semibold text-white tracking-tight">
-            {OPERATOR_CONFIG.name}
+            {operatorName || OPERATOR_CONFIG.name}
           </h1>
           <p className="text-xs text-[#8f99a8] mt-1">
             Solo Operator Workspace &middot; {OPERATOR_CONFIG.appTitle}

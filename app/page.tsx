@@ -129,11 +129,10 @@ export default function Page() {
 
   // Dynamic Dashboard Date & Greeting
   const [formattedToday, setFormattedToday] = useState<string>('')
-  const [greeting, setGreeting] = useState<string>(`Good morning, ${OPERATOR_CONFIG.firstName}.`)
+  const [greeting, setGreeting] = useState<string>('')
 
   useEffect(() => {
     setFormattedToday(getFormattedToday())
-    setGreeting(getDynamicGreeting(OPERATOR_CONFIG.firstName))
   }, [])
 
   // CRM Data State
@@ -686,22 +685,20 @@ export default function Page() {
     const isWon = newStage === 'Won'
     const targetDeal = deals.find((d) => d.id === dealId)
 
-    // If moving to Paid (Completed Project), ensure all milestones and invoices are completed
+    // If moving to Paid (Completed Project), ensure all existing milestones and existing invoices are marked done
     let dealDeliverables = targetDeal?.deliverables
     let dealInvoices = targetDeal?.invoices
 
     if (isPaid && targetDeal) {
-      const hasUnfinishedDel = (targetDeal.deliverables || []).some((d) => d.status !== 'Done')
-      const hasUnpaidInv = (targetDeal.invoices || []).some((i) => i.status !== 'Paid')
-
-      if (hasUnfinishedDel || hasUnpaidInv) {
-        // Complete all deliverables & mark all invoices paid upon completion
-        dealDeliverables = (targetDeal.deliverables || []).map((d) => ({
+      if (dealDeliverables && dealDeliverables.length > 0) {
+        dealDeliverables = dealDeliverables.map((d) => ({
           ...d,
           status: 'Done' as const,
           clientSignOff: true,
         }))
-        dealInvoices = (targetDeal.invoices || []).map((inv) => ({
+      }
+      if (dealInvoices && dealInvoices.length > 0) {
+        dealInvoices = dealInvoices.map((inv) => ({
           ...inv,
           status: 'Paid' as const,
           paidAt: inv.paidAt || 'Just now',
@@ -775,11 +772,30 @@ export default function Page() {
 
 
   // Compute metrics
-  const totalPipelineAmount = deals.reduce(
+  const openDeals = deals.filter((d) => d.stage !== 'Won' && d.stage !== 'Paid')
+  const openDealsCount = openDeals.length
+  const totalPipelineAmount = openDeals.reduce(
     (sum, d) => sum + (d.rawAmount || parseInt(d.value.replace(/[^0-9]/g, '')) || 0),
     0
   )
-  const openDealsCount = deals.filter((d) => d.stage !== 'Won' && d.stage !== 'Paid').length
+  const getContactOpenDealsCount = (contact: Contact) => {
+    return openDeals.filter(
+      (d) =>
+        d.contactName === contact.name ||
+        (contact.company && d.company.trim().toLowerCase() === contact.company.trim().toLowerCase())
+    ).length
+  }
+  const getCompanyOpenDealsCount = (comp: Company) => {
+    return openDeals.filter(
+      (d) => d.company.trim().toLowerCase() === comp.name.trim().toLowerCase()
+    ).length
+  }
+  const getCompanyPipelineValue = (comp: Company) => {
+    const sum = openDeals
+      .filter((d) => d.company.trim().toLowerCase() === comp.name.trim().toLowerCase())
+      .reduce((s, d) => s + (d.rawAmount || parseInt(d.value.replace(/[^0-9]/g, '')) || 0), 0)
+    return formatMoney(sum, currentSettings)
+  }
   const closingDeals = deals.filter((d) => d.stage === 'Proposal')
   const expectedCloseAmount = closingDeals.reduce(
     (sum, d) => sum + (d.rawAmount || parseInt(d.value.replace(/[^0-9]/g, '')) || 0),
@@ -834,6 +850,7 @@ export default function Page() {
   if (!isSetupComplete) {
     return (
       <SetupWizard
+        envAuthRequired={authRequired}
         onSetupComplete={(newSettings) => {
           setCurrentSettings(newSettings)
           setIsSetupComplete(true)
@@ -849,6 +866,7 @@ export default function Page() {
   if (authRequired && !isAuthenticated) {
     return (
       <OperatorGate
+        operatorName={currentSettings.operatorName}
         onAuthenticated={() => {
           setIsAuthenticated(true)
           loadData()
@@ -1313,7 +1331,7 @@ export default function Page() {
                 <div>
                   <span className="metric-label">Active pipeline</span>
                   <strong>
-                    {contacts.filter((c) => c.deals > 0).length}
+                    {contacts.filter((c) => getContactOpenDealsCount(c) > 0).length}
                   </strong>
                   <small>Tied to active opportunities</small>
                 </div>
@@ -1387,19 +1405,19 @@ export default function Page() {
 
                         return (
                           <div className="company-row" key={contact.id}>
-                            <div className="company-name">
-                              <span className={`company-avatar ${contact.color}`}>
+                            <div className="company-name min-w-0">
+                              <span className={`company-avatar shrink-0 ${contact.color}`}>
                                 {contact.name.charAt(0)}
                               </span>
-                              <div>
-                                <strong>{contact.name}</strong>
-                                {contact.role && <span>{contact.role}</span>}
+                              <div className="min-w-0">
+                                <strong className="truncate block" title={contact.name}>{contact.name}</strong>
+                                {contact.role && <span className="truncate block">{contact.role}</span>}
                               </div>
                             </div>
                             <div className="company-contact">
                               <strong className="text-[13px] font-semibold text-[#1c1d1f]">{contact.company}</strong>
                             </div>
-                            <strong>{contact.deals}</strong>
+                            <strong>{getContactOpenDealsCount(contact)}</strong>
                             <span className="last-touch">{contact.lastTouch}</span>
                             <div className="truncate">
                               {contact.email ? (
@@ -1467,7 +1485,11 @@ export default function Page() {
                                     icon: Trash2,
                                     destructive: true,
                                     divider: true,
-                                    onClick: () => handleDeleteContact(contact.id, contact.name),
+                                    onClick: () => {
+                                      if (window.confirm(`Are you sure you want to delete contact "${contact.name}"?`)) {
+                                        handleDeleteContact(contact.id, contact.name)
+                                      }
+                                    },
                                   },
                                 ]}
                               />
@@ -1619,8 +1641,8 @@ export default function Page() {
                               <span className="text-[#8f99a8] text-[11px]">—</span>
                             )}
                           </div>
-                          <strong>{comp.deals}</strong>
-                          <strong className="font-mono tabular-nums">{comp.value}</strong>
+                          <strong>{getCompanyOpenDealsCount(comp)}</strong>
+                          <strong className="font-mono tabular-nums">{getCompanyPipelineValue(comp)}</strong>
                           <span className={`status-pill ${comp.status.toLowerCase()}`}>
                             {comp.status}
                           </span>
@@ -1994,7 +2016,7 @@ export default function Page() {
                     <button
                       type="button"
                       onClick={() => {
-                        exportDealsCSV(deals)
+                        exportDealsCSV(deals, currentSettings.currency)
                         exportCompaniesCSV(companies)
                         exportContactsCSV(contacts)
                         exportActivitiesCSV(activities)
@@ -2016,7 +2038,7 @@ export default function Page() {
                           desc: 'Stages, deal values, probability, next actions, contacts, deliverables',
                           count: deals.length,
                           action: () => {
-                            exportDealsCSV(deals)
+                            exportDealsCSV(deals, currentSettings.currency)
                             addToast(`Exported ${deals.length} deals to CSV`, 'CSV')
                           },
                         },

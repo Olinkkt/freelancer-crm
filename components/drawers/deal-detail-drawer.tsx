@@ -628,12 +628,7 @@ export function DealDetailDrawer({
                     Primary Contact
                   </span>
                   {(() => {
-                    const fallbackDomain = currentDeal.company
-                      .toLowerCase()
-                      .replace(/[^a-z0-9]/g, '')
-                    const contactEmail =
-                      currentDeal.contactEmail ||
-                      (fallbackDomain ? `contact@${fallbackDomain}.cz` : '')
+                    const contactEmail = currentDeal.contactEmail?.trim()
 
                     return (
                       <div className="p-3 bg-[#fafbfc] border border-[#edf0f3] rounded-[12px] flex items-center justify-between">

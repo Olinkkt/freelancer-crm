@@ -14,8 +14,11 @@ import {
   CheckSquare,
   CornerDownLeft,
   ChevronDown,
+  Mail,
+  FileText,
 } from 'lucide-react'
 import { Activity, Company, Contact, FollowUpItem, Deal } from '@/lib/crm-types'
+import { getRelativeDayLabel } from '@/lib/date-utils'
 
 interface LogCallModalProps {
   isOpen: boolean
@@ -334,12 +337,32 @@ export function LogCallModal({
 
     let followUpData: Omit<FollowUpItem, 'id'> | undefined = undefined
     if (nextAction.trim()) {
+      let resolvedDay: FollowUpItem['day'] = 'This week'
+      const lowerDue = nextDue.toLowerCase().trim()
+
+      if (lowerDue.includes('today') || lowerDue.includes('dnes')) {
+        resolvedDay = 'Today'
+      } else if (lowerDue.includes('tomorrow') || lowerDue.includes('zitra')) {
+        resolvedDay = 'Tomorrow'
+      } else {
+        // Check for "in X days" / "za X dni"
+        const inDaysMatch = lowerDue.match(/in\s+(\d+)\s+days?/i) || lowerDue.match(/za\s+(\d+)\s+dn/i)
+        if (inDaysMatch) {
+          const numDays = parseInt(inDaysMatch[1], 10)
+          const target = new Date()
+          target.setDate(target.getDate() + numDays)
+          resolvedDay = getRelativeDayLabel(target) as FollowUpItem['day']
+        } else {
+          // Try parsing standard date
+          const parsedDate = new Date(nextDue)
+          if (!isNaN(parsedDate.getTime())) {
+            resolvedDay = getRelativeDayLabel(parsedDate) as FollowUpItem['day']
+          }
+        }
+      }
+
       followUpData = {
-        day: nextDue.toLowerCase().includes('today')
-          ? 'Today'
-          : nextDue.toLowerCase().includes('tomorrow')
-          ? 'Tomorrow'
-          : 'This week',
+        day: resolvedDay,
         company: company.trim() || person.trim(),
         action: nextAction.trim(),
         time: nextDue.trim(),
@@ -390,7 +413,7 @@ export function LogCallModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#10141c]/30 backdrop-blur-xs transition-all"
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#10141c]/40 backdrop-blur-xs transition-all"
       onClick={onClose}
     >
       <div
@@ -428,7 +451,25 @@ export function LogCallModal({
                 <button
                   key={t}
                   type="button"
-                  onClick={() => setType(t)}
+                  onClick={() => {
+                    const prevType = type
+                    setType(t)
+                    if (
+                      !title.trim() ||
+                      title.startsWith(`${prevType} regarding`) ||
+                      title.startsWith(`${prevType} with`) ||
+                      title === 'Client check-in call' ||
+                      title.startsWith('Call regarding')
+                    ) {
+                      if (selectedDealId && currentLinkedDeal) {
+                        setTitle(`${t} regarding ${currentLinkedDeal.title}`)
+                      } else if (person || company) {
+                        setTitle(`${t} with ${person || company}`)
+                      } else {
+                        setTitle(`Client ${t.toLowerCase()} log`)
+                      }
+                    }
+                  }}
                   className={`py-1.5 px-2 rounded-[10px] text-[12px] font-medium transition-all border ${
                     type === t
                       ? 'bg-[#232529] text-white border-[#232529] shadow-xs'
@@ -439,6 +480,20 @@ export function LogCallModal({
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Activity Subject / Title */}
+          <div>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-[#505967] mb-1.5">
+              Subject / Title
+            </label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder={`${type} title (e.g. Kickoff Sync, Feedback Review)`}
+              className="w-full h-9 px-3 border border-[#e4e7ec] rounded-[8px] text-[12px] bg-white text-[#1c1d1f] focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
+            />
           </div>
 
           {/* Unified Deal & Project Link */}
@@ -686,8 +741,16 @@ export function LogCallModal({
                 type="submit"
                 className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#232529] hover:bg-[#101113] text-white text-[12px] font-medium rounded-[10px] shadow-xs transition-all cursor-pointer"
               >
-                <PhoneCall size={15} />
-                <span>{activityToEdit ? 'Save Changes' : 'Log & Sync Note'}</span>
+                {type === 'Meeting' ? (
+                  <Calendar size={15} />
+                ) : type === 'Email' ? (
+                  <Mail size={15} />
+                ) : type === 'Note' || type === 'Follow-up' ? (
+                  <FileText size={15} />
+                ) : (
+                  <PhoneCall size={15} />
+                )}
+                <span>{activityToEdit ? 'Save Changes' : `Log & Sync ${type}`}</span>
               </button>
             </div>
           </div>

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { checkIsAuthenticated } from '@/lib/auth/session'
 import * as repo from '@/lib/db/repository'
+import { BackupPayloadSchema } from '@/lib/validations'
 
 export const dynamic = 'force-dynamic'
 
@@ -45,12 +46,16 @@ export async function POST(req: Request) {
   }
 
   try {
-    const body = await req.json()
-    if (!body || typeof body !== 'object') {
-      return NextResponse.json({ error: 'Invalid backup file format' }, { status: 400 })
+    const rawBody = await req.json()
+    const parsed = BackupPayloadSchema.safeParse(rawBody)
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Invalid backup payload structure', details: parsed.error.format() },
+        { status: 400 }
+      )
     }
 
-    const result = await repo.restoreWorkspaceData(body)
+    const result = await repo.restoreWorkspaceData(parsed.data as any)
     return NextResponse.json({
       success: true,
       restored: result,
@@ -63,3 +68,4 @@ export async function POST(req: Request) {
     )
   }
 }
+

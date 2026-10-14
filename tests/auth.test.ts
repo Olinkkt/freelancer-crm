@@ -7,6 +7,8 @@ import {
   verifySessionToken,
   verifyPassword,
   checkIsAuthenticated,
+  hashPasscode,
+  verifyPasscode,
 } from '@/lib/auth/session'
 
 describe('Auth & Session Security', () => {
@@ -104,6 +106,29 @@ describe('Auth & Session Security', () => {
       assert.equal(verifyPassword('wrong-pass'), false)
       assert.equal(verifyPassword('secret-pass-202'), false)
       assert.equal(verifyPassword(''), false)
+    })
+  })
+
+  describe('hashPasscode() & verifyPasscode()', () => {
+    it('generates salted scrypt hash that verifies correctly', () => {
+      const hash1 = hashPasscode('my-passcode-2026')
+      const hash2 = hashPasscode('my-passcode-2026')
+
+      assert.ok(hash1.startsWith('scrypt:'))
+      assert.ok(hash2.startsWith('scrypt:'))
+      // Two hashes of same passcode must differ due to unique salts
+      assert.notEqual(hash1, hash2)
+
+      assert.equal(verifyPasscode('my-passcode-2026', hash1), true)
+      assert.equal(verifyPasscode('my-passcode-2026', hash2), true)
+      assert.equal(verifyPasscode('wrong-passcode', hash1), false)
+      assert.equal(verifyPasscode('', hash1), false)
+    })
+
+    it('supports backward compatibility with legacy unsalted SHA-256 hashes', () => {
+      const legacySha256 = crypto.createHash('sha256').update('legacy-pass').digest('hex')
+      assert.equal(verifyPasscode('legacy-pass', legacySha256), true)
+      assert.equal(verifyPasscode('wrong', legacySha256), false)
     })
   })
 

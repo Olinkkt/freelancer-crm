@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { checkIsAuthenticated } from '@/lib/auth/session'
 import * as repo from '@/lib/db/repository'
+import { CompanyCreateInputSchema } from '@/lib/validations'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,11 +22,18 @@ export async function POST(req: Request) {
   }
 
   try {
-    const body = await req.json()
-    const company = await repo.createCompany(body)
+    const rawBody = await req.json()
+    const parsed = CompanyCreateInputSchema.safeParse(rawBody)
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Invalid company input', details: parsed.error.format() },
+        { status: 400 }
+      )
+    }
+    const company = await repo.createCompany(parsed.data as any)
     return NextResponse.json(company, { status: 201 })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Failed to create company' }, { status: 400 })
+    return NextResponse.json({ error: 'Failed to create company' }, { status: 400 })
   }
 }
 
@@ -37,13 +45,13 @@ export async function PUT(req: Request) {
 
   try {
     const body = await req.json()
-    if (!body?.id) {
+    if (!body?.id || typeof body.id !== 'string') {
       return NextResponse.json({ error: 'Missing company id' }, { status: 400 })
     }
     const company = await repo.updateCompany(body)
     return NextResponse.json(company, { status: 200 })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Failed to update company' }, { status: 400 })
+    return NextResponse.json({ error: 'Failed to update company' }, { status: 400 })
   }
 }
 

@@ -73,7 +73,7 @@ export function NewContactModal({
         company: company.trim() || 'Independent',
         email: email.trim() || `${name.toLowerCase().replace(/\s+/g, '.')}@example.cz`,
         phone: phone.trim() || undefined,
-        deals: 1,
+        deals: 0,
         lastTouch: 'Today',
         color: 'blue',
       })
@@ -129,6 +129,7 @@ export function NewContactModal({
               ref={nameInputRef}
               type="text"
               required
+              maxLength={100}
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Tomáš Dvořák"

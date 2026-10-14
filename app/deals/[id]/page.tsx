@@ -24,16 +24,10 @@ import {
   ChevronDown,
   ChevronUp,
   Sparkles,
-  Copy,
-  Receipt,
-  CreditCard,
-  ShieldCheck,
 } from 'lucide-react'
 import {
   Deal,
   DealStage,
-  DeliverableItem,
-  InvoiceMilestone,
   Activity,
   FollowUpItem,
 } from '@/lib/crm-types'
@@ -49,7 +43,7 @@ import {
   syncTodosAction,
 } from '@/app/actions/crm'
 import { getAuthStatus } from '@/app/actions/auth'
-import { formatDealValue, formatMoney, OPERATOR_CONFIG } from '@/lib/config'
+import { formatDealValue } from '@/lib/config'
 import { DeliverablesTracker } from '@/components/drawers/deliverables-tracker'
 import { ScratchpadEditor } from '@/components/drawers/scratchpad-editor'
 import { MarkdownFormatter } from '@/components/ui/markdown-formatter'
@@ -303,38 +297,6 @@ export default function DealProjectPage() {
   const totalDeliverables = deal.deliverables?.length || 0
   const doneDeliverables = deal.deliverables?.filter((d) => d.status === 'Done').length || 0
   const progressPercent = totalDeliverables > 0 ? Math.round((doneDeliverables / totalDeliverables) * 100) : 0
-
-  const rawDealAmount = deal.rawAmount || parseInt(deal.value.replace(/[^0-9]/g, '')) || 0
-  const halfInvoiceAmount = Math.round(rawDealAmount * 0.5)
-  const restInvoiceAmount = rawDealAmount - halfInvoiceAmount
-
-  const activeInvoices: InvoiceMilestone[] =
-    deal.invoices && deal.invoices.length > 0
-      ? deal.invoices
-      : [
-          {
-            id: `inv-${deal.id}-deposit`,
-            type: 'Deposit',
-            label: '50% Upfront Deposit Invoice',
-            amount: halfInvoiceAmount,
-            formattedAmount: formatMoney(halfInvoiceAmount),
-            percentage: 50,
-            status: 'Sent',
-            dueDate: 'Kickoff',
-            paidAt: undefined,
-          },
-          {
-            id: `inv-${deal.id}-final`,
-            type: 'Final',
-            label: '50% Final Handover Invoice',
-            amount: restInvoiceAmount,
-            formattedAmount: formatMoney(restInvoiceAmount),
-            percentage: 50,
-            status: 'Draft',
-            dueDate: 'On Completion',
-            paidAt: undefined,
-          },
-        ]
 
   return (
     <div className="min-h-screen bg-[#f7f8fa] text-[#1c1d1f] flex flex-col">
@@ -825,99 +787,6 @@ export default function DealProjectPage() {
                 </div>
               </div>
             </div>
-
-            {/* 3. COMMERCIAL INVOICES & CASHFLOW PROGRESS */}
-            <div className="bg-white border border-[#e4e7ec] rounded-[14px] p-5 shadow-2xs space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-[13px] font-bold uppercase tracking-wider text-[#8f99a8]">
-                  Commercial Invoices
-                </h3>
-                <span className="text-[11px] font-mono font-semibold text-[#1f7a47]">
-                  {activeInvoices.filter((i) => i.status === 'Paid').length} / {activeInvoices.length} Paid
-                </span>
-              </div>
-
-              {/* Invoices list */}
-              <div className="space-y-3">
-                {activeInvoices.map((inv) => {
-                  const isPaid = inv.status === 'Paid'
-                  return (
-                    <div
-                      key={inv.id}
-                      className={`p-3 rounded-[10px] border transition-all ${
-                        isPaid
-                          ? 'bg-[#f0fbf4] border-[#bbf0cb]'
-                          : 'bg-[#fafbfc] border-[#e4e7ec]'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-[12px] font-semibold text-[#1c1d1f] truncate">
-                          {inv.label}
-                        </span>
-                        <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-[6px] ${
-                            isPaid
-                              ? 'bg-[#d2f4dc] text-[#166534]'
-                              : 'bg-[#f0f2f5] text-[#505967]'
-                          }`}
-                        >
-                          {inv.status}
-                        </span>
-                      </div>
-
-                      <div className="flex items-baseline justify-between text-[11px] text-[#6f7988]">
-                        <span className="font-mono font-bold text-[13px] text-[#1c1d1f]">
-                          {formatMoney(inv.amount)}
-                        </span>
-                        <span>Due: {inv.dueDate || 'Milestone'}</span>
-                      </div>
-
-                      <div className="mt-2.5 pt-2 border-t border-[#edf0f3] flex items-center justify-between gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const cc = deal?.value?.includes('€') ? 'EUR' : deal?.value?.includes('£') ? 'GBP' : deal?.value?.includes('Kč') ? 'CZK' : OPERATOR_CONFIG.currency
-                            navigator.clipboard.writeText(
-                              `https://pay.workspace.cz/inv/${inv.id}?amount=${inv.amount}&cc=${cc}`
-                            )
-                            addToast('Copied payment URL / QR code link!')
-                          }}
-                          className="text-[10px] font-medium text-[#266df0] hover:underline flex items-center gap-1 cursor-pointer"
-                        >
-                          <Copy size={11} />
-                          <span>Copy Pay Link</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const updatedInvoices = activeInvoices.map((i) =>
-                              i.id === inv.id
-                                ? {
-                                    ...i,
-                                    status: (isPaid ? (i.type === 'Deposit' ? 'Sent' : 'Draft') : 'Paid') as InvoiceMilestone['status'],
-                                    paidAt: isPaid ? undefined : 'Just now',
-                                  }
-                                : i
-                            )
-                            handleUpdateDeal({ ...deal, invoices: updatedInvoices })
-                            addToast(isPaid ? 'Invoice marked unpaid' : 'Invoice marked as Paid!')
-                          }}
-                          className={`px-2 py-0.5 text-[10px] font-semibold rounded-[6px] cursor-pointer transition-colors ${
-                            isPaid
-                              ? 'bg-[#d2f4dc] text-[#166534] hover:bg-[#bbf0cb]'
-                              : 'bg-white border border-[#d0d5dd] hover:bg-[#f2f4f7] text-[#344054]'
-                          }`}
-                        >
-                          {isPaid ? '✓ Paid' : 'Mark Paid'}
-                        </button>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-
           </div>
         </div>
       </main>

@@ -108,9 +108,9 @@ export function OperatorGate({ onAuthenticated, operatorName }: OperatorGateProp
           <div className="mt-5 pt-4 border-t border-[#232731] flex items-center justify-between text-[11px] text-[#697282]">
             <span className="flex items-center gap-1.5">
               <ShieldCheck size={13} className="text-emerald-500" />
-              <span>Single-operator gate</span>
+              <span>Protected workspace</span>
             </span>
-            <span>AES / HMAC</span>
+            <span>Passcode secured</span>
           </div>
         </div>
       </div>

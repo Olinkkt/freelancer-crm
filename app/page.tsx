@@ -1747,7 +1747,7 @@ export default function Page() {
                   <p className="eyebrow">Workspace preferences</p>
                   <h1>Settings & System</h1>
                   <p className="subcopy">
-                    Operator cockpit preferences, velocity controls, data portability, and deployment architecture.
+                    Manage your workspace preferences, security, backups, and display options.
                   </p>
                 </div>
               </section>
@@ -1875,7 +1875,7 @@ export default function Page() {
                   {/* SECTION 3: WORKSPACE SECURITY */}
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
                     <div className="md:col-span-4">
-                      <h3 className="text-[15px] font-semibold text-[#1c1d1f] tracking-tight">Security & Gatekeeper</h3>
+                      <h3 className="text-[15px] font-semibold text-[#1c1d1f] tracking-tight">Security</h3>
                       <p className="text-[13px] text-[#6f7988] mt-1 leading-relaxed">
                         Control workspace access protection, cryptographic session tokens, and lock status.
                       </p>
@@ -1899,7 +1899,7 @@ export default function Page() {
                             </div>
                             <p className="text-[12px] text-[#6f7988] mt-1">
                               {authRequired
-                                ? 'Cryptographic HMAC-SHA256 session token active with 30-day rolling expiration.'
+                                ? 'Session active (expires in 30 days)'
                                 : 'Workspace is accessible locally without a gate. You can configure a master passcode anytime.'}
                             </p>
                           </div>
@@ -1933,7 +1933,7 @@ export default function Page() {
                   {/* SEARCH & VELOCITY BANNER */}
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pb-4 border-b border-[#e4e7ec]">
                     <div>
-                      <h3 className="text-[16px] font-semibold text-[#1c1d1f] tracking-tight">Linear Velocity Controls</h3>
+                      <h3 className="text-[16px] font-semibold text-[#1c1d1f] tracking-tight">Workflow Preferences</h3>
                       <p className="text-[13px] text-[#6f7988] mt-0.5">
                         Execute actions with single keystrokes without reaching for your mouse.
                       </p>
@@ -2234,7 +2234,7 @@ export default function Page() {
 
                     <div className="bg-white border border-[#e4e7ec] rounded-xl p-4 shadow-[rgba(28,40,64,0.04)_0px_2px_4px_-1px]">
                       <span className="text-[11px] font-medium text-[#6f7988] block mb-1">Cryptographic Security</span>
-                      <strong className="text-[14px] text-[#1c1d1f] font-semibold block">HMAC-SHA256 Token</strong>
+                      <strong className="text-[14px] text-[#1c1d1f] font-semibold block">Session Token</strong>
                       <p className="text-[12px] text-[#8f99a8] mt-1">Web Crypto API with HttpOnly SameSite=Lax cookie session validation.</p>
                     </div>
 

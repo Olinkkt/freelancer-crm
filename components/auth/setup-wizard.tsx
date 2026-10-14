@@ -7,6 +7,7 @@ import { WorkspaceSettings } from '@/lib/crm-types'
 
 interface SetupWizardProps {
   onSetupComplete: (settings: WorkspaceSettings) => void
+  envAuthRequired?: boolean
 }
 
 const CURRENCIES = [
@@ -31,12 +32,13 @@ const LOCALES = [
   { code: 'pl-PL', label: 'pl-PL — Polski (Polska)' },
 ]
 
-export function SetupWizard({ onSetupComplete }: SetupWizardProps) {
+export function SetupWizard({ onSetupComplete, envAuthRequired }: SetupWizardProps) {
   const [operatorName, setOperatorName] = useState('')
   const [operatorEmail, setOperatorEmail] = useState('')
   const [operatorRole, setOperatorRole] = useState('Full-Stack Engineer & Consultant')
   const [selectedCurrency, setSelectedCurrency] = useState(CURRENCIES[0])
   const [selectedLocale, setSelectedLocale] = useState(CURRENCIES[0].locale)
+  const [setupToken, setSetupToken] = useState('')
   const [passcode, setPasscode] = useState('')
   const [confirmPasscode, setConfirmPasscode] = useState('')
   const [loading, setLoading] = useState(false)
@@ -46,6 +48,11 @@ export function SetupWizard({ onSetupComplete }: SetupWizardProps) {
     e.preventDefault()
     if (!operatorName.trim() || !operatorEmail.trim()) {
       setError('Please provide your name and email.')
+      return
+    }
+
+    if (envAuthRequired && !setupToken.trim()) {
+      setError('AUTH_SECRET is required to claim this deployment.')
       return
     }
 
@@ -66,6 +73,7 @@ export function SetupWizard({ onSetupComplete }: SetupWizardProps) {
         currencySymbol: selectedCurrency.symbol,
         locale: selectedLocale.trim(),
         passcode: passcode.trim() || undefined,
+        setupToken: setupToken.trim() || undefined,
       })
 
       if (res.success && res.settings) {
@@ -213,6 +221,31 @@ export function SetupWizard({ onSetupComplete }: SetupWizardProps) {
                 Určuje způsob formátování kalendářních datumů a oddělovače tisíců.
               </p>
             </div>
+
+            {/* Environment AUTH_SECRET Setup Key */}
+            {envAuthRequired && (
+              <div className="pt-2 border-t border-[#232731]">
+                <div className="mb-2">
+                  <span className="block text-xs font-semibold text-amber-400">
+                    Deployment Setup Key (AUTH_SECRET) *
+                  </span>
+                  <span className="text-[11px] text-[#8f99a8]">
+                    This server deployment is protected by an environment AUTH_SECRET. Please enter it to claim ownership.
+                  </span>
+                </div>
+                <div className="relative">
+                  <ShieldCheck size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-500" />
+                  <input
+                    type="password"
+                    required
+                    value={setupToken}
+                    onChange={(e) => setSetupToken(e.target.value)}
+                    placeholder="Enter AUTH_SECRET"
+                    className="w-full h-10 pl-8 pr-3 bg-[#0f1115] border border-amber-500/40 rounded-lg text-sm text-white placeholder:text-[#525968] focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Master Passcode */}
             <div className="pt-2 border-t border-[#232731]">

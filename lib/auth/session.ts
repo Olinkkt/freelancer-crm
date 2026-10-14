@@ -5,7 +5,28 @@ const COOKIE_NAME = 'crm_operator_session'
 const SESSION_MAX_AGE_SECONDS = 30 * 24 * 60 * 60 // 30 days
 
 export function hashPasscode(passcode: string): string {
-  return crypto.createHash('sha256').update(passcode.trim()).digest('hex')
+  const salt = crypto.randomBytes(16).toString('hex')
+  const derived = crypto.scryptSync(passcode.trim(), salt, 32).toString('hex')
+  return `scrypt:${salt}:${derived}`
+}
+
+export function verifyPasscode(passcode: string, storedHash?: string | null): boolean {
+  if (!storedHash) return false
+  if (storedHash.startsWith('scrypt:')) {
+    const parts = storedHash.split(':')
+    if (parts.length !== 3) return false
+    const [, salt, expectedHash] = parts
+    const derived = crypto.scryptSync(passcode.trim(), salt, 32)
+    try {
+      const expected = Buffer.from(expectedHash, 'hex')
+      return derived.length === expected.length && crypto.timingSafeEqual(derived, expected)
+    } catch {
+      return false
+    }
+  }
+  // Fallback to legacy SHA-256 for backward compatibility
+  const legacyHash = crypto.createHash('sha256').update(passcode.trim()).digest('hex')
+  return legacyHash === storedHash
 }
 
 export function isAuthRequired(): boolean {
@@ -17,8 +38,24 @@ function getAuthSecret(): string {
   return (process.env.AUTH_SECRET || '').trim()
 }
 
-export function createSessionToken(): string {
-  const secret = getAuthSecret()
+export async function getEffectiveAuthSecret(): Promise<string> {
+  const envSecret = getAuthSecret()
+  if (envSecret) return envSecret
+
+  try {
+    const { getWorkspaceSettings } = await import('@/lib/db/repository')
+    const settings = await getWorkspaceSettings()
+    if (settings?.passcodeHash) {
+      return settings.passcodeHash
+    }
+  } catch {
+    // DB not available or running outside repository context
+  }
+  return ''
+}
+
+export function createSessionToken(secretOverride?: string): string {
+  const secret = secretOverride || getAuthSecret()
   if (!secret) return 'unprotected'
 
   const timestamp = Date.now().toString()
@@ -31,9 +68,12 @@ export function createSessionToken(): string {
   return `${payload}:${signature}`
 }
 
-export function verifySessionToken(token: string | undefined | null): boolean {
-  if (!isAuthRequired()) return true
-  if (!token) return false
+export function verifySessionToken(token: string | undefined | null, secretOverride?: string): boolean {
+  const secret = secretOverride || getAuthSecret()
+  if (!secret) {
+    return token === 'unprotected'
+  }
+  if (!token || token === 'unprotected') return false
 
   const parts = token.split(':')
   if (parts.length !== 3) return false
@@ -50,7 +90,7 @@ export function verifySessionToken(token: string | undefined | null): boolean {
 
   const payload = `${prefix}:${timestampStr}`
   const expectedSignature = crypto
-    .createHmac('sha256', getAuthSecret())
+    .createHmac('sha256', secret)
     .update(payload)
     .digest('hex')
 
@@ -78,7 +118,16 @@ export function verifyPassword(providedPassword: string): boolean {
 }
 
 export async function checkIsAuthenticated(req?: Request): Promise<boolean> {
-  if (!isAuthRequired()) return true
+  const effectiveSecret = await getEffectiveAuthSecret()
+  if (!effectiveSecret) return true
+
+  const isValidCred = (token: string) => {
+    return (
+      verifySessionToken(token, effectiveSecret) ||
+      verifyPassword(token) ||
+      verifyPasscode(token, effectiveSecret)
+    )
+  }
 
   // 1. Direct Request object inspection if provided (Route Handlers & Tests)
   if (req) {
@@ -87,13 +136,13 @@ export async function checkIsAuthenticated(req?: Request): Promise<boolean> {
       const parts = authHeader.split(' ')
       if (parts.length === 2 && parts[0].toLowerCase() === 'bearer') {
         const token = parts[1].trim()
-        if (verifySessionToken(token) || verifyPassword(token)) {
+        if (isValidCred(token)) {
           return true
         }
       }
     }
     const apiKey = req.headers.get('x-api-key')
-    if (apiKey && verifyPassword(apiKey)) {
+    if (apiKey && isValidCred(apiKey)) {
       return true
     }
 
@@ -105,7 +154,7 @@ export async function checkIsAuthenticated(req?: Request): Promise<boolean> {
           return [k, v.join('=')]
         })
       )
-      if (verifySessionToken(parsedCookies[COOKIE_NAME])) {
+      if (verifySessionToken(parsedCookies[COOKIE_NAME], effectiveSecret)) {
         return true
       }
     }
@@ -119,13 +168,13 @@ export async function checkIsAuthenticated(req?: Request): Promise<boolean> {
       const parts = authHeader.split(' ')
       if (parts.length === 2 && parts[0].toLowerCase() === 'bearer') {
         const token = parts[1].trim()
-        if (verifySessionToken(token) || verifyPassword(token)) {
+        if (isValidCred(token)) {
           return true
         }
       }
     }
     const apiKey = headerStore.get('x-api-key')
-    if (apiKey && verifyPassword(apiKey)) {
+    if (apiKey && isValidCred(apiKey)) {
       return true
     }
   } catch {
@@ -136,14 +185,15 @@ export async function checkIsAuthenticated(req?: Request): Promise<boolean> {
   try {
     const cookieStore = await cookies()
     const sessionCookie = cookieStore.get(COOKIE_NAME)
-    return verifySessionToken(sessionCookie?.value)
+    return verifySessionToken(sessionCookie?.value, effectiveSecret)
   } catch {
     return false
   }
 }
 
-export async function setOperatorSession(): Promise<void> {
-  const token = createSessionToken()
+export async function setOperatorSession(secretOverride?: string): Promise<void> {
+  const effectiveSecret = secretOverride || (await getEffectiveAuthSecret())
+  const token = createSessionToken(effectiveSecret)
   try {
     const cookieStore = await cookies()
     cookieStore.set(COOKIE_NAME, token, {

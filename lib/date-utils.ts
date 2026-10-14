@@ -329,3 +329,36 @@ export function extractStartHour(due: string, defaultHour: number = 10.0): numbe
   return defaultHour
 }
 
+/**
+ * Classifies a target date or date string relative to today into:
+ * 'Today', 'Tomorrow', 'This week', 'Next week', or 'Later'
+ */
+export function getRelativeDayLabel(targetDate: Date | string, referenceDate: Date = new Date()): string {
+  const target = typeof targetDate === 'string' ? new Date(targetDate) : targetDate
+  if (isNaN(target.getTime())) return 'This week'
+
+  const ref = new Date(referenceDate)
+  ref.setHours(0, 0, 0, 0)
+
+  const tgt = new Date(target)
+  tgt.setHours(0, 0, 0, 0)
+
+  const diffDays = Math.round((tgt.getTime() - ref.getTime()) / (24 * 60 * 60 * 1000))
+
+  if (diffDays === 0) return 'Today'
+  if (diffDays === 1) return 'Tomorrow'
+  if (diffDays < 0) return 'Overdue'
+
+  // Determine current calendar week (Monday to Sunday)
+  const dayOfWeek = (ref.getDay() + 6) % 7 // Monday = 0, Sunday = 6
+  const daysRemainingInThisWeek = 6 - dayOfWeek
+
+  if (diffDays <= daysRemainingInThisWeek) {
+    return 'This week'
+  }
+  if (diffDays <= daysRemainingInThisWeek + 7) {
+    return 'Next week'
+  }
+  return 'Later'
+}
+

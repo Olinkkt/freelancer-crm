@@ -5,6 +5,7 @@ import {
   checkIsAuthenticated,
   verifyPassword,
   hashPasscode,
+  verifyPasscode,
   setOperatorSession,
   clearOperatorSession,
 } from '@/lib/auth/session'
@@ -19,6 +20,7 @@ export async function getAuthStatus(): Promise<{
   required: boolean
   authenticated: boolean
   isSetupComplete: boolean
+  envAuthRequired: boolean
   settings?: WorkspaceSettings
 }> {
   const settings = await getWorkspaceSettings()
@@ -32,6 +34,7 @@ export async function getAuthStatus(): Promise<{
     required,
     authenticated,
     isSetupComplete,
+    envAuthRequired,
     settings: settings
       ? {
           operatorName: settings.operatorName,
@@ -55,11 +58,22 @@ export async function claimWorkspaceAction(params: {
   currencySymbol: string
   locale: string
   passcode?: string
+  setupToken?: string
 }): Promise<{ success: boolean; settings?: WorkspaceSettings; error?: string }> {
   try {
     const existing = await getWorkspaceSettings()
     if (existing && existing.isClaimed) {
       return { success: false, error: 'Workspace is already claimed.' }
+    }
+
+    // Claim protection: If AUTH_SECRET is set, claimant must provide matching setupToken
+    if (isAuthRequired()) {
+      if (!params.setupToken || !verifyPassword(params.setupToken)) {
+        return {
+          success: false,
+          error: 'Unauthorized: Valid setup token (AUTH_SECRET) required to claim this workspace.',
+        }
+      }
     }
 
     const passcodeHash = params.passcode && params.passcode.trim() ? hashPasscode(params.passcode) : undefined
@@ -69,7 +83,7 @@ export async function claimWorkspaceAction(params: {
     })
 
     // If passcode was provided, grant immediate session to the claimant
-    await setOperatorSession()
+    await setOperatorSession(passcodeHash)
 
     return { success: true, settings }
   } catch (err: any) {
@@ -97,6 +111,9 @@ export async function updateWorkspaceSettingsAction(params: {
       ...params,
       passcodeHash,
     })
+    if (passcodeHash) {
+      await setOperatorSession(passcodeHash)
+    }
     return { success: true, settings }
   } catch (err: any) {
     return { success: false, error: err?.message || 'Failed to update settings' }
@@ -113,9 +130,8 @@ export async function loginOperator(passcode: string): Promise<{ success: boolea
 
   // 1. Check against DB passcode hash if configured
   if (settings?.passcodeHash) {
-    const providedHash = hashPasscode(passcode)
-    if (providedHash === settings.passcodeHash) {
-      await setOperatorSession()
+    if (verifyPasscode(passcode, settings.passcodeHash)) {
+      await setOperatorSession(settings.passcodeHash)
       return { success: true }
     }
   }

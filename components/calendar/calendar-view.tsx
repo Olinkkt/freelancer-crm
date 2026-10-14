@@ -153,13 +153,52 @@ export function CalendarView({ deals = [], followUps = [], onOpenDeal }: Calenda
       .filter(Boolean) as CalendarEvent[]
   }, [deals, days])
 
-  // Merge base events with deal milestone events
+  // Dynamically map follow-ups into calendar events matching active workweek
+  const followUpEvents = useMemo<CalendarEvent[]>(() => {
+    return followUps
+      .filter((f) => !f.completed)
+      .map((f) => {
+        const timeOrDay = f.time || f.day
+        const matched = matchMilestoneToWorkweek(timeOrDay, days)
+        if (!matched) return null
+
+        return {
+          id: `fu-${f.id}`,
+          title: `Follow-up: ${f.action}`,
+          subtitle: f.company,
+          company: f.company,
+          person: f.company,
+          dayIndex: matched.dayIndex,
+          dateString: matched.dateString,
+          startHour: matched.startHour,
+          durationHours: 0.5,
+          startTimeLabel: formatHourMinute(matched.startHour),
+          endTimeLabel: formatHourMinute(matched.startHour + 0.5),
+          category: 'followup',
+          colorTheme: f.tone === 'urgent' ? 'amber' : 'blue',
+          actionLabel: `Open ${f.company}`,
+          amountLabel: '',
+          attendees: [
+            {
+              id: 'operator',
+              name: OPERATOR_CONFIG.name,
+              initials: getOperatorInitials(OPERATOR_CONFIG.name),
+              colorTheme: 'dark',
+            },
+          ],
+        }
+      })
+      .filter(Boolean) as CalendarEvent[]
+  }, [followUps, days])
+
+  // Merge base events, deal milestone events, and follow-ups
   const allCombinedEvents = useMemo(() => {
-    // Avoid duplicates by id
     const existingIds = new Set(INITIAL_EVENTS.map((e) => e.id))
     const uniqueMilestones = dealMilestoneEvents.filter((e) => !existingIds.has(e.id))
-    return [...INITIAL_EVENTS, ...uniqueMilestones]
-  }, [dealMilestoneEvents])
+    uniqueMilestones.forEach((e) => existingIds.add(e.id))
+    const uniqueFollowUps = followUpEvents.filter((e) => !existingIds.has(e.id))
+    return [...INITIAL_EVENTS, ...uniqueMilestones, ...uniqueFollowUps]
+  }, [dealMilestoneEvents, followUpEvents])
 
   const [events, setEvents] = useState<CalendarEvent[]>(allCombinedEvents)
 

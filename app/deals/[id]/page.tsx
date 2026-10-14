@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -298,6 +298,20 @@ export default function DealProjectPage() {
   const totalDeliverables = deal.deliverables?.length || 0
   const doneDeliverables = deal.deliverables?.filter((d) => d.status === 'Done').length || 0
   const progressPercent = totalDeliverables > 0 ? Math.round((doneDeliverables / totalDeliverables) * 100) : 0
+
+  const modalDeals = useMemo(() => [deal], [deal])
+  const modalContacts = useMemo<Contact[]>(() => [
+    {
+      id: 'primary-contact',
+      name: deal.contactName || deal.company,
+      email: deal.contactEmail || contactEmail || '',
+      company: deal.company,
+      role: '',
+      deals: 1,
+      lastTouch: 'Today',
+      color: deal.color || 'blue',
+    },
+  ], [deal, contactEmail])
 
   return (
     <div className="min-h-screen bg-[#f7f8fa] text-[#1c1d1f] flex flex-col">
@@ -798,19 +812,8 @@ export default function DealProjectPage() {
           isOpen={isLogCallOpen}
           onClose={() => setIsLogCallOpen(false)}
           initialDealId={deal.id}
-          deals={[deal]}
-          contacts={[
-            {
-              id: 'primary-contact',
-              name: deal.contactName || deal.company,
-              email: deal.contactEmail || contactEmail || '',
-              company: deal.company,
-              role: '',
-              deals: 1,
-              lastTouch: 'Today',
-              color: deal.color || 'blue',
-            },
-          ]}
+          deals={modalDeals}
+          contacts={modalContacts}
           prefilledCompany={deal.company}
           onSaveActivity={async (newAct: Omit<Activity, 'id'>, newFollowUp?: Omit<FollowUpItem, 'id'>) => {
             try {

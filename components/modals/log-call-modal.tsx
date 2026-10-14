@@ -80,6 +80,8 @@ export function LogCallModal({
   const [selectedSlashIndex, setSelectedSlashIndex] = useState(0)
 
   const notesRef = useRef<HTMLTextAreaElement>(null)
+  const prevIsOpenRef = useRef(false)
+  const prevActivityToEditRef = useRef<Activity | null | undefined>(null)
 
   const slashCommands: SlashCommand[] = [
     {
@@ -148,86 +150,94 @@ export function LogCallModal({
 
   useEffect(() => {
     if (isOpen) {
-      if (activityToEdit) {
-        setType((activityToEdit.type as any) || 'Call')
-        setTitle(activityToEdit.title || '')
-        setPerson(activityToEdit.person || '')
-        setCompany(activityToEdit.company || '')
-        setSelectedDealId(activityToEdit.dealId || '')
-        setSummary(activityToEdit.notes || activityToEdit.summary || '')
-        setNextAction('')
-        setNextDue('Today, 17:00')
-        setIsSlashMenuOpen(false)
-      } else {
-        setType('Call')
-        setTitle('Client check-in call')
-        setSummary('')
-        setNextAction('Send follow-up summary')
-        setNextDue('Today, 17:00')
-        setIsSlashMenuOpen(false)
+      const isJustOpened = !prevIsOpenRef.current
+      const isDifferentActivity = activityToEdit !== prevActivityToEditRef.current
 
-        // Smart initial deal/contact binding (prioritize initialDealId over generic prefilledCompany)
-        if (initialDealId) {
-          const foundDeal = deals.find((d) => d.id === initialDealId)
-          if (foundDeal) {
-            setSelectedDealId(foundDeal.id)
-            setCompany(foundDeal.company)
-            setPerson(
-              foundDeal.contactName ||
-                contacts.find((c) => c.company === foundDeal.company)?.name ||
-                ''
-            )
-            setTitle(`Call regarding ${foundDeal.title}`)
-          } else {
-            setSelectedDealId(initialDealId)
-            if (prefilledCompany) {
-              setCompany(prefilledCompany)
-              const matchedContact = contacts.find((c) => c.company === prefilledCompany)
+      if (isJustOpened || isDifferentActivity) {
+        if (activityToEdit) {
+          setType((activityToEdit.type as any) || 'Call')
+          setTitle(activityToEdit.title || '')
+          setPerson(activityToEdit.person || '')
+          setCompany(activityToEdit.company || '')
+          setSelectedDealId(activityToEdit.dealId || '')
+          setSummary(activityToEdit.notes || activityToEdit.summary || '')
+          setNextAction('')
+          setNextDue('Today, 17:00')
+          setIsSlashMenuOpen(false)
+        } else {
+          setType('Call')
+          setTitle('Client check-in call')
+          setSummary('')
+          setNextAction('Send follow-up summary')
+          setNextDue('Today, 17:00')
+          setIsSlashMenuOpen(false)
+
+          // Smart initial deal/contact binding (prioritize initialDealId over generic prefilledCompany)
+          if (initialDealId) {
+            const foundDeal = deals.find((d) => d.id === initialDealId)
+            if (foundDeal) {
+              setSelectedDealId(foundDeal.id)
+              setCompany(foundDeal.company)
+              setPerson(
+                foundDeal.contactName ||
+                  contacts.find((c) => (c.company || '').toLowerCase() === (foundDeal.company || '').toLowerCase())?.name ||
+                  ''
+              )
+              setTitle(`Call regarding ${foundDeal.title}`)
+            } else {
+              setSelectedDealId(initialDealId)
+              if (prefilledCompany) {
+                setCompany(prefilledCompany)
+                const matchedContact = contacts.find((c) => (c.company || '').toLowerCase() === (prefilledCompany || '').toLowerCase())
+                setPerson(matchedContact?.name || '')
+                setTitle(`Call with ${prefilledCompany}`)
+              }
+            }
+          } else if (prefilledCompany) {
+            setCompany(prefilledCompany)
+            const matchedDeal = deals.find((d) => (d.company || '').toLowerCase() === (prefilledCompany || '').toLowerCase())
+            if (matchedDeal) {
+              setSelectedDealId(matchedDeal.id)
+              setPerson(
+                matchedDeal.contactName ||
+                  contacts.find((c) => (c.company || '').toLowerCase() === (prefilledCompany || '').toLowerCase())?.name ||
+                  ''
+              )
+              setTitle(`Call regarding ${matchedDeal.title}`)
+            } else {
+              const matchedContact = contacts.find((c) => (c.company || '').toLowerCase() === (prefilledCompany || '').toLowerCase())
               setPerson(matchedContact?.name || '')
+              setSelectedDealId('')
               setTitle(`Call with ${prefilledCompany}`)
             }
-          }
-        } else if (prefilledCompany) {
-          setCompany(prefilledCompany)
-          const matchedDeal = deals.find((d) => d.company === prefilledCompany)
-          if (matchedDeal) {
-            setSelectedDealId(matchedDeal.id)
-            setPerson(
-              matchedDeal.contactName ||
-                contacts.find((c) => c.company === prefilledCompany)?.name ||
-                ''
-            )
-            setTitle(`Call regarding ${matchedDeal.title}`)
           } else {
-            const matchedContact = contacts.find((c) => c.company === prefilledCompany)
-            setPerson(matchedContact?.name || '')
-            setSelectedDealId('')
-            setTitle(`Call with ${prefilledCompany}`)
-          }
-        } else {
-          const defaultContact = contacts[0]
-          const initialPerson = defaultContact?.name || ''
-          const initialCompany = defaultContact?.company || companies[0]?.name || ''
-          setPerson(initialPerson)
-          setCompany(initialCompany)
+            const defaultContact = contacts[0]
+            const initialPerson = defaultContact?.name || ''
+            const initialCompany = defaultContact?.company || companies[0]?.name || ''
+            setPerson(initialPerson)
+            setCompany(initialCompany)
 
-          // Try to find matching active deal for initial contact/company
-          const matchedDeal = deals.find(
-            (d) => d.company === initialCompany || d.contactName === initialPerson
-          )
-          if (matchedDeal) {
-            setSelectedDealId(matchedDeal.id)
-            setTitle(`Call regarding ${matchedDeal.title}`)
-          } else {
-            setSelectedDealId('')
+            // Try to find matching active deal for initial contact/company
+            const matchedDeal = deals.find(
+              (d) => d.company === initialCompany || d.contactName === initialPerson
+            )
+            if (matchedDeal) {
+              setSelectedDealId(matchedDeal.id)
+              setTitle(`Call regarding ${matchedDeal.title}`)
+            } else {
+              setSelectedDealId('')
+            }
           }
         }
-      }
 
-      setTimeout(() => {
-        notesRef.current?.focus()
-      }, 60)
+        setTimeout(() => {
+          notesRef.current?.focus()
+        }, 60)
+      }
     }
+
+    prevIsOpenRef.current = isOpen
+    prevActivityToEditRef.current = activityToEdit
   }, [isOpen, initialDealId, prefilledCompany, contacts, companies, deals, activityToEdit])
 
   const currentLinkedDeal = deals.find((d) => d.id === selectedDealId)
@@ -253,11 +263,12 @@ export function LogCallModal({
     }
 
     // Prioritize contacts matching company
-    const matching = company
-      ? list.filter((c) => c.company.toLowerCase() === company.toLowerCase())
+    const compLower = (company || '').toLowerCase()
+    const matching = compLower
+      ? list.filter((c) => (c.company || '').toLowerCase() === compLower)
       : []
-    const others = company
-      ? list.filter((c) => c.company.toLowerCase() !== company.toLowerCase())
+    const others = compLower
+      ? list.filter((c) => (c.company || '').toLowerCase() !== compLower)
       : list
 
     return [...matching, ...others].map((c) => ({
@@ -840,7 +851,8 @@ export function LogCallModal({
               </button>
               <button
                 type="submit"
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#232529] hover:bg-[#101113] text-white text-[12px] font-medium rounded-[10px] shadow-xs transition-all cursor-pointer"
+                disabled={!person.trim() && !company.trim()}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#232529] hover:bg-[#101113] text-white text-[12px] font-medium rounded-[10px] shadow-xs transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {type === 'Meeting' ? (
                   <Calendar size={15} />

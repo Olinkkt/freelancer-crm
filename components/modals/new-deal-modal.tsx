@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { X, CirclePlus, ArrowUpRight, Calendar, AlertCircle } from 'lucide-react'
-import { Deal, DealStage, Company, WorkspaceSettings } from '@/lib/crm-types'
+import { Deal, DealStage, STAGE_DEFAULT_PROBABILITIES, Company, WorkspaceSettings } from '@/lib/crm-types'
 import { formatMoney, OPERATOR_CONFIG } from '@/lib/config'
 import { Combobox } from '@/components/ui/combobox'
 
@@ -24,14 +24,6 @@ const STAGES: DealStage[] = [
   'Won',
   'Paid',
 ]
-
-const STAGE_DEFAULT_PROBABILITIES: Record<DealStage, string> = {
-  Lead: '20%',
-  Qualified: '40%',
-  Proposal: '70%',
-  Won: '100%',
-  Paid: '100%',
-}
 
 export function NewDealModal({
   isOpen,

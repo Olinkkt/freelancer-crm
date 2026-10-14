@@ -26,7 +26,7 @@ import {
   ChevronUp,
   Sparkles,
 } from 'lucide-react'
-import { Deal, DealStage, DeliverableItem, InvoiceMilestone, Activity, WorkspaceSettings } from '@/lib/crm-types'
+import { Deal, DealStage, STAGE_DEFAULT_PROBABILITIES, DeliverableItem, InvoiceMilestone, Activity, WorkspaceSettings } from '@/lib/crm-types'
 import { ScratchpadEditor } from './scratchpad-editor'
 import { DeliverablesTracker } from './deliverables-tracker'
 import { MarkdownFormatter } from '../ui/markdown-formatter'
@@ -53,14 +53,6 @@ const STAGES: DealStage[] = [
   'Won',
   'Paid',
 ]
-
-const STAGE_DEFAULT_PROBABILITIES: Record<DealStage, string> = {
-  Lead: '20%',
-  Qualified: '40%',
-  Proposal: '70%',
-  Won: '100%',
-  Paid: '100%',
-}
 
 export function DealDetailDrawer({
   deal,

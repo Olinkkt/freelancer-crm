@@ -28,6 +28,7 @@ import {
 import {
   Deal,
   DealStage,
+  STAGE_DEFAULT_PROBABILITIES,
   Activity,
   FollowUpItem,
   Contact,
@@ -59,14 +60,6 @@ const STAGES: DealStage[] = [
   'Won',
   'Paid',
 ]
-
-const STAGE_DEFAULT_PROBABILITIES: Record<DealStage, string> = {
-  Lead: '20%',
-  Qualified: '40%',
-  Proposal: '70%',
-  Won: '100%',
-  Paid: '100%',
-}
 
 export default function DealProjectPage() {
   const params = useParams()

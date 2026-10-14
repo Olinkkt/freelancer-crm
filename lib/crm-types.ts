@@ -5,6 +5,14 @@ export type DealStage =
   | 'Won'
   | 'Paid'
 
+export const STAGE_DEFAULT_PROBABILITIES: Record<DealStage, string> = {
+  Lead: '20%',
+  Qualified: '40%',
+  Proposal: '70%',
+  Won: '100%',
+  Paid: '100%',
+}
+
 export interface DeliverableItem {
   id: string
   title: string

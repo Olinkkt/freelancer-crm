@@ -89,7 +89,7 @@ export interface Activity {
 
 export interface FollowUpItem {
   id: string
-  day: 'Today' | 'Tomorrow' | 'This week' | 'Later'
+  day: 'Today' | 'Tomorrow' | 'This week' | 'Next week' | 'Later' | string
   company: string
   action: string
   time: string

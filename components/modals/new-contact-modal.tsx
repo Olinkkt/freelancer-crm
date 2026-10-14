@@ -157,6 +157,7 @@ export function NewContactModal({
               </label>
               <input
                 list="contact-companies"
+                maxLength={100}
                 value={company}
                 onChange={(e) => setCompany(e.target.value)}
                 placeholder="Select company"

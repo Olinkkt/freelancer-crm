@@ -187,10 +187,10 @@ export default function Page() {
     toastCounterRef.current += 1
     const rand = Math.random().toString(36).substring(2, 7)
     const id = `toast-${Date.now()}-${toastCounterRef.current}-${rand}`
-    setToasts((prev) => [...prev, { id, message, shortcut, type }])
+    setToasts((prev) => [...prev.slice(-1), { id, message, shortcut, type }])
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id))
-    }, 3200)
+    }, 2500)
   }, [])
 
   const dismissToast = (id: string) => {
@@ -279,13 +279,12 @@ export default function Page() {
       if (isInput) return
 
       // If any modal/drawer is open, handle ESC to close
-      const isAnyModalOpen =
+      const isBlockingModalOpen =
         isPaletteOpen ||
         isShortcutsOpen ||
         isNewDealOpen ||
         isNewContactOpen ||
-        isLogCallOpen ||
-        isDealDrawerOpen
+        isLogCallOpen
 
       if (e.key === 'Escape') {
         if (isPaletteOpen) setIsPaletteOpen(false)
@@ -297,10 +296,20 @@ export default function Page() {
         return
       }
 
-      // If a modal or drawer is open, don't trigger global background hotkeys
-      if (isAnyModalOpen) return
+      // If a blocking modal is open, don't trigger global background hotkeys
+      if (isBlockingModalOpen) return
 
       const key = e.key.toLowerCase()
+
+      // When deal drawer is open: allow pressing 'l' to open Quick Log Call modal
+      if (isDealDrawerOpen) {
+        if (key === 'l' && !e.metaKey && !e.ctrlKey) {
+          e.preventDefault()
+          setIsLogCallOpen(true)
+          addToast('Quick Log Call / Note', 'L')
+        }
+        return
+      }
 
       // ? or Shift+/ : Show Shortcuts
       if (e.key === '?' || (e.shiftKey && e.key === '/')) {
@@ -685,9 +694,8 @@ export default function Page() {
     const isWon = newStage === 'Won'
     const targetDeal = deals.find((d) => d.id === dealId)
 
-    // If moving to Paid (Completed Project), ensure all existing milestones and existing invoices are marked done
+    // If moving to Paid (Completed Project), ensure all existing milestones are marked done
     let dealDeliverables = targetDeal?.deliverables
-    let dealInvoices = targetDeal?.invoices
 
     if (isPaid && targetDeal) {
       if (dealDeliverables && dealDeliverables.length > 0) {
@@ -695,13 +703,6 @@ export default function Page() {
           ...d,
           status: 'Done' as const,
           clientSignOff: true,
-        }))
-      }
-      if (dealInvoices && dealInvoices.length > 0) {
-        dealInvoices = dealInvoices.map((inv) => ({
-          ...inv,
-          status: 'Paid' as const,
-          paidAt: inv.paidAt || 'Just now',
         }))
       }
     }
@@ -715,7 +716,7 @@ export default function Page() {
             probability: isClosed ? '100%' : d.probability,
             color: isClosed ? 'green' : 'blue',
             deliverables: isPaid && dealDeliverables ? dealDeliverables : d.deliverables,
-            invoices: isPaid && dealInvoices ? dealInvoices : d.invoices,
+            invoices: d.invoices,
             next: isPaid ? 'Request testimonial & case study review' : isWon ? 'Kickoff meeting & design sprint' : d.next,
             nextDueDate: isPaid ? 'In 3 days' : isWon ? 'Tomorrow, 10:00' : d.nextDueDate,
           }
@@ -779,11 +780,26 @@ export default function Page() {
     0
   )
   const getContactOpenDealsCount = (contact: Contact) => {
-    return openDeals.filter(
-      (d) =>
-        d.contactName === contact.name ||
-        (contact.company && d.company.trim().toLowerCase() === contact.company.trim().toLowerCase())
-    ).length
+    const contactNameNorm = contact.name.trim().toLowerCase()
+    const contactEmailNorm = contact.email ? contact.email.trim().toLowerCase() : ''
+    const contactCompanyNorm = contact.company ? contact.company.trim().toLowerCase() : ''
+    const comp = companies.find((c) => c.name.trim().toLowerCase() === contactCompanyNorm)
+    const isPrimaryContact = comp && comp.contact ? comp.contact.trim().toLowerCase() === contactNameNorm : false
+
+    return openDeals.filter((d) => {
+      const dealContactNorm = d.contactName ? d.contactName.trim().toLowerCase() : ''
+      const dealEmailNorm = d.contactEmail ? d.contactEmail.trim().toLowerCase() : ''
+      const dealCompanyNorm = d.company ? d.company.trim().toLowerCase() : ''
+
+      if (dealContactNorm && dealContactNorm === contactNameNorm) return true
+      if (dealEmailNorm && contactEmailNorm && dealEmailNorm === contactEmailNorm) return true
+
+      if (!dealContactNorm && !dealEmailNorm && isPrimaryContact && dealCompanyNorm === contactCompanyNorm) {
+        return true
+      }
+
+      return false
+    }).length
   }
   const getCompanyOpenDealsCount = (comp: Company) => {
     return openDeals.filter(
@@ -1161,13 +1177,13 @@ export default function Page() {
                             className="company-row cursor-pointer hover:bg-[#fafbfc] transition-colors"
                             onClick={() => toggleExpandActivity(activity.id)}
                           >
-                            <div className="company-name">
-                              <span className={`company-avatar ${activity.color}`}>
+                            <div className="company-name min-w-0">
+                              <span className={`company-avatar shrink-0 ${activity.color}`}>
                                 {activity.type.charAt(0)}
                               </span>
-                              <div>
-                                <strong>{activity.title}</strong>
-                                <span>{activity.type}</span>
+                              <div className="min-w-0">
+                                <strong className="truncate block" title={activity.title}>{activity.title}</strong>
+                                <span className="truncate block">{activity.type}</span>
                               </div>
                             </div>
                             <div className="company-contact">
@@ -1618,13 +1634,13 @@ export default function Page() {
                       )
                       .map((comp) => (
                         <div className="company-row" key={comp.id}>
-                          <div className="company-name">
-                            <span className={`company-avatar ${comp.color}`}>
+                          <div className="company-name min-w-0">
+                            <span className={`company-avatar shrink-0 ${comp.color}`}>
                               {comp.name.charAt(0)}
                             </span>
-                            <div>
-                              <strong>{comp.name}</strong>
-                              <span>{comp.type}</span>
+                            <div className="min-w-0">
+                              <strong className="truncate block" title={comp.name}>{comp.name}</strong>
+                              <span className="truncate block">{comp.type}</span>
                             </div>
                           </div>
                           <div className="company-contact">
@@ -2559,13 +2575,13 @@ export default function Page() {
                             setIsDealDrawerOpen(true)
                           }}
                         >
-                          <div className="deal-title">
-                            <span className={`deal-avatar ${deal.color}`}>
+                          <div className="deal-title min-w-0">
+                            <span className={`deal-avatar shrink-0 ${deal.color}`}>
                               {deal.company.charAt(0)}
                             </span>
-                            <div>
-                              <strong>{deal.title}</strong>
-                              <span>{deal.company}</span>
+                            <div className="min-w-0">
+                              <strong className="truncate block" title={deal.title}>{deal.title}</strong>
+                              <span className="truncate block" title={deal.company}>{deal.company}</span>
                             </div>
                           </div>
                           <div className="flex items-center gap-1.5 flex-wrap">

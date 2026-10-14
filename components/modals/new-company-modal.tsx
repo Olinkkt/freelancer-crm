@@ -131,6 +131,7 @@ export function NewCompanyModal({
               ref={nameInputRef}
               type="text"
               required
+              maxLength={100}
               placeholder="e.g. Stripe, Acme Corp, Vektor Labs"
               value={name}
               onChange={(e) => setName(e.target.value)}

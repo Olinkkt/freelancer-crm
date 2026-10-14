@@ -203,6 +203,7 @@ export function NewDealModal({
               ref={titleInputRef}
               type="text"
               required
+              maxLength={100}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Brand Identity & CMS Build"
@@ -218,6 +219,7 @@ export function NewDealModal({
               <input
                 list="company-list"
                 required
+                maxLength={100}
                 value={company}
                 onChange={(e) => setCompany(e.target.value)}
                 placeholder="Select or enter company"

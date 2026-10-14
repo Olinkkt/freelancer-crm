@@ -214,6 +214,18 @@ describe('CRM Database Repository', () => {
         probability: '100%',
         next: 'Deliver milestones',
         color: 'green',
+        invoices: [
+          {
+            id: 'inv-1',
+            type: 'Final',
+            label: 'Final invoice',
+            amount: 60000,
+            formattedAmount: '60 000 Kč',
+            percentage: 100,
+            status: 'Sent',
+            dueDate: 'End of month',
+          },
+        ],
       })
 
       const paid = await repo.moveDealStage(deal.id, 'Paid')
@@ -222,6 +234,7 @@ describe('CRM Database Repository', () => {
       assert.equal(paid.probability, '100%')
       assert.equal(paid.next, '')
       assert.equal(paid.nextDueDate, undefined)
+      assert.equal(paid.invoices?.[0]?.status, 'Sent')
     })
 
     it('deleteDeal unlinks activities and follow-ups and recalculates metrics', async () => {

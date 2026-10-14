@@ -7,6 +7,7 @@ import {
   getWorkweekDays,
   formatWeekRange,
   matchMilestoneToWorkweek,
+  getRelativeDayLabel,
 } from '../lib/date-utils'
 import { generateCSV } from '../lib/csv-export'
 import { Deal, Company, Contact, Activity, FollowUpItem } from '../lib/crm-types'
@@ -167,6 +168,27 @@ describe('Date Utilities & Workweek Navigation', () => {
     // Czech numerical date outside active week -> null
     const matchOutsideCzech = matchMilestoneToWorkweek('15.10.', days)
     assert.equal(matchOutsideCzech, null)
+  })
+
+  it('getRelativeDayLabel correctly resolves relative day labels and handles missing years', () => {
+    // Reference date: Wednesday Oct 14, 2026
+    const ref = new Date(2026, 9, 14) // month 9 = Oct
+
+    // Oct 14 -> Today
+    assert.equal(getRelativeDayLabel(new Date(2026, 9, 14), ref), 'Today')
+    // Oct 15 -> Tomorrow
+    assert.equal(getRelativeDayLabel(new Date(2026, 9, 15), ref), 'Tomorrow')
+    // Oct 16 -> This week
+    assert.equal(getRelativeDayLabel(new Date(2026, 9, 16), ref), 'This week')
+    // Oct 18 (Sunday) -> This week
+    assert.equal(getRelativeDayLabel(new Date(2026, 9, 18), ref), 'This week')
+    // Oct 21 (Next Wednesday) -> Next week, even when passed as 'Oct 21' without year
+    assert.equal(getRelativeDayLabel('Oct 21', ref), 'Next week')
+    assert.equal(getRelativeDayLabel(new Date(2026, 9, 21), ref), 'Next week')
+    // Oct 13 -> Overdue
+    assert.equal(getRelativeDayLabel(new Date(2026, 9, 13), ref), 'Overdue')
+    // Nov 15 -> Later
+    assert.equal(getRelativeDayLabel(new Date(2026, 10, 15), ref), 'Later')
   })
 })
 

@@ -25,7 +25,7 @@ function ToastItem({
   useEffect(() => {
     const timer = setTimeout(() => {
       onDismiss(toast.id)
-    }, 4000)
+    }, 2500)
     return () => clearTimeout(timer)
   }, [toast.id, onDismiss])
 
@@ -59,8 +59,8 @@ function ToastItem({
 }
 
 export function ToastHUD({ toasts, onDismiss }: ToastHUDProps) {
-  // Cap visible toasts to the most recent 4 to prevent infinite stacking
-  const visibleToasts = toasts.slice(-4)
+  // Cap visible toasts to the most recent 2 to prevent stacking
+  const visibleToasts = toasts.slice(-2)
 
   return (
     <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2 pointer-events-none max-w-full px-4 sm:px-0">

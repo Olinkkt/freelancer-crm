@@ -354,10 +354,7 @@ export function LogCallModal({
           resolvedDay = getRelativeDayLabel(target) as FollowUpItem['day']
         } else {
           // Try parsing standard date
-          const parsedDate = new Date(nextDue)
-          if (!isNaN(parsedDate.getTime())) {
-            resolvedDay = getRelativeDayLabel(parsedDate) as FollowUpItem['day']
-          }
+          resolvedDay = getRelativeDayLabel(nextDue) as FollowUpItem['day']
         }
       }
 

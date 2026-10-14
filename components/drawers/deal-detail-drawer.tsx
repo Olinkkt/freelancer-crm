@@ -87,6 +87,19 @@ export function DealDetailDrawer({
         onClose()
       }
       if (
+        (e.key === 'l' || e.key === 'L') &&
+        isOpen &&
+        !e.metaKey &&
+        !e.ctrlKey &&
+        !['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName) &&
+        !(e.target as HTMLElement)?.isContentEditable &&
+        onOpenLogCallModal
+      ) {
+        e.preventDefault()
+        onOpenLogCallModal()
+        return
+      }
+      if (
         (e.key === 'o' || e.key === 'O') &&
         isOpen &&
         currentDeal &&
@@ -99,44 +112,15 @@ export function DealDetailDrawer({
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, onClose, currentDeal, router])
+  }, [isOpen, onClose, currentDeal, router, onOpenLogCallModal])
 
   const dealInvoices = React.useMemo(() => {
     if (!currentDeal) return []
     if (currentDeal.invoices && currentDeal.invoices.length > 0) {
       return currentDeal.invoices
     }
-    if (currentDeal.rawAmount > 0) {
-      const half = Math.round(currentDeal.rawAmount * 0.5)
-      const rest = currentDeal.rawAmount - half
-      const isPaidStage = currentDeal.stage === 'Paid'
-      return [
-        {
-          id: `inv-${currentDeal.id}-deposit`,
-          type: 'Deposit' as const,
-          label: '50% Upfront Deposit Invoice',
-          amount: half,
-          formattedAmount: formatMoney(half),
-          percentage: 50,
-          status: (isPaidStage ? 'Paid' : 'Sent') as InvoiceMilestone['status'],
-          dueDate: 'Kickoff',
-          paidAt: isPaidStage ? 'Received' : undefined,
-        },
-        {
-          id: `inv-${currentDeal.id}-final`,
-          type: 'Final' as const,
-          label: '50% Final Handover Invoice',
-          amount: rest,
-          formattedAmount: formatMoney(rest),
-          percentage: 50,
-          status: (isPaidStage ? 'Paid' : 'Draft') as InvoiceMilestone['status'],
-          dueDate: 'On Completion',
-          paidAt: isPaidStage ? 'Received' : undefined,
-        },
-      ]
-    }
     return []
-  }, [currentDeal?.id, currentDeal?.invoices, currentDeal?.rawAmount, currentDeal?.stage])
+  }, [currentDeal?.id, currentDeal?.invoices])
 
   if (!isOpen || !currentDeal) return null
 
@@ -145,21 +129,8 @@ export function DealDetailDrawer({
     const isPaid = newStage === 'Paid'
     const isWon = newStage === 'Won'
 
-    // Smart invoice sync
-    let updatedInvoices = currentDeal.invoices ? [...currentDeal.invoices] : [...dealInvoices]
-    if (isWon) {
-      updatedInvoices = updatedInvoices.map((inv) =>
-        inv.type === 'Deposit' && inv.status !== 'Paid'
-          ? { ...inv, status: 'Paid', paidAt: 'Received' }
-          : inv
-      )
-    } else if (isPaid) {
-      updatedInvoices = updatedInvoices.map((inv) => ({
-        ...inv,
-        status: 'Paid',
-        paidAt: inv.paidAt || 'Received',
-      }))
-    }
+    // Do NOT automatically alter invoice statuses when moving stages
+    const updatedInvoices = currentDeal.invoices || []
 
     // Smart next action sync
     let nextAction = currentDeal.next

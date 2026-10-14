@@ -334,13 +334,29 @@ export function extractStartHour(due: string, defaultHour: number = 10.0): numbe
  * 'Today', 'Tomorrow', 'This week', 'Next week', or 'Later'
  */
 export function getRelativeDayLabel(targetDate: Date | string, referenceDate: Date = new Date()): string {
-  const target = typeof targetDate === 'string' ? new Date(targetDate) : targetDate
-  if (isNaN(target.getTime())) return 'This week'
-
   const ref = new Date(referenceDate)
   ref.setHours(0, 0, 0, 0)
 
-  const tgt = new Date(target)
+  let tgt: Date
+  if (typeof targetDate === 'string') {
+    const trimmed = targetDate.trim()
+    if (!/\b\d{4}\b/.test(trimmed)) {
+      const withYear = new Date(`${trimmed} ${ref.getFullYear()}`)
+      tgt = !isNaN(withYear.getTime()) ? withYear : new Date(trimmed)
+    } else {
+      tgt = new Date(trimmed)
+    }
+  } else {
+    tgt = new Date(targetDate)
+  }
+
+  if (isNaN(tgt.getTime())) return 'This week'
+
+  // If target year is 2001 (default year when Date parses "Month Day" without year in some JS engines)
+  if (tgt.getFullYear() === 2001 && ref.getFullYear() !== 2001) {
+    tgt.setFullYear(ref.getFullYear())
+  }
+
   tgt.setHours(0, 0, 0, 0)
 
   const diffDays = Math.round((tgt.getTime() - ref.getTime()) / (24 * 60 * 60 * 1000))

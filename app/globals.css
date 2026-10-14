@@ -834,11 +834,15 @@ button {
   display: flex;
   align-items: center;
   gap: 7px;
+  min-width: 0;
 }
 
 .company-name strong, .company-name span, .company-contact strong, .company-contact span,
 .deal-title strong, .deal-title span {
   display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .company-name strong, .company-contact strong, .deal-title strong {

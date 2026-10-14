@@ -98,8 +98,8 @@ export type ValidatedBackupPayload = z.infer<typeof BackupPayloadSchema>
 
 // API Input schemas
 export const DealCreateInputSchema = z.object({
-  title: z.string().trim().min(1, 'Title is required'),
-  company: z.string().trim().min(1, 'Company is required'),
+  title: z.string().trim().min(1, 'Title is required').max(100, 'Title cannot exceed 100 characters'),
+  company: z.string().trim().min(1, 'Company is required').max(100, 'Company name cannot exceed 100 characters'),
   companyId: z.string().nullable().optional(),
   value: z.string().optional(),
   rawAmount: z.number().min(0, 'Amount cannot be negative').optional(),
@@ -122,7 +122,7 @@ export const DealUpdateInputSchema = DealCreateInputSchema.partial().extend({
 })
 
 export const CompanyCreateInputSchema = z.object({
-  name: z.string().trim().min(1, 'Company name is required'),
+  name: z.string().trim().min(1, 'Company name is required').max(100, 'Company name cannot exceed 100 characters'),
   type: z.string().optional(),
   contact: z.string().optional(),
   email: z.string().email().or(z.literal('')).optional(),
@@ -134,7 +134,7 @@ export const CompanyCreateInputSchema = z.object({
 
 export const ContactCreateInputSchema = z.object({
   name: z.string().trim().min(1, 'Contact name is required').max(100, 'Name cannot exceed 100 characters'),
-  company: z.string().trim().min(1, 'Company is required'),
+  company: z.string().trim().min(1, 'Company is required').max(100, 'Company name cannot exceed 100 characters'),
   companyId: z.string().nullable().optional(),
   role: z.string().max(100).nullable().optional(),
   email: z.string().email().or(z.literal('')).optional(),

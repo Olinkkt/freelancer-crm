@@ -99,10 +99,10 @@ export default function DealProjectPage() {
     toastCounterRef.current += 1
     const rand = Math.random().toString(36).substring(2, 7)
     const id = `toast-${Date.now()}-${toastCounterRef.current}-${rand}`
-    setToasts((prev) => [...prev, { id, message, shortcut, type }])
+    setToasts((prev) => [...prev.slice(-1), { id, message, shortcut, type }])
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id))
-    }, 3200)
+    }, 2500)
   }, [])
 
   const dismissToast = (id: string) => {
@@ -319,9 +319,9 @@ export default function DealProjectPage() {
             amount: halfInvoiceAmount,
             formattedAmount: formatMoney(halfInvoiceAmount),
             percentage: 50,
-            status: deal.stage === 'Won' || deal.stage === 'Paid' ? 'Paid' : 'Sent',
+            status: 'Sent',
             dueDate: 'Kickoff',
-            paidAt: deal.stage === 'Won' || deal.stage === 'Paid' ? 'Received' : undefined,
+            paidAt: undefined,
           },
           {
             id: `inv-${deal.id}-final`,
@@ -330,9 +330,9 @@ export default function DealProjectPage() {
             amount: restInvoiceAmount,
             formattedAmount: formatMoney(restInvoiceAmount),
             percentage: 50,
-            status: deal.stage === 'Paid' ? 'Paid' : 'Draft',
+            status: 'Draft',
             dueDate: 'On Completion',
-            paidAt: deal.stage === 'Paid' ? 'Received' : undefined,
+            paidAt: undefined,
           },
         ]
 

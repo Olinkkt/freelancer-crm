@@ -593,17 +593,6 @@ export async function moveDealStage(dealId: string, stage: DealStage): Promise<D
         clientSignOff: true,
       }))
     }
-
-    if (currentInvoices.length > 0) {
-      currentInvoices = currentInvoices.map((inv) => {
-        if (isPaid) {
-          return { ...inv, status: 'Paid', paidAt: inv.paidAt || 'Received' }
-        } else if (stage === 'Won' && inv.type === 'Deposit') {
-          return { ...inv, status: 'Paid', paidAt: inv.paidAt || 'Received' }
-        }
-        return inv
-      })
-    }
   }
 
   await db

@@ -30,6 +30,7 @@ import {
   DealStage,
   Activity,
   FollowUpItem,
+  Contact,
 } from '@/lib/crm-types'
 import {
   fetchDealByIdAction,
@@ -796,6 +797,20 @@ export default function DealProjectPage() {
         <LogCallModal
           isOpen={isLogCallOpen}
           onClose={() => setIsLogCallOpen(false)}
+          initialDealId={deal.id}
+          deals={[deal]}
+          contacts={[
+            {
+              id: 'primary-contact',
+              name: deal.contactName || deal.company,
+              email: deal.contactEmail || contactEmail || '',
+              company: deal.company,
+              role: '',
+              deals: 1,
+              lastTouch: 'Today',
+              color: deal.color || 'blue',
+            },
+          ]}
           prefilledCompany={deal.company}
           onSaveActivity={async (newAct: Omit<Activity, 'id'>, newFollowUp?: Omit<FollowUpItem, 'id'>) => {
             try {

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import {
   X,
   PhoneCall,
@@ -20,6 +20,7 @@ import {
 import { Activity, Company, Contact, FollowUpItem, Deal } from '@/lib/crm-types'
 import { getRelativeDayLabel } from '@/lib/date-utils'
 import { formatMoney } from '@/lib/config'
+import { Combobox, ComboboxOption } from '@/components/ui/combobox'
 
 interface LogCallModalProps {
   isOpen: boolean
@@ -165,27 +166,43 @@ export function LogCallModal({
         setNextDue('Today, 17:00')
         setIsSlashMenuOpen(false)
 
-        // Smart initial deal/contact binding
-        if (prefilledCompany) {
+        // Smart initial deal/contact binding (prioritize initialDealId over generic prefilledCompany)
+        if (initialDealId) {
+          const foundDeal = deals.find((d) => d.id === initialDealId)
+          if (foundDeal) {
+            setSelectedDealId(foundDeal.id)
+            setCompany(foundDeal.company)
+            setPerson(
+              foundDeal.contactName ||
+                contacts.find((c) => c.company === foundDeal.company)?.name ||
+                ''
+            )
+            setTitle(`Call regarding ${foundDeal.title}`)
+          } else {
+            setSelectedDealId(initialDealId)
+            if (prefilledCompany) {
+              setCompany(prefilledCompany)
+              const matchedContact = contacts.find((c) => c.company === prefilledCompany)
+              setPerson(matchedContact?.name || '')
+              setTitle(`Call with ${prefilledCompany}`)
+            }
+          }
+        } else if (prefilledCompany) {
           setCompany(prefilledCompany)
           const matchedDeal = deals.find((d) => d.company === prefilledCompany)
           if (matchedDeal) {
             setSelectedDealId(matchedDeal.id)
-            setPerson(matchedDeal.contactName || contacts.find((c) => c.company === prefilledCompany)?.name || '')
+            setPerson(
+              matchedDeal.contactName ||
+                contacts.find((c) => c.company === prefilledCompany)?.name ||
+                ''
+            )
             setTitle(`Call regarding ${matchedDeal.title}`)
           } else {
             const matchedContact = contacts.find((c) => c.company === prefilledCompany)
             setPerson(matchedContact?.name || '')
             setSelectedDealId('')
             setTitle(`Call with ${prefilledCompany}`)
-          }
-        } else if (initialDealId) {
-          const foundDeal = deals.find((d) => d.id === initialDealId)
-          if (foundDeal) {
-            setSelectedDealId(foundDeal.id)
-            setCompany(foundDeal.company)
-            setPerson(foundDeal.contactName || contacts.find((c) => c.company === foundDeal.company)?.name || '')
-            setTitle(`Call regarding ${foundDeal.title}`)
           }
         } else {
           const defaultContact = contacts[0]
@@ -211,11 +228,126 @@ export function LogCallModal({
         notesRef.current?.focus()
       }, 60)
     }
-  }, [isOpen, initialDealId, contacts, companies, deals, activityToEdit])
-
-  if (!isOpen) return null
+  }, [isOpen, initialDealId, prefilledCompany, contacts, companies, deals, activityToEdit])
 
   const currentLinkedDeal = deals.find((d) => d.id === selectedDealId)
+
+  // Build contact options for Combobox
+  const contactOptions = useMemo<ComboboxOption[]>(() => {
+    const list: Contact[] = [...contacts]
+
+    // Ensure currently selected deal contact is present if not already in list
+    if (
+      currentLinkedDeal?.contactName &&
+      !list.some((c) => c.name.toLowerCase() === currentLinkedDeal.contactName!.toLowerCase())
+    ) {
+      list.unshift({
+        id: `deal-contact-${currentLinkedDeal.id}`,
+        name: currentLinkedDeal.contactName,
+        company: currentLinkedDeal.company,
+        email: currentLinkedDeal.contactEmail || '',
+        deals: 1,
+        lastTouch: 'Today',
+        color: currentLinkedDeal.color || 'blue',
+      })
+    }
+
+    // Prioritize contacts matching company
+    const matching = company
+      ? list.filter((c) => c.company.toLowerCase() === company.toLowerCase())
+      : []
+    const others = company
+      ? list.filter((c) => c.company.toLowerCase() !== company.toLowerCase())
+      : list
+
+    return [...matching, ...others].map((c) => ({
+      id: c.id,
+      label: c.name,
+      value: c.name,
+      sublabel: c.role ? `${c.role} • ${c.company}` : c.company || undefined,
+    }))
+  }, [contacts, company, currentLinkedDeal])
+
+  // Build company options for Combobox
+  const companyOptions = useMemo<ComboboxOption[]>(() => {
+    const companyNames = new Set<string>()
+    const options: ComboboxOption[] = []
+
+    companies.forEach((comp) => {
+      if (!companyNames.has(comp.name.toLowerCase())) {
+        companyNames.add(comp.name.toLowerCase())
+        options.push({
+          id: comp.id,
+          label: comp.name,
+          value: comp.name,
+          sublabel: comp.type || undefined,
+        })
+      }
+    })
+
+    deals.forEach((d) => {
+      if (d.company && !companyNames.has(d.company.toLowerCase())) {
+        companyNames.add(d.company.toLowerCase())
+        options.push({
+          id: `deal-company-${d.id}`,
+          label: d.company,
+          value: d.company,
+          sublabel: `${d.title} (${d.value})`,
+        })
+      }
+    })
+
+    contacts.forEach((c) => {
+      if (c.company && !companyNames.has(c.company.toLowerCase())) {
+        companyNames.add(c.company.toLowerCase())
+        options.push({
+          id: `contact-company-${c.id}`,
+          label: c.company,
+          value: c.company,
+          sublabel: c.name,
+        })
+      }
+    })
+
+    return options
+  }, [companies, deals, contacts])
+
+  const handlePersonChange = (val: string) => {
+    setPerson(val)
+    const matched = contacts.find((c) => c.name.toLowerCase() === val.toLowerCase())
+    if (matched) {
+      if (!company || company !== matched.company) {
+        setCompany(matched.company)
+      }
+      // If no deal selected, auto-select if contact has a deal
+      if (!selectedDealId) {
+        const deal = deals.find(
+          (d) =>
+            d.company.toLowerCase() === matched.company.toLowerCase() ||
+            (d.contactName && d.contactName.toLowerCase() === matched.name.toLowerCase())
+        )
+        if (deal) {
+          setSelectedDealId(deal.id)
+          setTitle(`Call regarding ${deal.title}`)
+        }
+      }
+    }
+  }
+
+  const handleCompanyChange = (val: string) => {
+    setCompany(val)
+    if (!selectedDealId) {
+      const deal = deals.find((d) => d.company.toLowerCase() === val.toLowerCase())
+      if (deal) {
+        setSelectedDealId(deal.id)
+        if (!person && deal.contactName) {
+          setPerson(deal.contactName)
+        }
+      }
+    }
+  }
+
+  if (!isOpen) return null
 
   // Deal changed from dropdown
   const handleDealSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -226,7 +358,12 @@ export function LogCallModal({
     const matched = deals.find((d) => d.id === dealId)
     if (matched) {
       setCompany(matched.company)
-      if (matched.contactName) setPerson(matched.contactName)
+      if (matched.contactName) {
+        setPerson(matched.contactName)
+      } else {
+        const contactForCompany = contacts.find((c) => c.company === matched.company)
+        if (contactForCompany) setPerson(contactForCompany.name)
+      }
       setTitle(`Call regarding ${matched.title}`)
     }
   }
@@ -426,7 +563,7 @@ export function LogCallModal({
               Hotkey: L
             </span>
             <h2 className="text-[16px] font-semibold text-[#1c1d1f] tracking-tight">
-              {activityToEdit ? 'Edit Interaction Note' : 'Quick Log Call & Deal Note'}
+              {activityToEdit ? 'Edit interaction' : 'Quick log'}
             </h2>
           </div>
           <button
@@ -441,8 +578,8 @@ export function LogCallModal({
         <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
           {/* Interaction Type selection buttons */}
           <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-[#505967] mb-1.5">
-              Activity Type
+            <label className="block text-[12px] font-medium text-[#505967] mb-1.5">
+              Activity type
             </label>
             <div className="grid grid-cols-5 gap-1.5">
               {(['Call', 'Meeting', 'Email', 'Follow-up', 'Note'] as const).map((t) => (
@@ -482,8 +619,8 @@ export function LogCallModal({
 
           {/* Activity Subject / Title */}
           <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-[#505967] mb-1.5">
-              Subject / Title
+            <label className="block text-[12px] font-medium text-[#505967] mb-1.5">
+              Subject
             </label>
             <input
               type="text"
@@ -497,13 +634,13 @@ export function LogCallModal({
           {/* Unified Deal & Project Link */}
           <div className="p-3 bg-[#fafbfc] border border-[#e4e7ec] rounded-[10px] space-y-1.5">
             <div className="flex items-center justify-between">
-              <label className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-[#505967]">
+              <label className="flex items-center gap-1.5 text-[12px] font-medium text-[#505967]">
                 <Briefcase size={12} className="text-[#266df0]" />
-                <span>Link to Deal / Project</span>
+                <span>Link to deal</span>
               </label>
               {currentLinkedDeal && (
                 <span className="text-[10px] text-[#43a878] font-medium flex items-center gap-1">
-                  ✓ Syncs to Deal Scratchpad
+                  ✓ Syncs to deal scratchpad
                 </span>
               )}
             </div>
@@ -512,7 +649,7 @@ export function LogCallModal({
               onChange={handleDealSelectChange}
               className="w-full h-9 px-3 border border-[#cad0d9] rounded-[8px] text-[12px] bg-white text-[#1c1d1f] focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
             >
-              <option value="">No linked deal (General touchpoint)</option>
+              <option value="">No linked deal (general touchpoint)</option>
               {deals.map((d) => (
                 <option key={d.id} value={d.id}>
                   {d.title} — {d.company} ({d.value})
@@ -523,71 +660,37 @@ export function LogCallModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-[#505967] mb-1.5">
-                Contact Person *
+              <label className="block text-[12px] font-medium text-[#505967] mb-1.5">
+                Contact person *
               </label>
-              <input
-                list="contacts-list"
+              <Combobox
+                id="contact-person"
                 value={person}
-                onChange={(e) => {
-                  const val = e.target.value
-                  setPerson(val)
-                  const matched = contacts.find((c) => c.name === val)
-                  if (matched) {
-                    setCompany(matched.company)
-                    // If no deal selected, auto-select if contact has a deal
-                    if (!selectedDealId) {
-                      const deal = deals.find(
-                        (d) => d.company === matched.company || d.contactName === matched.name
-                      )
-                      if (deal) {
-                        setSelectedDealId(deal.id)
-                        setTitle(`Call regarding ${deal.title}`)
-                      }
-                    }
-                  }
-                }}
+                onChange={handlePersonChange}
+                options={contactOptions}
                 placeholder="Client name"
-                className="w-full h-10 px-3 border border-[#e4e7ec] rounded-[10px] text-[13px] text-[#1c1d1f] placeholder:text-[#9fa1a7] focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
               />
-              <datalist id="contacts-list">
-                {contacts.map((c) => (
-                  <option key={c.id} value={c.name} />
-                ))}
-              </datalist>
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-[#505967] mb-1.5">
-                Company Account
+              <label className="block text-[12px] font-medium text-[#505967] mb-1.5">
+                Company account
               </label>
-              <input
-                list="companies-list"
+              <Combobox
+                id="company-account"
                 value={company}
-                onChange={(e) => {
-                  const val = e.target.value
-                  setCompany(val)
-                  if (!selectedDealId) {
-                    const deal = deals.find((d) => d.company.toLowerCase() === val.toLowerCase())
-                    if (deal) setSelectedDealId(deal.id)
-                  }
-                }}
+                onChange={handleCompanyChange}
+                options={companyOptions}
                 placeholder="Company name"
-                className="w-full h-10 px-3 border border-[#e4e7ec] rounded-[10px] text-[13px] text-[#1c1d1f] placeholder:text-[#9fa1a7] focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
               />
-              <datalist id="companies-list">
-                {companies.map((c) => (
-                  <option key={c.id} value={c.name} />
-                ))}
-              </datalist>
             </div>
           </div>
 
           {/* Notes area with Slash commands & Quick chips */}
           <div className="relative">
             <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-[#505967]">
-                Meeting Scratchpad & Scope Notes
+              <label className="block text-[12px] font-medium text-[#505967]">
+                Notes & takeaways
               </label>
               <div className="flex items-center gap-1.5 text-[10px] flex-wrap">
                 <button
@@ -698,11 +801,11 @@ export function LogCallModal({
             )}
           </div>
 
-          {/* Mandatory Next Action GTD Prompt */}
+          {/* Next step prompt */}
           <div className="p-3.5 bg-[#fffaf1] border border-[#f6e5bf] rounded-[12px] space-y-2">
-            <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#c4882b] uppercase tracking-wider">
+            <div className="flex items-center gap-1.5 text-[12px] font-medium text-[#925c07]">
               <AlertCircle size={14} />
-              <span>Mandatory Next Step (Auto-adds to Follow-ups & Deal)</span>
+              <span>Next step (updates follow-ups & deal)</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <input
@@ -748,7 +851,17 @@ export function LogCallModal({
                 ) : (
                   <PhoneCall size={15} />
                 )}
-                <span>{activityToEdit ? 'Save Changes' : `Log & Sync ${type}`}</span>
+                <span>
+                  {activityToEdit
+                    ? 'Save Changes'
+                    : type === 'Call'
+                    ? 'Save Call'
+                    : type === 'Meeting'
+                    ? 'Save Meeting'
+                    : type === 'Email'
+                    ? 'Save Email'
+                    : 'Save Interaction'}
+                </span>
               </button>
             </div>
           </div>

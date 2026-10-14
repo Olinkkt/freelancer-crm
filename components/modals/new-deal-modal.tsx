@@ -25,6 +25,14 @@ const STAGES: DealStage[] = [
   'Paid',
 ]
 
+const STAGE_DEFAULT_PROBABILITIES: Record<DealStage, string> = {
+  Lead: '20%',
+  Qualified: '40%',
+  Proposal: '70%',
+  Won: '100%',
+  Paid: '100%',
+}
+
 export function NewDealModal({
   isOpen,
   onClose,
@@ -40,7 +48,7 @@ export function NewDealModal({
   const [company, setCompany] = useState('')
   const [value, setValue] = useState('')
   const [stage, setStage] = useState<DealStage>('Lead')
-  const [probability, setProbability] = useState('30%')
+  const [probability, setProbability] = useState('20%')
   const [nextAction, setNextAction] = useState('')
   const [nextDueDate, setNextDueDate] = useState('Tomorrow, 10:00')
   const [notes, setNotes] = useState('')
@@ -56,7 +64,7 @@ export function NewDealModal({
         setCompany(dealToEdit.company || initialCompany || '')
         setValue(dealToEdit.value || '')
         setStage(dealToEdit.stage || 'Lead')
-        setProbability(dealToEdit.probability || '30%')
+        setProbability(dealToEdit.probability || STAGE_DEFAULT_PROBABILITIES[dealToEdit.stage || 'Lead'] || '20%')
         setNextAction(dealToEdit.next || '')
         setNextDueDate(dealToEdit.nextDueDate || '')
         setNotes(dealToEdit.notes || '')
@@ -66,7 +74,7 @@ export function NewDealModal({
         setCompany(initialCompany || '')
         setValue(formatMoney(25000, settings))
         setStage('Lead')
-        setProbability('20%')
+        setProbability(STAGE_DEFAULT_PROBABILITIES['Lead'])
         setNextAction('Discovery call & initial scope review')
         setNextDueDate('Tomorrow, 10:00')
         setNotes('')
@@ -269,7 +277,11 @@ export function NewDealModal({
                 </label>
                 <select
                   value={stage}
-                  onChange={(e) => setStage(e.target.value as DealStage)}
+                  onChange={(e) => {
+                    const newStage = e.target.value as DealStage
+                    setStage(newStage)
+                    setProbability(STAGE_DEFAULT_PROBABILITIES[newStage])
+                  }}
                   className="w-full h-10 px-3 border border-[#e4e7ec] rounded-[10px] text-[13px] text-[#1c1d1f] bg-white focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
                 >
                   {STAGES.map((s) => (

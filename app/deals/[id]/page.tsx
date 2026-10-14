@@ -60,6 +60,14 @@ const STAGES: DealStage[] = [
   'Paid',
 ]
 
+const STAGE_DEFAULT_PROBABILITIES: Record<DealStage, string> = {
+  Lead: '20%',
+  Qualified: '40%',
+  Proposal: '70%',
+  Won: '100%',
+  Paid: '100%',
+}
+
 export default function DealProjectPage() {
   const params = useParams()
   const router = useRouter()
@@ -146,12 +154,11 @@ export default function DealProjectPage() {
   // Stage Change helper
   const handleStageChange = async (newStage: DealStage) => {
     if (!deal) return
-    const isWon = newStage === 'Won'
     const isPaid = newStage === 'Paid'
     const updated: Deal = {
       ...deal,
       stage: newStage,
-      probability: isWon || isPaid ? '100%' : newStage === 'Proposal' ? '70%' : newStage === 'Qualified' ? '40%' : '20%',
+      probability: STAGE_DEFAULT_PROBABILITIES[newStage],
       next: isPaid ? 'Request testimonial & case study review' : deal.next,
       nextDueDate: isPaid ? 'In 3 days' : deal.nextDueDate,
     }

@@ -603,6 +603,14 @@ export async function deleteDeal(id: string): Promise<boolean> {
   return true
 }
 
+export const STAGE_DEFAULT_PROBABILITIES: Record<DealStage, string> = {
+  Lead: '20%',
+  Qualified: '40%',
+  Proposal: '70%',
+  Won: '100%',
+  Paid: '100%',
+}
+
 export async function moveDealStage(dealId: string, stage: DealStage): Promise<Deal | null> {
   await ensureDbInitialized()
 
@@ -616,7 +624,7 @@ export async function moveDealStage(dealId: string, stage: DealStage): Promise<D
 
   const isClosedWon = stage === 'Won' || stage === 'Paid'
   const isPaid = stage === 'Paid'
-  const newProbability = isClosedWon ? '100%' : existing.probability
+  const newProbability = STAGE_DEFAULT_PROBABILITIES[stage] || (isClosedWon ? '100%' : existing.probability)
   const now = new Date().toISOString()
   const dealColor = (existing.color as Deal['color']) || 'blue'
   const nextAction = isPaid ? '' : existing.next

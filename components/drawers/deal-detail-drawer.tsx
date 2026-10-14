@@ -54,6 +54,14 @@ const STAGES: DealStage[] = [
   'Paid',
 ]
 
+const STAGE_DEFAULT_PROBABILITIES: Record<DealStage, string> = {
+  Lead: '20%',
+  Qualified: '40%',
+  Proposal: '70%',
+  Won: '100%',
+  Paid: '100%',
+}
+
 export function DealDetailDrawer({
   deal,
   isOpen,
@@ -150,7 +158,7 @@ export function DealDetailDrawer({
     const updated: Deal = {
       ...currentDeal,
       stage: newStage,
-      probability: isClosed ? '100%' : currentDeal.probability,
+      probability: STAGE_DEFAULT_PROBABILITIES[newStage],
       color: isClosed ? 'green' : (currentDeal.color || 'blue'),
       next: nextAction,
       nextDueDate: nextDueDate,

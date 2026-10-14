@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import { Sparkles, ArrowRight, ShieldCheck, User, Mail, DollarSign, Lock, AlertCircle, Loader2, Globe } from 'lucide-react'
 import { claimWorkspaceAction } from '@/app/actions/auth'
 import { WorkspaceSettings } from '@/lib/crm-types'
+import { OPERATOR_CONFIG } from '@/lib/config'
 
 interface SetupWizardProps {
   onSetupComplete: (settings: WorkspaceSettings) => void
@@ -11,20 +12,20 @@ interface SetupWizardProps {
 }
 
 const CURRENCIES = [
-  { code: 'CZK', symbol: 'Kč', label: 'CZK (Kč) — Czech Koruna', locale: 'cs-CZ' },
   { code: 'USD', symbol: '$', label: 'USD ($) — United States Dollar', locale: 'en-US' },
   { code: 'EUR', symbol: '€', label: 'EUR (€) — Euro', locale: 'de-DE' },
   { code: 'GBP', symbol: '£', label: 'GBP (£) — British Pound', locale: 'en-GB' },
+  { code: 'CZK', symbol: 'Kč', label: 'CZK (Kč) — Czech Koruna', locale: 'cs-CZ' },
   { code: 'CAD', symbol: '$', label: 'CAD ($) — Canadian Dollar', locale: 'en-CA' },
   { code: 'AUD', symbol: '$', label: 'AUD ($) — Australian Dollar', locale: 'en-AU' },
   { code: 'CHF', symbol: 'CHF', label: 'CHF — Swiss Franc', locale: 'de-CH' },
 ]
 
 const LOCALES = [
-  { code: 'cs-CZ', label: 'cs-CZ — Čeština (Česká republika)' },
-  { code: 'sk-SK', label: 'sk-SK — Slovenčina (Slovensko)' },
   { code: 'en-US', label: 'en-US — English (United States)' },
   { code: 'en-GB', label: 'en-GB — English (United Kingdom)' },
+  { code: 'cs-CZ', label: 'cs-CZ — Čeština (Česká republika)' },
+  { code: 'sk-SK', label: 'sk-SK — Slovenčina (Slovensko)' },
   { code: 'de-DE', label: 'de-DE — Deutsch (Deutschland)' },
   { code: 'de-CH', label: 'de-CH — Deutsch (Schweiz)' },
   { code: 'fr-FR', label: 'fr-FR — Français (France)' },
@@ -33,11 +34,12 @@ const LOCALES = [
 ]
 
 export function SetupWizard({ onSetupComplete, envAuthRequired }: SetupWizardProps) {
+  const defaultCurrency = CURRENCIES.find((c) => c.code === OPERATOR_CONFIG.currency) || CURRENCIES[0]
   const [operatorName, setOperatorName] = useState('')
   const [operatorEmail, setOperatorEmail] = useState('')
   const [operatorRole, setOperatorRole] = useState('Full-Stack Engineer & Consultant')
-  const [selectedCurrency, setSelectedCurrency] = useState(CURRENCIES[0])
-  const [selectedLocale, setSelectedLocale] = useState(CURRENCIES[0].locale)
+  const [selectedCurrency, setSelectedCurrency] = useState(defaultCurrency)
+  const [selectedLocale, setSelectedLocale] = useState(defaultCurrency.locale || OPERATOR_CONFIG.locale)
   const [setupToken, setSetupToken] = useState('')
   const [passcode, setPasscode] = useState('')
   const [confirmPasscode, setConfirmPasscode] = useState('')

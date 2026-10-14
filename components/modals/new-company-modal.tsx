@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { X, Building2 } from 'lucide-react'
-import { Company } from '@/lib/crm-types'
+import { Company, WorkspaceSettings } from '@/lib/crm-types'
+import { formatMoney } from '@/lib/config'
 
 interface NewCompanyModalProps {
   isOpen: boolean
@@ -10,6 +11,7 @@ interface NewCompanyModalProps {
   onAddCompany: (company: Omit<Company, 'id'>) => void
   companyToEdit?: Company | null
   onUpdateCompany?: (company: Company) => void
+  settings?: WorkspaceSettings
 }
 
 export function NewCompanyModal({
@@ -18,6 +20,7 @@ export function NewCompanyModal({
   onAddCompany,
   companyToEdit,
   onUpdateCompany,
+  settings,
 }: NewCompanyModalProps) {
   const [name, setName] = useState('')
   const [type, setType] = useState('Client')
@@ -69,7 +72,7 @@ export function NewCompanyModal({
         contact: contact.trim(),
         email: email.trim(),
         deals: 0,
-        value: '0 Kč',
+        value: formatMoney(0, settings),
         status,
         color: 'blue',
       })

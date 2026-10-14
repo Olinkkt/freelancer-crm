@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { Activity, Company, Contact, FollowUpItem, Deal } from '@/lib/crm-types'
 import { getRelativeDayLabel } from '@/lib/date-utils'
+import { formatMoney } from '@/lib/config'
 
 interface LogCallModalProps {
   isOpen: boolean
@@ -111,7 +112,7 @@ export function LogCallModal({
       description: 'Milestone payment calculation breakdown',
       icon: <Calculator size={13} className="text-[#43a878]" />,
       snippet: (ctx) => `### 💰 Commercial Quote
-- **Project Value:** ${ctx?.value || '25 000 Kč'}
+- **Project Value:** ${ctx?.value || formatMoney(25000)}
 - **Deposit (50%):** Kickoff invoice
 - **Final (50%):** Delivery & source code handoff`,
     },

@@ -99,4 +99,52 @@ test('Backup & Restore API (/api/backup)', async (t) => {
     assert.equal(restored.stage, 'Won')
     assert.equal(restored.deliverables?.[0]?.title, 'Audit Scope')
   })
+
+  await t.test('rejects empty backup with 400 and preserves existing workspace data', async () => {
+    const token = await createSessionToken()
+
+    // Database currently contains 'deal-backup-1' from previous test
+    const beforeRestore = await repo.getWorkspaceData()
+    assert.ok(beforeRestore.deals.length > 0)
+
+    // 1. Attempt restore with empty object {}
+    const emptyReq1 = new Request('http://localhost:3000/api/backup', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({}),
+    })
+
+    const res1 = await POST(emptyReq1)
+    assert.equal(res1.status, 400)
+    const json1 = await res1.json()
+    assert.equal(json1.error, 'Invalid backup payload structure')
+
+    // 2. Attempt restore with explicit empty arrays
+    const emptyReq2 = new Request('http://localhost:3000/api/backup', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        version: '1.0',
+        deals: [],
+        companies: [],
+        contacts: [],
+        activities: [],
+        followUps: [],
+      }),
+    })
+
+    const res2 = await POST(emptyReq2)
+    assert.equal(res2.status, 400)
+
+    // 3. Verify workspace data was NOT wiped
+    const afterRestore = await repo.getWorkspaceData()
+    assert.equal(afterRestore.deals.length, beforeRestore.deals.length)
+    assert.equal(afterRestore.deals[0].id, 'deal-backup-1')
+  })
 })

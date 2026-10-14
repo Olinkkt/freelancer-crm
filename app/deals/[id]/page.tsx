@@ -876,8 +876,9 @@ export default function DealProjectPage() {
                         <button
                           type="button"
                           onClick={() => {
+                            const cc = deal?.value?.includes('€') ? 'EUR' : deal?.value?.includes('£') ? 'GBP' : deal?.value?.includes('Kč') ? 'CZK' : OPERATOR_CONFIG.currency
                             navigator.clipboard.writeText(
-                              `https://pay.workspace.cz/inv/${inv.id}?amount=${inv.amount}&cc=CZK`
+                              `https://pay.workspace.cz/inv/${inv.id}?amount=${inv.amount}&cc=${cc}`
                             )
                             addToast('Copied payment URL / QR code link!')
                           }}

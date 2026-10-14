@@ -18,8 +18,8 @@ import {
   Sparkles,
   Link2,
 } from 'lucide-react'
-import { DeliverableItem, InvoiceMilestone } from '@/lib/crm-types'
-import { formatMoney } from '@/lib/config'
+import { DeliverableItem, InvoiceMilestone, WorkspaceSettings } from '@/lib/crm-types'
+import { formatMoney, OPERATOR_CONFIG } from '@/lib/config'
 
 interface DeliverablesTrackerProps {
   dealTitle: string
@@ -31,6 +31,7 @@ interface DeliverablesTrackerProps {
   onChangeInvoices: (items: InvoiceMilestone[]) => void
   onAutoAdvanceStage?: (stage: 'Won' | 'Paid', reason: string) => void
   onToast?: (message: string) => void
+  settings?: WorkspaceSettings
 }
 
 export function DeliverablesTracker({
@@ -43,6 +44,7 @@ export function DeliverablesTracker({
   onChangeInvoices,
   onAutoAdvanceStage,
   onToast,
+  settings,
 }: DeliverablesTrackerProps) {
   const [newTitle, setNewTitle] = useState('')
   const [isAdding, setIsAdding] = useState(false)
@@ -154,7 +156,8 @@ export function DeliverablesTracker({
 
   const handleCopyPaymentLink = (inv: InvoiceMilestone, e: React.MouseEvent) => {
     e.stopPropagation()
-    const fallbackLink = `https://pay.fakturoid.cz/qr?amount=${inv.amount}&vs=${Date.now().toString().slice(-6)}&currency=CZK`
+    const currency = settings?.currency || OPERATOR_CONFIG.currency
+    const fallbackLink = `https://pay.fakturoid.cz/qr?amount=${inv.amount}&vs=${Date.now().toString().slice(-6)}&currency=${currency}`
     const link = inv.paymentLink || fallbackLink
     if (navigator.clipboard) {
       navigator.clipboard.writeText(link)

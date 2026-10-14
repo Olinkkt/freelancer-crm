@@ -20,6 +20,7 @@ import {
   Code,
 } from 'lucide-react'
 import { MarkdownFormatter } from '../ui/markdown-formatter'
+import { formatMoney } from '@/lib/config'
 
 interface ScratchpadEditorProps {
   notes: string
@@ -103,7 +104,7 @@ export function ScratchpadEditor({
       description: 'Milestone deposit breakdown and price summary',
       icon: <Calculator size={14} className="text-[#43a878]" />,
       template: (ctx) => {
-        const val = ctx?.value || '30 000 Kč'
+        const val = ctx?.value || formatMoney(30000)
         return `### 💰 Commercial Quote Calculation
 - **Total Project Fee:** ${val}
 - **Milestone 1 (50% Deposit):** Due upon project kickoff

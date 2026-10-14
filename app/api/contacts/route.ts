@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { checkIsAuthenticated } from '@/lib/auth/session'
 import * as repo from '@/lib/db/repository'
 import { ContactCreateInputSchema } from '@/lib/validations'
+import { sanitizeErrorMessage } from '@/lib/errors'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,7 +34,7 @@ export async function POST(req: Request) {
     const contact = await repo.createContact(parsed.data as any)
     return NextResponse.json(contact, { status: 201 })
   } catch (err: any) {
-    return NextResponse.json({ error: 'Failed to create contact' }, { status: 400 })
+    return NextResponse.json({ error: sanitizeErrorMessage(err, 'Failed to create contact') }, { status: 400 })
   }
 }
 
@@ -56,9 +57,12 @@ export async function PUT(req: Request) {
       )
     }
     const contact = await repo.updateContact(body)
+    if (!contact) {
+      return NextResponse.json({ error: 'Contact not found' }, { status: 404 })
+    }
     return NextResponse.json(contact, { status: 200 })
   } catch (err: any) {
-    return NextResponse.json({ error: 'Failed to update contact' }, { status: 400 })
+    return NextResponse.json({ error: sanitizeErrorMessage(err, 'Failed to update contact') }, { status: 400 })
   }
 }
 
@@ -75,9 +79,12 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: 'Missing contact id parameter' }, { status: 400 })
     }
     const success = await repo.deleteContact(id)
+    if (!success) {
+      return NextResponse.json({ error: 'Contact not found' }, { status: 404 })
+    }
     return NextResponse.json({ success, id }, { status: 200 })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Failed to delete contact' }, { status: 400 })
+    return NextResponse.json({ error: sanitizeErrorMessage(err, 'Failed to delete contact') }, { status: 400 })
   }
 }
 

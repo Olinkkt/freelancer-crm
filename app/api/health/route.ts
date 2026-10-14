@@ -9,8 +9,8 @@ export async function GET() {
 
   try {
     await sql`SELECT 1`.execute(db)
-  } catch (err: any) {
-    dbStatus = `degraded: ${err?.message || 'unknown'}`
+  } catch {
+    dbStatus = 'degraded'
   }
 
   return NextResponse.json(

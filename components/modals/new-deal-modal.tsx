@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { X, CirclePlus, ArrowUpRight, Calendar, AlertCircle } from 'lucide-react'
 import { Deal, DealStage, Company, WorkspaceSettings } from '@/lib/crm-types'
-import { formatMoney } from '@/lib/config'
+import { formatMoney, OPERATOR_CONFIG } from '@/lib/config'
 
 interface NewDealModalProps {
   isOpen: boolean
@@ -43,10 +43,12 @@ export function NewDealModal({
   const [nextAction, setNextAction] = useState('')
   const [nextDueDate, setNextDueDate] = useState('Tomorrow, 10:00')
   const [notes, setNotes] = useState('')
+  const [error, setError] = useState<string | null>(null)
   const titleInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (isOpen) {
+      setError(null)
       if (dealToEdit) {
         setMode('detailed')
         setTitle(dealToEdit.title || '')
@@ -79,6 +81,12 @@ export function NewDealModal({
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault()
     if (!title.trim() || !company.trim()) return
+
+    // Guard against negative amounts
+    if (/-\s*\d+/.test(value.trim())) {
+      setError('Deal value cannot be negative')
+      return
+    }
 
     // Clean number from value
     const numeric = parseInt(value.replace(/[^0-9]/g, '')) || 0
@@ -195,6 +203,12 @@ export function NewDealModal({
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+          {error && (
+            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 text-red-700 text-[12px] rounded-[8px]">
+              <AlertCircle size={14} className="shrink-0 text-red-500" />
+              <span>{error}</span>
+            </div>
+          )}
           <div>
             <label className="block text-[11px] font-bold uppercase tracking-wider text-[#505967] mb-1.5">
               Deal Title *
@@ -234,7 +248,7 @@ export function NewDealModal({
 
             <div>
               <label className="block text-[11px] font-bold uppercase tracking-wider text-[#505967] mb-1.5">
-                Value ({settings?.currencySymbol?.trim() || 'Kč'})
+                Value ({settings?.currencySymbol?.trim() || OPERATOR_CONFIG.currencySymbol || '$'})
               </label>
               <input
                 type="text"

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { checkIsAuthenticated } from '@/lib/auth/session'
 import * as repo from '@/lib/db/repository'
+import { sanitizeErrorMessage } from '@/lib/errors'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,7 +29,7 @@ export async function PATCH(req: Request) {
     const completed = await repo.toggleFollowUp(id)
     return NextResponse.json({ id, completed }, { status: 200 })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Failed to toggle follow up' }, { status: 400 })
+    return NextResponse.json({ error: sanitizeErrorMessage(err, 'Failed to toggle follow up') }, { status: 400 })
   }
 }
 
@@ -46,7 +47,7 @@ export async function POST(req: Request) {
     }
     return NextResponse.json({ error: 'Missing todos array in payload' }, { status: 400 })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Failed to sync follow-ups' }, { status: 400 })
+    return NextResponse.json({ error: sanitizeErrorMessage(err, 'Failed to sync follow-ups') }, { status: 400 })
   }
 }
 

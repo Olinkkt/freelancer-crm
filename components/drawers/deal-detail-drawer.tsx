@@ -26,7 +26,7 @@ import {
   ChevronUp,
   Sparkles,
 } from 'lucide-react'
-import { Deal, DealStage, DeliverableItem, InvoiceMilestone, Activity } from '@/lib/crm-types'
+import { Deal, DealStage, DeliverableItem, InvoiceMilestone, Activity, WorkspaceSettings } from '@/lib/crm-types'
 import { ScratchpadEditor } from './scratchpad-editor'
 import { DeliverablesTracker } from './deliverables-tracker'
 import { MarkdownFormatter } from '../ui/markdown-formatter'
@@ -43,6 +43,7 @@ interface DealDetailDrawerProps {
   onAddActivity?: (activity: Omit<Activity, 'id'>) => void
   onOpenLogCallModal?: () => void
   onToast?: (message: string) => void
+  settings?: WorkspaceSettings
 }
 
 const STAGES: DealStage[] = [
@@ -64,6 +65,7 @@ export function DealDetailDrawer({
   onAddActivity,
   onOpenLogCallModal,
   onToast,
+  settings,
 }: DealDetailDrawerProps) {
   const router = useRouter()
   const [currentDeal, setCurrentDeal] = useState<Deal | null>(deal)
@@ -579,7 +581,7 @@ export function DealDetailDrawer({
                         onClick={() => {
                           const updated = {
                             ...currentDeal,
-                            next: 'Pitch monthly maintenance retainer (8 000 Kč/mo)',
+                            next: `Pitch monthly maintenance retainer (${formatMoney(8000, settings)}/mo)`,
                             nextDueDate: 'In 14 days',
                           }
                           setCurrentDeal(updated)
@@ -845,6 +847,7 @@ export function DealDetailDrawer({
                   onChangeInvoices={handleChangeInvoices}
                   onAutoAdvanceStage={(stage) => handleStageChange(stage)}
                   onToast={onToast}
+                  settings={settings}
                 />
               </div>
             )}

@@ -2749,6 +2749,7 @@ export default function Page() {
         onAddCompany={handleAddCompany}
         companyToEdit={editingCompany}
         onUpdateCompany={handleUpdateCompany}
+        settings={currentSettings}
       />
 
       {/* QUICK LOG CALL / EDIT INTERACTION MODAL (L) */}
@@ -2787,6 +2788,7 @@ export default function Page() {
         onAddActivity={(act) => handleLogActivity(act)}
         onOpenLogCallModal={() => setIsLogCallOpen(true)}
         onToast={(msg) => addToast(msg)}
+        settings={currentSettings}
       />
 
       {/* EDIT SETTINGS & PREFERENCES MODAL */}

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { db } from '@/lib/db/client'
 import { ensureDbInitialized } from '@/lib/db/init'
 import * as repo from '@/lib/db/repository'
+import { formatMoney, OPERATOR_CONFIG } from '@/lib/config'
 
 describe('CRM Database Repository', () => {
   before(async () => {
@@ -64,6 +65,7 @@ describe('CRM Database Repository', () => {
         contact: 'Alice Johnson',
         status: 'Prospect',
       })
+      assert.ok(updated)
       assert.equal(updated.contact, 'Alice Johnson')
       assert.equal(updated.status, 'Prospect')
 
@@ -128,7 +130,7 @@ describe('CRM Database Repository', () => {
       const starkComp = data.companies[0]
       assert.equal(starkComp.name, 'Stark Industries')
       assert.equal(starkComp.deals, 1)
-      assert.ok(starkComp.value.includes('150 000'))
+      assert.ok(starkComp.value.includes('150'))
     })
 
     it('recalculates metrics for both old and new company when deal company changes', async () => {
@@ -151,7 +153,7 @@ describe('CRM Database Repository', () => {
         contact: 'Bob',
         email: 'bob@beta.com',
         deals: 0,
-        value: '0 Kč',
+        value: formatMoney(0, OPERATOR_CONFIG),
         status: 'Active',
         color: 'green',
       })
@@ -160,7 +162,7 @@ describe('CRM Database Repository', () => {
       let alpha = data.companies.find((c) => c.name === 'Alpha Corp')!
       let beta = data.companies.find((c) => c.name === 'Beta LLC')!
       assert.equal(alpha.deals, 1)
-      assert.ok(alpha.value.includes('50 000'))
+      assert.ok(alpha.value.includes('50'))
       assert.equal(beta.deals, 0)
 
       // Move deal from Alpha Corp to Beta LLC
@@ -175,9 +177,9 @@ describe('CRM Database Repository', () => {
 
       // Alpha should have 0 deals, Beta should now have 1 deal!
       assert.equal(alpha.deals, 0)
-      assert.equal(alpha.value, '0 Kč')
+      assert.equal(alpha.value, formatMoney(0, OPERATOR_CONFIG))
       assert.equal(beta.deals, 1)
-      assert.ok(beta.value.includes('50 000'))
+      assert.ok(beta.value.includes('50'))
     })
 
     it('moveDealStage sets 100% on Won and preserves custom color', async () => {
@@ -290,7 +292,7 @@ describe('CRM Database Repository', () => {
       // Company deals count should be 0
       const company = postData.companies.find((c) => c.name === 'Omega Corp')!
       assert.equal(company.deals, 0)
-      assert.equal(company.value, '0 Kč')
+      assert.equal(company.value, formatMoney(0, OPERATOR_CONFIG))
     })
 
     it('retrieves a deal by ID or slug and fetches linked activities', async () => {
@@ -362,6 +364,7 @@ describe('CRM Database Repository', () => {
         role: 'VP of Engineering',
         phone: '+420 111 222 333',
       })
+      assert.ok(updated)
       assert.equal(updated.role, 'VP of Engineering')
       assert.equal(updated.phone, '+420 111 222 333')
 

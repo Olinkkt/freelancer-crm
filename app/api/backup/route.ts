@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { checkIsAuthenticated } from '@/lib/auth/session'
 import * as repo from '@/lib/db/repository'
 import { BackupPayloadSchema } from '@/lib/validations'
+import { sanitizeErrorMessage } from '@/lib/errors'
 
 export const dynamic = 'force-dynamic'
 
@@ -63,7 +64,7 @@ export async function POST(req: Request) {
     })
   } catch (err: any) {
     return NextResponse.json(
-      { error: err.message || 'Failed to restore workspace backup' },
+      { error: sanitizeErrorMessage(err, 'Failed to restore workspace backup') },
       { status: 500 }
     )
   }

@@ -31,6 +31,7 @@ import {
 } from 'lucide-react'
 import { Deal, Contact, Company, Activity } from '@/lib/crm-types'
 import { ScratchpadEditor } from '../drawers/scratchpad-editor'
+import { formatMoney } from '@/lib/config'
 
 export type PaletteActionType =
   | 'navigate'
@@ -531,7 +532,7 @@ export function CommandPalette({
         } else if (cmd === '/scope') {
           snippet = `### 📋 Project Scope: ${targetDeal?.title || 'Scope'}\n- [ ] Phase 1: Wireframes\n- [ ] Phase 2: Design\n- [ ] Phase 3: Build`
         } else if (cmd === '/quote') {
-          snippet = `### 💰 Commercial Quote\n- **Project Fee:** ${targetDeal?.value || '30 000 Kč'}\n- **Deposit (50%):** Due upon kickoff\n- **Balance (50%):** Due upon delivery`
+          snippet = `### 💰 Commercial Quote\n- **Project Fee:** ${targetDeal?.value || formatMoney(30000)}\n- **Deposit (50%):** Due upon kickoff\n- **Balance (50%):** Due upon delivery`
         } else if (cmd === '/todo') {
           snippet = `- [ ] Follow up on next milestone with ${targetDeal?.contactName || targetDeal?.company || 'client'} tomorrow`
         }

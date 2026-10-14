@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { checkIsAuthenticated } from '@/lib/auth/session'
 import * as repo from '@/lib/db/repository'
 import { DealCreateInputSchema, DealUpdateInputSchema } from '@/lib/validations'
+import { sanitizeErrorMessage } from '@/lib/errors'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,7 +35,7 @@ export async function POST(req: Request) {
     const deal = await repo.createDeal(parsed.data as any)
     return NextResponse.json(deal, { status: 201 })
   } catch (err: any) {
-    return NextResponse.json({ error: 'Failed to create deal' }, { status: 400 })
+    return NextResponse.json({ error: sanitizeErrorMessage(err, 'Failed to create deal') }, { status: 400 })
   }
 }
 
@@ -55,9 +56,12 @@ export async function PUT(req: Request) {
     }
 
     const deal = await repo.updateDeal(parsed.data as any)
+    if (!deal) {
+      return NextResponse.json({ error: 'Deal not found' }, { status: 404 })
+    }
     return NextResponse.json(deal, { status: 200 })
   } catch (err: any) {
-    return NextResponse.json({ error: 'Failed to update deal' }, { status: 400 })
+    return NextResponse.json({ error: sanitizeErrorMessage(err, 'Failed to update deal') }, { status: 400 })
   }
 }
 
@@ -79,7 +83,7 @@ export async function DELETE(req: Request) {
     }
     return NextResponse.json({ success: true, id }, { status: 200 })
   } catch (err: any) {
-    return NextResponse.json({ error: 'Failed to delete deal' }, { status: 400 })
+    return NextResponse.json({ error: sanitizeErrorMessage(err, 'Failed to delete deal') }, { status: 400 })
   }
 }
 

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { checkIsAuthenticated } from '@/lib/auth/session'
 import * as repo from '@/lib/db/repository'
 import { CompanyCreateInputSchema } from '@/lib/validations'
+import { sanitizeErrorMessage } from '@/lib/errors'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,7 +34,7 @@ export async function POST(req: Request) {
     const company = await repo.createCompany(parsed.data as any)
     return NextResponse.json(company, { status: 201 })
   } catch (err: any) {
-    return NextResponse.json({ error: 'Failed to create company' }, { status: 400 })
+    return NextResponse.json({ error: sanitizeErrorMessage(err, 'Failed to create company') }, { status: 400 })
   }
 }
 
@@ -49,9 +50,12 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: 'Missing company id' }, { status: 400 })
     }
     const company = await repo.updateCompany(body)
+    if (!company) {
+      return NextResponse.json({ error: 'Company not found' }, { status: 404 })
+    }
     return NextResponse.json(company, { status: 200 })
   } catch (err: any) {
-    return NextResponse.json({ error: 'Failed to update company' }, { status: 400 })
+    return NextResponse.json({ error: sanitizeErrorMessage(err, 'Failed to update company') }, { status: 400 })
   }
 }
 
@@ -68,9 +72,12 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: 'Missing company id parameter' }, { status: 400 })
     }
     const success = await repo.deleteCompany(id)
+    if (!success) {
+      return NextResponse.json({ error: 'Company not found' }, { status: 404 })
+    }
     return NextResponse.json({ success, id }, { status: 200 })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Failed to delete company' }, { status: 400 })
+    return NextResponse.json({ error: sanitizeErrorMessage(err, 'Failed to delete company') }, { status: 400 })
   }
 }
 

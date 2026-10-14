@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { db } from '@/lib/db/client'
 import { ensureDbInitialized } from '@/lib/db/init'
 import { createSessionToken } from '@/lib/auth/session'
+import * as repo from '@/lib/db/repository'
 
 import { GET as getHealth } from '@/app/api/health/route'
 import {
@@ -157,6 +158,65 @@ describe('API Route Handlers', () => {
       const afterGet = await getDeals(createAuthedRequest('http://localhost:3000/api/deals'))
       const afterDeals = await afterGet.json()
       assert.equal(afterDeals.length, 0)
+    })
+
+    it('returns 404 when updating a deal that does not exist', async () => {
+      const putReq = createAuthedRequest('http://localhost:3000/api/deals', 'PUT', {
+        id: 'non-existent-deal-999',
+        title: 'Ghost Deal',
+      })
+      const putRes = await putDeal(putReq)
+      assert.equal(putRes.status, 404)
+      const data = await putRes.json()
+      assert.equal(data.error, 'Deal not found')
+    })
+
+    it('rejects a negative deal value on creation and update', async () => {
+      // 1. Negative value string "-500"
+      const postReq1 = createAuthedRequest('http://localhost:3000/api/deals', 'POST', {
+        title: 'Negative Deal',
+        company: 'Acme',
+        stage: 'Lead',
+        value: '-500',
+      })
+      const res1 = await postDeal(postReq1)
+      assert.equal(res1.status, 400)
+
+      // 2. Negative rawAmount -500
+      const postReq2 = createAuthedRequest('http://localhost:3000/api/deals', 'POST', {
+        title: 'Negative Amount Deal',
+        company: 'Acme',
+        stage: 'Lead',
+        rawAmount: -500,
+      })
+      const res2 = await postDeal(postReq2)
+      assert.equal(res2.status, 400)
+
+      // 3. Create a valid deal first, then attempt updating to -500
+      const validDeal = await repo.createDeal({
+        title: 'Valid Deal',
+        company: 'Acme Corp',
+        value: '$1,000',
+        rawAmount: 1000,
+        stage: 'Lead',
+        probability: '20%',
+        next: '',
+        color: 'blue',
+      })
+
+      const putNeg1 = createAuthedRequest('http://localhost:3000/api/deals', 'PUT', {
+        id: validDeal.id,
+        value: '-500',
+      })
+      const putRes1 = await putDeal(putNeg1)
+      assert.equal(putRes1.status, 400)
+
+      const putNeg2 = createAuthedRequest('http://localhost:3000/api/deals', 'PUT', {
+        id: validDeal.id,
+        rawAmount: -500,
+      })
+      const putRes2 = await putDeal(putNeg2)
+      assert.equal(putRes2.status, 400)
     })
   })
 

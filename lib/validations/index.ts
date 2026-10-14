@@ -32,7 +32,7 @@ export const DealBackupSchema = z.object({
   title: z.string().min(1),
   company: z.string().min(1),
   companyId: z.string().nullable().optional(),
-  value: z.string().default('0 Kč'),
+  value: z.string().default('0'),
   rawAmount: z.number().nonnegative().optional(),
   stage: z.string(),
   probability: z.union([z.string(), z.number()]).optional(),
@@ -83,16 +83,32 @@ export const WorkspaceSettingsBackupSchema = z.object({
   passcodeHash: z.string().optional(),
 }).optional()
 
-export const BackupPayloadSchema = z.object({
-  version: z.string().optional(),
-  exportedAt: z.string().optional(),
-  companies: z.array(CompanyBackupSchema).optional(),
-  contacts: z.array(ContactBackupSchema).optional(),
-  deals: z.array(DealBackupSchema).optional(),
-  activities: z.array(ActivityBackupSchema).optional(),
-  followUps: z.array(FollowUpBackupSchema).optional(),
-  settings: WorkspaceSettingsBackupSchema.optional(),
-})
+export const BackupPayloadSchema = z
+  .object({
+    version: z.string().optional(),
+    exportedAt: z.string().optional(),
+    companies: z.array(CompanyBackupSchema).optional(),
+    contacts: z.array(ContactBackupSchema).optional(),
+    deals: z.array(DealBackupSchema).optional(),
+    activities: z.array(ActivityBackupSchema).optional(),
+    followUps: z.array(FollowUpBackupSchema).optional(),
+    settings: WorkspaceSettingsBackupSchema.optional(),
+  })
+  .refine(
+    (data) => {
+      const totalItems =
+        (data.companies?.length ?? 0) +
+        (data.contacts?.length ?? 0) +
+        (data.deals?.length ?? 0) +
+        (data.activities?.length ?? 0) +
+        (data.followUps?.length ?? 0)
+      return totalItems > 0
+    },
+    {
+      message: 'Cannot restore an empty backup. The backup file contains no workspace data.',
+      path: ['backup'],
+    }
+  )
 
 export type ValidatedBackupPayload = z.infer<typeof BackupPayloadSchema>
 
@@ -101,7 +117,20 @@ export const DealCreateInputSchema = z.object({
   title: z.string().trim().min(1, 'Title is required').max(100, 'Title cannot exceed 100 characters'),
   company: z.string().trim().min(1, 'Company is required').max(100, 'Company name cannot exceed 100 characters'),
   companyId: z.string().nullable().optional(),
-  value: z.string().optional(),
+  value: z
+    .union([z.string(), z.number()])
+    .refine(
+      (val) => {
+        if (typeof val === 'number') return val >= 0
+        const trimmed = val.trim()
+        if (/-\s*\d+/.test(trimmed)) return false
+        const numeric = parseFloat(trimmed.replace(/[^0-9.-]/g, ''))
+        return isNaN(numeric) || numeric >= 0
+      },
+      { message: 'Deal value cannot be negative' }
+    )
+    .transform((val) => (typeof val === 'number' ? String(val) : val))
+    .optional(),
   rawAmount: z.number().min(0, 'Amount cannot be negative').optional(),
   stage: z.enum(['Lead', 'Discovery', 'Proposal', 'Won', 'Paid', 'Lost']),
   probability: z.union([z.string(), z.number()]).optional(),

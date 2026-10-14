@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { checkIsAuthenticated } from '@/lib/auth/session'
 import * as repo from '@/lib/db/repository'
+import { sanitizeErrorMessage } from '@/lib/errors'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,6 +27,6 @@ export async function POST(req: Request) {
     const result = await repo.logActivity(activity, followUp, dealId)
     return NextResponse.json(result, { status: 201 })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Failed to log activity' }, { status: 400 })
+    return NextResponse.json({ error: sanitizeErrorMessage(err, 'Failed to log activity') }, { status: 400 })
   }
 }

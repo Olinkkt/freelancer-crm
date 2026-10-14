@@ -15,6 +15,7 @@ import {
   updateWorkspaceSettings,
 } from '@/lib/db/repository'
 import { WorkspaceSettings } from '@/lib/crm-types'
+import { sanitizeErrorMessage } from '@/lib/errors'
 
 export async function getAuthStatus(): Promise<{
   required: boolean
@@ -87,7 +88,7 @@ export async function claimWorkspaceAction(params: {
 
     return { success: true, settings }
   } catch (err: any) {
-    return { success: false, error: err?.message || 'Failed to claim workspace' }
+    return { success: false, error: sanitizeErrorMessage(err, 'Failed to claim workspace') }
   }
 }
 
@@ -116,7 +117,7 @@ export async function updateWorkspaceSettingsAction(params: {
     }
     return { success: true, settings }
   } catch (err: any) {
-    return { success: false, error: err?.message || 'Failed to update settings' }
+    return { success: false, error: sanitizeErrorMessage(err, 'Failed to update settings') }
   }
 }
 

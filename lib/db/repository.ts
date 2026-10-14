@@ -13,7 +13,7 @@ import {
   InvoiceMilestone,
   WorkspaceSettings,
 } from '@/lib/crm-types'
-import { formatMoney } from '@/lib/config'
+import { formatMoney, OPERATOR_CONFIG } from '@/lib/config'
 
 function safeParseJson<T>(jsonStr: string | null | undefined, fallback: T): T {
   if (!jsonStr) return fallback
@@ -314,7 +314,7 @@ export async function syncCompanyMetrics(companyName: string): Promise<void> {
   const dealsCount = deals.length
   const totalAmount = deals.reduce((sum, d) => sum + (Number(d.raw_amount) || 0), 0)
   const settings = await getWorkspaceSettings()
-  const fallback = settings || { currencySymbol: 'Kč', locale: 'cs-CZ' }
+  const fallback = settings || OPERATOR_CONFIG
   const formattedValue = formatMoney(totalAmount, fallback)
 
   await db
@@ -341,6 +341,10 @@ export async function ensureCompanyExists(companyName: string, contactName?: str
 
   if (!existing) {
     const now = new Date().toISOString()
+    const settings = await getWorkspaceSettings()
+    const fallback = settings || OPERATOR_CONFIG
+    const zeroVal = formatMoney(0, fallback)
+
     await db
       .insertInto('companies')
       .values({
@@ -350,7 +354,7 @@ export async function ensureCompanyExists(companyName: string, contactName?: str
         contact: contactName || '',
         email: contactEmail || '',
         deals: 0,
-        value: '0 Kč',
+        value: zeroVal,
         status: 'Active',
         color: 'blue',
         created_at: now,
@@ -366,9 +370,27 @@ export async function ensureCompanyExists(companyName: string, contactName?: str
 export async function createDeal(dealData: Omit<Deal, 'id'>): Promise<Deal> {
   await ensureDbInitialized()
 
+  if (dealData.rawAmount !== undefined && Number(dealData.rawAmount) < 0) {
+    throw new Error('Deal value cannot be negative')
+  }
+  if (dealData.value !== undefined) {
+    const valStr = String(dealData.value).trim()
+    if (/-\s*\d+/.test(valStr)) {
+      throw new Error('Deal value cannot be negative')
+    }
+    const parsed = parseFloat(valStr.replace(/[^0-9.-]/g, ''))
+    if (!isNaN(parsed) && parsed < 0) {
+      throw new Error('Deal value cannot be negative')
+    }
+  }
+
   const id = generateId('deal')
   const now = new Date().toISOString()
   const rawAmount = Number(dealData.rawAmount) || 0
+
+  const settings = await getWorkspaceSettings()
+  const fallback = settings || OPERATOR_CONFIG
+  const defaultValue = formatMoney(rawAmount, fallback)
 
   const isPaid = dealData.stage === 'Paid'
   const nextAction = isPaid ? '' : (dealData.next || '')
@@ -399,7 +421,7 @@ export async function createDeal(dealData: Omit<Deal, 'id'>): Promise<Deal> {
       title: dealData.title,
       company: dealData.company,
       company_id: null,
-      value: dealData.value || '0 Kč',
+      value: dealData.value || defaultValue,
       raw_amount: rawAmount,
       stage: dealData.stage,
       probability: dealData.probability || '30%',
@@ -423,6 +445,7 @@ export async function createDeal(dealData: Omit<Deal, 'id'>): Promise<Deal> {
   return {
     ...dealData,
     id,
+    value: dealData.value || defaultValue,
     contactName: contactName || undefined,
     contactEmail: contactEmail || undefined,
     next: nextAction,
@@ -433,17 +456,35 @@ export async function createDeal(dealData: Omit<Deal, 'id'>): Promise<Deal> {
   }
 }
 
-export async function updateDeal(deal: Deal): Promise<Deal> {
+export async function updateDeal(deal: Deal): Promise<Deal | null> {
   await ensureDbInitialized()
 
-  const now = new Date().toISOString()
-  const rawAmount = Number(deal.rawAmount) || 0
+  if (deal.rawAmount !== undefined && Number(deal.rawAmount) < 0) {
+    throw new Error('Deal value cannot be negative')
+  }
+  if (deal.value !== undefined) {
+    const valStr = String(deal.value).trim()
+    if (/-\s*\d+/.test(valStr)) {
+      throw new Error('Deal value cannot be negative')
+    }
+    const parsed = parseFloat(valStr.replace(/[^0-9.-]/g, ''))
+    if (!isNaN(parsed) && parsed < 0) {
+      throw new Error('Deal value cannot be negative')
+    }
+  }
 
   const oldDeal = await db
     .selectFrom('deals')
     .select('company')
     .where('id', '=', deal.id)
     .executeTakeFirst()
+
+  if (!oldDeal) {
+    return null
+  }
+
+  const now = new Date().toISOString()
+  const rawAmount = Number(deal.rawAmount) || 0
 
   const isPaid = deal.stage === 'Paid'
   const nextAction = isPaid ? '' : (deal.next || '')
@@ -670,7 +711,7 @@ export async function createContact(contactData: Omit<Contact, 'id'>): Promise<C
   }
 }
 
-export async function updateContact(contact: Contact): Promise<Contact> {
+export async function updateContact(contact: Contact): Promise<Contact | null> {
   await ensureDbInitialized()
 
   const existing = await db
@@ -678,6 +719,10 @@ export async function updateContact(contact: Contact): Promise<Contact> {
     .select(['company', 'name', 'email'])
     .where('id', '=', contact.id)
     .executeTakeFirst()
+
+  if (!existing) {
+    return null
+  }
 
   const now = new Date().toISOString()
 
@@ -713,7 +758,7 @@ export async function deleteContact(id: string): Promise<boolean> {
 
   const existing = await db
     .selectFrom('contacts')
-    .select('company')
+    .select(['company'])
     .where('id', '=', id)
     .executeTakeFirst()
 
@@ -734,6 +779,9 @@ export async function createCompany(companyData: Omit<Company, 'id'>): Promise<C
 
   const id = generateId('comp')
   const now = new Date().toISOString()
+  const settings = await getWorkspaceSettings()
+  const fallback = settings || OPERATOR_CONFIG
+  const zeroVal = formatMoney(0, fallback)
 
   await db
     .insertInto('companies')
@@ -744,7 +792,7 @@ export async function createCompany(companyData: Omit<Company, 'id'>): Promise<C
       contact: companyData.contact || '',
       email: companyData.email || '',
       deals: companyData.deals || 0,
-      value: companyData.value || '0 Kč',
+      value: companyData.value || zeroVal,
       status: companyData.status || 'Active',
       color: companyData.color || 'blue',
       created_at: now,
@@ -758,8 +806,18 @@ export async function createCompany(companyData: Omit<Company, 'id'>): Promise<C
   }
 }
 
-export async function updateCompany(company: Company): Promise<Company> {
+export async function updateCompany(company: Company): Promise<Company | null> {
   await ensureDbInitialized()
+
+  const existing = await db
+    .selectFrom('companies')
+    .select('id')
+    .where('id', '=', company.id)
+    .executeTakeFirst()
+
+  if (!existing) {
+    return null
+  }
 
   const now = new Date().toISOString()
 
@@ -1223,7 +1281,22 @@ export async function restoreWorkspaceData(snapshot: {
   followUpsCount: number
 }> {
   await ensureDbInitialized()
+
+  const totalItems =
+    (snapshot.companies?.length ?? 0) +
+    (snapshot.contacts?.length ?? 0) +
+    (snapshot.deals?.length ?? 0) +
+    (snapshot.activities?.length ?? 0) +
+    (snapshot.followUps?.length ?? 0)
+
+  if (totalItems === 0) {
+    throw new Error('Cannot restore an empty backup: snapshot contains no data.')
+  }
+
   const now = new Date().toISOString()
+  const settings = await getWorkspaceSettings()
+  const fallback = snapshot.settings || settings || OPERATOR_CONFIG
+  const zeroVal = formatMoney(0, fallback)
 
   return await db.transaction().execute(async (trx) => {
     // 1. Wipe existing tables cleanly inside transaction
@@ -1245,7 +1318,7 @@ export async function restoreWorkspaceData(snapshot: {
             contact: c.contact || '',
             email: c.email || '',
             deals: (c as any).deals ?? (c as any).dealsCount ?? 0,
-            value: (c as any).value || (c as any).pipelineVal || '0 Kč',
+            value: (c as any).value || (c as any).pipelineVal || zeroVal,
             status: c.status || 'Active',
             color: (c.color as any) || 'blue',
             created_at: now,

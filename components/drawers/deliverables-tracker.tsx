@@ -49,6 +49,10 @@ export function DeliverablesTracker({
   const [newTitle, setNewTitle] = useState('')
   const [isAdding, setIsAdding] = useState(false)
   const [copiedInvoiceId, setCopiedInvoiceId] = useState<string | null>(null)
+  const [isAddingInvoice, setIsAddingInvoice] = useState(false)
+  const [newInvoiceLabel, setNewInvoiceLabel] = useState('')
+  const [newInvoiceAmount, setNewInvoiceAmount] = useState('')
+  const [newInvoiceType, setNewInvoiceType] = useState<InvoiceMilestone['type']>('Deposit')
 
   // Deliverable calculations
   const totalDeliverables = deliverables.length
@@ -207,6 +211,70 @@ export function DeliverablesTracker({
     onChangeInvoices(updated)
     if (triggeredStage && onAutoAdvanceStage) {
       onAutoAdvanceStage(triggeredStage, triggeredReason)
+    }
+  }
+
+  const handleGenerate5050Invoices = () => {
+    const rawVal = rawAmount || parseInt(dealValue.replace(/[^0-9]/g, '')) || 0
+    const half = Math.round(rawVal * 0.5)
+    const rest = rawVal - half
+    const rand = Math.random().toString(36).substring(2, 7)
+
+    const standardInvoices: InvoiceMilestone[] = [
+      {
+        id: `inv-deposit-${Date.now()}-${rand}`,
+        type: 'Deposit',
+        label: '50% Upfront Deposit Invoice',
+        amount: half,
+        formattedAmount: formatMoney(half, settings),
+        percentage: 50,
+        status: 'Sent',
+        dueDate: 'Kickoff',
+      },
+      {
+        id: `inv-final-${Date.now()}-${rand}`,
+        type: 'Final',
+        label: '50% Final Handover Invoice',
+        amount: rest,
+        formattedAmount: formatMoney(rest, settings),
+        percentage: 50,
+        status: 'Draft',
+        dueDate: 'On Completion',
+      },
+    ]
+
+    onChangeInvoices([...invoices, ...standardInvoices])
+    if (onToast) {
+      onToast('Generated 50% deposit and 50% final invoice milestones')
+    }
+  }
+
+  const handleAddCustomInvoice = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newInvoiceLabel.trim()) return
+
+    const numAmt = parseInt(newInvoiceAmount.replace(/[^0-9]/g, '')) || 0
+    const rawVal = rawAmount || parseInt(dealValue.replace(/[^0-9]/g, '')) || 1
+    const pct = rawVal > 0 ? Math.round((numAmt / rawVal) * 100) : 0
+    const rand = Math.random().toString(36).substring(2, 7)
+
+    const newInv: InvoiceMilestone = {
+      id: `inv-custom-${Date.now()}-${rand}`,
+      type: newInvoiceType,
+      label: newInvoiceLabel.trim(),
+      amount: numAmt,
+      formattedAmount: formatMoney(numAmt, settings),
+      percentage: pct,
+      status: 'Sent',
+      dueDate: newInvoiceType === 'Deposit' ? 'Kickoff' : 'Milestone Delivery',
+    }
+
+    onChangeInvoices([...invoices, newInv])
+    setNewInvoiceLabel('')
+    setNewInvoiceAmount('')
+    setIsAddingInvoice(false)
+    if (onToast) {
+      onToast(`Added invoice: ${newInv.label}`)
     }
   }
 
@@ -373,80 +441,163 @@ export function DeliverablesTracker({
             </span>
             <div className="flex items-baseline gap-2">
               <span className="text-[13px] font-bold font-mono text-[#1c1d1f]">
-                {formatMoney(totalPaid)} paid
+                {formatMoney(totalPaid, settings)} paid
               </span>
               <span className="text-[11px] text-[#8f99a8] font-mono">
                 of {dealValue}
               </span>
             </div>
           </div>
-          <span className="px-2 py-0.5 text-[10px] font-mono font-semibold rounded-[6px] bg-[#f0f2f5] text-[#505967]">
-            {Math.round((totalPaid / (rawAmount || 1)) * 100)}% collected
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-0.5 text-[10px] font-mono font-semibold rounded-[6px] bg-[#f0f2f5] text-[#505967]">
+              {Math.round((totalPaid / (rawAmount || 1)) * 100)}% collected
+            </span>
+            <button
+              type="button"
+              onClick={() => setIsAddingInvoice(!isAddingInvoice)}
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#266df0] hover:text-[#1a55c2] cursor-pointer"
+            >
+              <Plus size={13} />
+              <span>Add invoice</span>
+            </button>
+          </div>
         </div>
 
-        {/* Invoices List */}
-        <div className="space-y-2">
-          {invoices.map((inv) => (
-            <div
-              key={inv.id}
-              className="p-3 bg-[#fafbfc] border border-[#edf0f3] rounded-[10px] flex items-center justify-between gap-2"
-            >
-              <div className="space-y-0.5 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-[12px] font-semibold text-[#1c1d1f] truncate">
-                    {inv.label}
-                  </span>
-                  <span
-                    className={`px-1.5 py-0.2 rounded-[5px] text-[9px] font-mono font-semibold uppercase ${
+        {/* Add Custom Invoice Form */}
+        {isAddingInvoice && (
+          <form onSubmit={handleAddCustomInvoice} className="p-3 bg-[#f8faff] border border-[#d6e3fc] rounded-[10px] space-y-2.5">
+            <div className="text-[11px] font-semibold text-[#1c1d1f]">Add Invoice Milestone</div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <input
+                type="text"
+                autoFocus
+                value={newInvoiceLabel}
+                onChange={(e) => setNewInvoiceLabel(e.target.value)}
+                placeholder="Invoice label (e.g. 50% Deposit)"
+                className="px-2.5 py-1.5 text-[12px] border border-[#e4e7ec] rounded-[7px] bg-white focus:outline-none focus:border-[#266df0]"
+              />
+              <input
+                type="text"
+                value={newInvoiceAmount}
+                onChange={(e) => setNewInvoiceAmount(e.target.value)}
+                placeholder="Amount (e.g. 25000)"
+                className="px-2.5 py-1.5 text-[12px] border border-[#e4e7ec] rounded-[7px] bg-white focus:outline-none focus:border-[#266df0]"
+              />
+              <select
+                value={newInvoiceType}
+                onChange={(e) => setNewInvoiceType(e.target.value as InvoiceMilestone['type'])}
+                className="px-2.5 py-1.5 text-[12px] border border-[#e4e7ec] rounded-[7px] bg-white focus:outline-none text-[#505967]"
+              >
+                <option value="Deposit">Deposit</option>
+                <option value="Progress">Progress</option>
+                <option value="Final">Final Handover</option>
+              </select>
+            </div>
+            <div className="flex justify-end gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setIsAddingInvoice(false)}
+                className="px-2.5 py-1 text-[11px] text-[#6f7988] hover:text-[#1c1d1f] cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={!newInvoiceLabel.trim()}
+                className="px-3 py-1 bg-[#266df0] hover:bg-[#1a55c2] disabled:opacity-40 text-white text-[11px] font-semibold rounded-[7px] cursor-pointer"
+              >
+                Add Invoice
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* Invoices List / Empty State */}
+        {invoices.length === 0 ? (
+          <div className="p-4 rounded-[10px] bg-[#fafbfc] border border-dashed border-[#d0d5dd] text-center space-y-2">
+            <Receipt size={20} className="mx-auto text-[#8f99a8]" />
+            <p className="text-[12px] font-medium text-[#1c1d1f]">No invoices tracked yet</p>
+            <p className="text-[11px] text-[#6f7988]">Generate standard 50/50 milestones or create a custom billing schedule.</p>
+            <div className="flex items-center justify-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={handleGenerate5050Invoices}
+                className="px-3 py-1.5 bg-[#266df0] hover:bg-[#1a55c2] text-white text-[11px] font-semibold rounded-[7px] cursor-pointer"
+              >
+                + Generate 50/50 Deposit & Final
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsAddingInvoice(true)}
+                className="px-3 py-1.5 bg-white border border-[#e4e7ec] hover:bg-[#f7f8fa] text-[#1c1d1f] text-[11px] font-medium rounded-[7px] cursor-pointer"
+              >
+                + Custom Invoice
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {invoices.map((inv) => (
+              <div
+                key={inv.id}
+                className="p-3 bg-[#fafbfc] border border-[#edf0f3] rounded-[10px] flex items-center justify-between gap-2"
+              >
+                <div className="space-y-0.5 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[12px] font-semibold text-[#1c1d1f] truncate">
+                      {inv.label}
+                    </span>
+                    <span
+                      className={`px-1.5 py-0.2 rounded-[5px] text-[9px] font-mono font-semibold uppercase ${
+                        inv.status === 'Paid'
+                          ? 'bg-[#e7f6ee] text-[#166534]'
+                          : inv.status === 'Sent'
+                          ? 'bg-[#e9f0ff] text-[#1d4ed8]'
+                          : 'bg-[#f0f2f5] text-[#374151]'
+                      }`}
+                    >
+                      {inv.status}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 text-[11px] text-[#6f7988]">
+                    <span className="font-mono font-bold text-[#1c1d1f]">
+                      {inv.formattedAmount}
+                    </span>
+                    {inv.dueDate && <span>Due: {inv.dueDate}</span>}
+                    {inv.paidAt && <span className="text-[#3b9b6d]">Paid: {inv.paidAt}</span>}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={(e) => handleCopyPaymentLink(inv, e)}
+                    title="Copy payment link / QR code URL"
+                    className="p-1.5 rounded-[7px] text-[#6f7988] hover:text-[#1c1d1f] bg-white border border-[#e4e7ec] hover:border-[#cad0d9] transition-colors cursor-pointer"
+                  >
+                    {copiedInvoiceId === inv.id ? (
+                      <Check size={13} className="text-[#3b9b6d]" />
+                    ) : (
+                      <Link2 size={13} />
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleToggleInvoicePaid(inv.id)}
+                    className={`px-2.5 py-1 text-[11px] font-medium rounded-[7px] border transition-all cursor-pointer ${
                       inv.status === 'Paid'
-                        ? 'bg-[#e7f6ee] text-[#166534]'
-                        : inv.status === 'Sent'
-                        ? 'bg-[#e9f0ff] text-[#1d4ed8]'
-                        : 'bg-[#f0f2f5] text-[#374151]'
+                        ? 'bg-[#f0f2f5] text-[#505967] border-[#dce0e8] hover:bg-[#e4e7ec]'
+                        : 'bg-[#232529] text-white border-[#232529] hover:bg-[#101113] shadow-xs'
                     }`}
                   >
-                    {inv.status}
-                  </span>
-                </div>
-                <div className="flex items-center gap-3 text-[11px] text-[#6f7988]">
-                  <span className="font-mono font-bold text-[#1c1d1f]">
-                    {inv.formattedAmount}
-                  </span>
-                  {inv.dueDate && <span>Due: {inv.dueDate}</span>}
-                  {inv.paidAt && <span className="text-[#3b9b6d]">Paid: {inv.paidAt}</span>}
+                    {inv.status === 'Paid' ? 'Mark Unpaid' : 'Mark as Paid'}
+                  </button>
                 </div>
               </div>
-
-              <div className="flex items-center gap-1.5 shrink-0">
-                <button
-                  type="button"
-                  onClick={(e) => handleCopyPaymentLink(inv, e)}
-                  title="Copy payment link / QR code URL"
-                  className="p-1.5 rounded-[7px] text-[#6f7988] hover:text-[#1c1d1f] bg-white border border-[#e4e7ec] hover:border-[#cad0d9] transition-colors cursor-pointer"
-                >
-                  {copiedInvoiceId === inv.id ? (
-                    <Check size={13} className="text-[#3b9b6d]" />
-                  ) : (
-                    <Link2 size={13} />
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleToggleInvoicePaid(inv.id)}
-                  className={`px-2.5 py-1 text-[11px] font-medium rounded-[7px] border transition-all cursor-pointer ${
-                    inv.status === 'Paid'
-                      ? 'bg-[#f0f2f5] text-[#505967] border-[#dce0e8] hover:bg-[#e4e7ec]'
-                      : 'bg-[#232529] text-white border-[#232529] hover:bg-[#101113] shadow-xs'
-                  }`}
-                >
-                  {inv.status === 'Paid' ? 'Mark Unpaid' : 'Mark as Paid'}
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

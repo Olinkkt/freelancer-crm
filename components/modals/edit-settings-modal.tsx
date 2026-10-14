@@ -46,7 +46,7 @@ export function EditSettingsModal({
   const initialCurrency =
     CURRENCIES.find((c) => c.code === currentSettings.currency) || CURRENCIES[0]
   const [currency, setCurrency] = useState(initialCurrency)
-  const [locale, setLocale] = useState(currentSettings.locale || initialCurrency.locale || 'cs-CZ')
+  const [locale, setLocale] = useState(currentSettings.locale || initialCurrency.locale || 'en-US')
   const [newPasscode, setNewPasscode] = useState('')
   const [confirmPasscode, setConfirmPasscode] = useState('')
   const [loading, setLoading] = useState(false)
@@ -60,7 +60,7 @@ export function EditSettingsModal({
       const found =
         CURRENCIES.find((c) => c.code === currentSettings.currency) || CURRENCIES[0]
       setCurrency(found)
-      setLocale(currentSettings.locale || found.locale || 'cs-CZ')
+      setLocale(currentSettings.locale || found.locale || 'en-US')
       setNewPasscode('')
       setConfirmPasscode('')
       setError(null)
@@ -212,7 +212,7 @@ export function EditSettingsModal({
           <div>
             <label className="block text-[11px] font-bold uppercase tracking-wider text-[#505967] mb-1.5 flex items-center gap-1.5">
               <Globe size={13} className="text-[#6f7988]" />
-              Workspace Regional Locale *
+              Locale (date & number format) *
             </label>
             <select
               value={locale}
@@ -226,7 +226,7 @@ export function EditSettingsModal({
               ))}
             </select>
             <span className="block text-[11px] text-[#8f99a8] mt-1">
-              Controls date conventions and numeric formatting.
+              Controls how dates and thousands separators are formatted.
             </span>
           </div>
 

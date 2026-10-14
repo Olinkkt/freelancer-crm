@@ -31,7 +31,7 @@ import {
 } from 'lucide-react'
 import { Deal, Contact, Company, Activity } from '@/lib/crm-types'
 import { ScratchpadEditor } from '../drawers/scratchpad-editor'
-import { formatMoney } from '@/lib/config'
+import { formatMoney, OPERATOR_CONFIG } from '@/lib/config'
 
 export type PaletteActionType =
   | 'navigate'
@@ -153,7 +153,7 @@ export function CommandPalette({
       {
         id: 'action-slash-todo',
         category: 'Notes',
-        title: '/todo — GTD Next Action Item',
+        title: '/todo — Next Action Item',
         subtitle: 'Insert action item that syncs directly to dashboard follow-ups',
         icon: <CheckSquare size={15} className="text-[#c4882b]" />,
         actionType: 'open_scratchpad',
@@ -183,7 +183,7 @@ export function CommandPalette({
         id: 'action-log-call',
         category: 'Actions',
         title: 'Log call or meeting note',
-        subtitle: 'Fast GTD interaction & next action scratchpad',
+        subtitle: 'Fast interaction & next action scratchpad',
         shortcut: 'L',
         icon: <PhoneCall size={15} className="text-[#6f7988]" />,
         actionType: 'log_call',
@@ -192,7 +192,7 @@ export function CommandPalette({
         id: 'action-shortcuts',
         category: 'Actions',
         title: 'Keyboard shortcuts cheatsheet',
-        subtitle: 'View all operator cockpit hotkeys',
+        subtitle: 'View all keyboard shortcuts',
         shortcut: '?',
         icon: <Keyboard size={15} className="text-[#6f7988]" />,
         actionType: 'show_shortcuts',
@@ -425,7 +425,7 @@ export function CommandPalette({
     if (!scratchpadNotes.trim()) return
 
     const now = new Date()
-    const timeStr = 'Today, ' + now.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })
+    const timeStr = 'Today, ' + now.toLocaleTimeString(OPERATOR_CONFIG.locale || 'en-US', { hour: '2-digit', minute: '2-digit' })
 
     if (targetDealId && targetDealId !== 'general') {
       const d = deals.find((x) => x.id === targetDealId)
@@ -522,7 +522,7 @@ export function CommandPalette({
         const targetDeal = deals.find((d) => d.id === targetDealId)
         let snippet = ''
         if (cmd === '/call') {
-          const nowStr = new Date().toLocaleDateString('cs-CZ', {
+          const nowStr = new Date().toLocaleDateString(OPERATOR_CONFIG.locale || 'en-US', {
             month: 'short',
             day: 'numeric',
             hour: '2-digit',

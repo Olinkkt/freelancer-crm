@@ -102,6 +102,14 @@ describe('Date Utilities & Workweek Navigation', () => {
     assert.ok(matchThu)
     assert.equal(matchThu.dayIndex, 3)
     assert.equal(matchThu.startHour, 11.0)
+
+    // "Tomorrow" + time -> Wed (idx 2) when Tue is today (idx 1) (#26)
+    const tuesday = new Date(2026, 8, 22)
+    const tuesdayDays = getWorkweekDays(0, tuesday)
+    const matchTomorrow = matchMilestoneToWorkweek('Tomorrow 14:30', tuesdayDays)
+    assert.ok(matchTomorrow)
+    assert.equal(matchTomorrow.dayIndex, 2)
+    assert.equal(matchTomorrow.startHour, 14.5)
   })
 
   it('matchMilestoneToWorkweek supports Czech date and time formats', () => {

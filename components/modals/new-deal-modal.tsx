@@ -308,7 +308,7 @@ export function NewDealModal({
               <div className="flex items-center justify-between text-[11px] font-bold text-[#266df0] uppercase tracking-wider">
                 <div className="flex items-center gap-1.5">
                   <AlertCircle size={14} />
-                  <span>Mandatory Next Action (GTD Rule)</span>
+                  <span>Next Action</span>
                 </div>
                 {mode === 'quick' && (
                   <span className="text-[10px] lowercase font-normal text-[#6f7988]">auto-defaults to Lead</span>
@@ -337,7 +337,7 @@ export function NewDealModal({
           {mode === 'detailed' && (
             <div className="animate-in fade-in duration-150">
               <label className="block text-[11px] font-bold uppercase tracking-wider text-[#505967] mb-1.5">
-                Operator Notes / Scoping scratchpad
+                Notes
               </label>
               <textarea
                 rows={2}

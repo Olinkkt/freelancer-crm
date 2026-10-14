@@ -41,7 +41,7 @@ import {
 import { getFormattedToday, getDynamicGreeting } from '@/lib/date-utils'
 import { OPERATOR_CONFIG, formatMoney, formatDealValue, getOperatorInitials } from '@/lib/config'
 import { CalendarView } from '@/components/calendar/calendar-view'
-import { Deal, Contact, Company, Activity, FollowUpItem, DealStage } from '@/lib/crm-types'
+import { Deal, Contact, Company, Activity, FollowUpItem, DealStage, STAGE_DEFAULT_PROBABILITIES } from '@/lib/crm-types'
 import {
   INITIAL_COMPANIES,
   INITIAL_CONTACTS,
@@ -603,7 +603,7 @@ export default function Page() {
     try {
       const newItems = await syncTodosAction(todos, companyName, selectedDeal?.id)
       setFollowUps((prev) => [...newItems, ...prev])
-      addToast(`Synced ${todos.length} action item${todos.length > 1 ? 's' : ''} to Follow-ups`, 'GTD')
+      addToast(`Synced ${todos.length} action item${todos.length > 1 ? 's' : ''} to Follow-ups`, 'Follow-up')
     } catch (err: any) {
       addToast(err?.message || 'Failed to sync follow-up items', undefined, 'warning')
     }
@@ -707,13 +707,17 @@ export default function Page() {
       }
     }
 
+    const nextProb = isClosed
+      ? '100%'
+      : STAGE_DEFAULT_PROBABILITIES[newStage] || '20%'
+
     setDeals((prev) =>
       prev.map((d) => {
         if (d.id === dealId) {
           return {
             ...d,
             stage: newStage,
-            probability: isClosed ? '100%' : d.probability,
+            probability: nextProb,
             color: isClosed ? 'green' : 'blue',
             deliverables: isPaid && dealDeliverables ? dealDeliverables : d.deliverables,
             invoices: d.invoices,
@@ -723,6 +727,17 @@ export default function Page() {
         }
         return d
       })
+    )
+
+    setSelectedDeal((prev) =>
+      prev?.id === dealId
+        ? {
+            ...prev,
+            stage: newStage,
+            probability: nextProb,
+            color: isClosed ? 'green' : 'blue',
+          }
+        : prev
     )
 
     if (isPaid) {
@@ -872,7 +887,7 @@ export default function Page() {
           setIsSetupComplete(true)
           setIsAuthenticated(true)
           loadData()
-          addToast(`Welcome to your cockpit, ${newSettings.operatorName}!`)
+          addToast(`Welcome to your workspace, ${newSettings.operatorName}!`)
         }}
       />
     )
@@ -1877,10 +1892,10 @@ export default function Page() {
                         </div>
                         <div className="flex items-center justify-between p-4">
                           <div>
-                            <span className="text-[#1c1d1f] font-medium block">Workflow Engine</span>
-                            <span className="text-[#6f7988] text-[12px]">David Allen Getting Things Done paradigm</span>
+                            <span className="text-[#1c1d1f] font-medium block">Workflow</span>
+                            <span className="text-[#6f7988] text-[12px]">Task and follow-up tracking</span>
                           </div>
-                          <span className="text-[#266df0] font-medium">GTD Mandatory Next Action</span>
+                          <span className="text-[#266df0] font-medium">Next Action Prompts</span>
                         </div>
                       </div>
                     </div>
@@ -1891,7 +1906,7 @@ export default function Page() {
                     <div className="md:col-span-4">
                       <h3 className="text-[15px] font-semibold text-[#1c1d1f] tracking-tight">Security</h3>
                       <p className="text-[13px] text-[#6f7988] mt-1 leading-relaxed">
-                        Control workspace access protection, cryptographic session tokens, and lock status.
+                        Control workspace access protection, session security, and lock status.
                       </p>
                     </div>
                     <div className="md:col-span-8">
@@ -1977,7 +1992,7 @@ export default function Page() {
                       ],
                     },
                     {
-                      category: 'Kanban Pipeline Velocity',
+                      category: 'Deals & Pipeline',
                       items: [
                         { label: 'Navigate Kanban stage columns', keys: ['←', '→'], note: 'Shift active column focus' },
                         { label: 'Select deal card in column', keys: ['↑', '↓'], note: 'Navigate deal cards' },
@@ -2105,7 +2120,7 @@ export default function Page() {
                           },
                         },
                         {
-                          title: 'GTD Follow-up Queue',
+                          title: 'Follow-up Queue',
                           desc: 'Next actions, scheduled times, urgency indicators, completion states',
                           count: followUps.length,
                           action: () => {
@@ -2255,7 +2270,7 @@ export default function Page() {
                     <div className="bg-white border border-[#e4e7ec] rounded-xl p-4 shadow-[rgba(28,40,64,0.04)_0px_2px_4px_-1px]">
                       <span className="text-[11px] font-medium text-[#6f7988] block mb-1">Software License</span>
                       <strong className="text-[14px] text-[#1c1d1f] font-semibold block">AGPL-3.0 Open Source</strong>
-                      <p className="text-[12px] text-[#8f99a8] mt-1">Freelancer CRM v1.0.4 • Solo Operator Personal Cockpit.</p>
+                      <p className="text-[12px] text-[#8f99a8] mt-1">Freelancer CRM v1.0.4 • Personal Workspace.</p>
                     </div>
                   </div>
                 </div>
@@ -2342,7 +2357,7 @@ export default function Page() {
                 <section className="panel followups-panel">
                   <div className="panel-heading">
                     <div>
-                      <p className="section-kicker">Your next actions (GTD)</p>
+                      <p className="section-kicker">Your next actions</p>
                       <h2>Follow-ups</h2>
                     </div>
                     <button
@@ -2550,7 +2565,7 @@ export default function Page() {
                       </div>
                       <h3 className="text-[13px] font-semibold text-[#1c1d1f] mb-1">No deals in pipeline</h3>
                       <p className="text-[11px] text-[#8f99a8] max-w-xs mx-auto mb-3">
-                        Track client scopes, estimated value, and GTD next steps.
+                        Track client scopes, estimated value, and next steps.
                       </p>
                       <button
                         type="button"

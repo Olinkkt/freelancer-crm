@@ -158,7 +158,9 @@ export function CalendarView({ deals = [], followUps = [], onOpenDeal }: Calenda
     return followUps
       .filter((f) => !f.completed)
       .map((f) => {
-        const timeOrDay = f.time || f.day
+        const timeOrDay = f.day
+          ? `${f.day}${f.time && !f.time.toLowerCase().includes(f.day.toLowerCase()) ? ` ${f.time}` : ''}`
+          : f.time
         const matched = matchMilestoneToWorkweek(timeOrDay, days)
         if (!matched) return null
 

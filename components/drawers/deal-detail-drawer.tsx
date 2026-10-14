@@ -30,7 +30,7 @@ import { Deal, DealStage, STAGE_DEFAULT_PROBABILITIES, DeliverableItem, InvoiceM
 import { ScratchpadEditor } from './scratchpad-editor'
 import { DeliverablesTracker } from './deliverables-tracker'
 import { MarkdownFormatter } from '../ui/markdown-formatter'
-import { formatDealValue, formatMoney } from '@/lib/config'
+import { formatDealValue, formatMoney, OPERATOR_CONFIG } from '@/lib/config'
 
 interface DealDetailDrawerProps {
   deal: Deal | null
@@ -54,6 +54,19 @@ const STAGES: DealStage[] = [
   'Paid',
 ]
 
+function resolveDealProbability(deal: Deal | null): Deal | null {
+  if (!deal) return null
+  const stageProb = STAGE_DEFAULT_PROBABILITIES[deal.stage]
+  const resolvedProb =
+    deal.probability === '20%' && deal.stage !== 'Lead'
+      ? stageProb || deal.probability
+      : deal.probability || stageProb || '20%'
+  return {
+    ...deal,
+    probability: resolvedProb,
+  }
+}
+
 export function DealDetailDrawer({
   deal,
   isOpen,
@@ -68,7 +81,7 @@ export function DealDetailDrawer({
   settings,
 }: DealDetailDrawerProps) {
   const router = useRouter()
-  const [currentDeal, setCurrentDeal] = useState<Deal | null>(deal)
+  const [currentDeal, setCurrentDeal] = useState<Deal | null>(() => resolveDealProbability(deal))
   const [activeTab, setActiveTab] = useState<'overview' | 'deliverables'>('overview')
   const [notes, setNotes] = useState('')
   const [newMeetingTitle, setNewMeetingTitle] = useState('')
@@ -78,10 +91,13 @@ export function DealDetailDrawer({
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false)
 
   useEffect(() => {
-    setCurrentDeal(deal)
-    setIsConfirmingDelete(false)
     if (deal) {
+      setCurrentDeal(resolveDealProbability(deal))
+      setIsConfirmingDelete(false)
       setNotes(deal.notes || '')
+    } else {
+      setCurrentDeal(null)
+      setIsConfirmingDelete(false)
     }
   }, [deal])
 
@@ -195,7 +211,8 @@ export function DealDetailDrawer({
 
     if (onAddActivity) {
       const now = new Date()
-      const timeStr = 'Today, ' + now.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })
+      const locale = settings?.locale || OPERATOR_CONFIG.locale || 'en-US'
+      const timeStr = 'Today, ' + now.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
 
       onAddActivity({
         dealId: currentDeal.id,
@@ -342,7 +359,9 @@ export function DealDetailDrawer({
                       {formatDealValue(currentDeal.value)}
                     </span>
                     <span className="px-2 py-0.5 text-[11px] font-medium rounded-[7px] bg-[#f0f2f5] text-[#232529] font-mono">
-                      {currentDeal.probability} prob.
+                      {(currentDeal.probability === '20%' && currentDeal.stage !== 'Lead'
+                        ? STAGE_DEFAULT_PROBABILITIES[currentDeal.stage]
+                        : currentDeal.probability) || STAGE_DEFAULT_PROBABILITIES[currentDeal.stage]} prob.
                     </span>
                   </div>
                 </div>
@@ -520,7 +539,7 @@ export function DealDetailDrawer({
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#266df0] uppercase tracking-wider">
                         <AlertCircle size={14} />
-                        <span>Mandatory Next Action</span>
+                        <span>Next Action</span>
                       </div>
                       <span className="text-[10px] font-medium text-[#266df0] bg-[#e9f0ff] px-2 py-0.5 rounded-[7px]">
                         {currentDeal.nextDueDate || 'Scheduled'}

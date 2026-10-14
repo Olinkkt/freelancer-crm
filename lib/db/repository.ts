@@ -31,14 +31,19 @@ function generateId(prefix: string): string {
 }
 
 export function mapDealRow(r: any): Deal {
+  const stage = (r.stage as DealStage) || 'Lead'
+  const probability = (r.probability === '20%' && stage !== 'Lead')
+    ? (STAGE_DEFAULT_PROBABILITIES[stage] || r.probability)
+    : (r.probability || STAGE_DEFAULT_PROBABILITIES[stage] || '20%')
+
   return {
     id: r.id,
     title: r.title,
     company: r.company,
     value: r.value,
     rawAmount: Number(r.raw_amount) || 0,
-    stage: r.stage as DealStage,
-    probability: r.probability,
+    stage,
+    probability,
     next: r.next,
     nextDueDate: r.next_due_date ?? undefined,
     color: (r.color as Deal['color']) || 'blue',
@@ -929,7 +934,16 @@ export async function logActivity(
       .executeTakeFirst()
 
     if (existingDealRow) {
-      const timeStr = new Date().toLocaleDateString('cs-CZ', {
+      let workspaceLocale = 'en-US'
+      try {
+        const settings = await getWorkspaceSettings()
+        if (settings?.locale) {
+          workspaceLocale = settings.locale
+        }
+      } catch {
+        // Fallback to en-US
+      }
+      const timeStr = new Date().toLocaleDateString(workspaceLocale, {
         month: 'short',
         day: 'numeric',
         hour: '2-digit',

@@ -79,7 +79,7 @@ export function EditFollowUpModal({
             </div>
             <div>
               <h2 className="text-[14px] font-semibold text-[#1c1d1f]">Edit Follow-up Item</h2>
-              <p className="text-[11px] text-[#6f7988]">Update GTD next action details</p>
+              <p className="text-[11px] text-[#6f7988]">Update next action details</p>
             </div>
           </div>
           <button

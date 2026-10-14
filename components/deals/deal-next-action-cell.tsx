@@ -29,7 +29,7 @@ export function DealNextActionCell({
           onOpenModal(deal)
         }}
         className="next-action-prompt"
-        title="GTD Rule: A deal can never sit without an explicit next action. Click to schedule."
+        title="Schedule a next step so this deal keeps moving forward."
       >
         <AlertTriangle size={13} strokeWidth={2.4} className="prompt-icon" />
         <span>No next step set</span>

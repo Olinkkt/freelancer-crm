@@ -104,7 +104,7 @@ export function NextActionModal({
           <div>
             <p className="section-kicker" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Zap size={13} className="text-[#266df0]" />
-              GTD Mandatory Next Action
+              Next Action
             </p>
             <h2 style={{ fontSize: '20px' }}>
               {isCompletingPrevious
@@ -188,7 +188,7 @@ export function NextActionModal({
           >
             <Check size={14} style={{ marginTop: '2px', flexShrink: 0 }} />
             <span>
-              <strong>Previous action completed!</strong> In GTD, an active deal must always have a scheduled next step so it never stalls.
+              <strong>Previous action completed!</strong> An active deal should always have a scheduled next step so it never stalls.
             </span>
           </div>
         ) : !deal.nextAction ? (

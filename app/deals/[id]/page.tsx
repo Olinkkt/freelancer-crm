@@ -105,6 +105,24 @@ export default function DealProjectPage() {
     setToasts((prev) => prev.filter((t) => t.id !== id))
   }
 
+  const modalDeals = useMemo(() => (deal ? [deal] : []), [deal])
+  const modalContacts = useMemo<Contact[]>(() => {
+    if (!deal) return []
+    const contactEmail = deal.contactEmail || `contact@${deal.company.toLowerCase().replace(/[^a-z0-9]/g, '')}.cz`
+    return [
+      {
+        id: 'primary-contact',
+        name: deal.contactName || deal.company,
+        email: deal.contactEmail || contactEmail || '',
+        company: deal.company,
+        role: '',
+        deals: 1,
+        lastTouch: 'Today',
+        color: deal.color || 'blue',
+      },
+    ]
+  }, [deal])
+
   // Load deal and its timeline
   const loadDeal = useCallback(async () => {
     if (!dealIdOrSlug) return
@@ -176,7 +194,7 @@ export default function DealProjectPage() {
     setIsEditingNextAction(false)
     try {
       await updateDealAction(updated)
-      addToast('Next action updated', 'GTD')
+      addToast('Next action updated', 'Deal')
     } catch (err: any) {
       addToast(err?.message || 'Failed to save next action', undefined, 'warning')
     }
@@ -245,7 +263,7 @@ export default function DealProjectPage() {
     if (!deal) return
     try {
       await syncTodosAction(todos, deal.company, deal.id)
-      addToast(`Synced ${todos.length} action item${todos.length > 1 ? 's' : ''} to Follow-ups`, 'GTD')
+      addToast(`Synced ${todos.length} action item${todos.length > 1 ? 's' : ''} to Follow-ups`, 'Follow-up')
     } catch (err: any) {
       addToast(err?.message || 'Failed to sync follow-ups', undefined, 'warning')
     }
@@ -298,20 +316,6 @@ export default function DealProjectPage() {
   const totalDeliverables = deal.deliverables?.length || 0
   const doneDeliverables = deal.deliverables?.filter((d) => d.status === 'Done').length || 0
   const progressPercent = totalDeliverables > 0 ? Math.round((doneDeliverables / totalDeliverables) * 100) : 0
-
-  const modalDeals = useMemo(() => [deal], [deal])
-  const modalContacts = useMemo<Contact[]>(() => [
-    {
-      id: 'primary-contact',
-      name: deal.contactName || deal.company,
-      email: deal.contactEmail || contactEmail || '',
-      company: deal.company,
-      role: '',
-      deals: 1,
-      lastTouch: 'Today',
-      color: deal.color || 'blue',
-    },
-  ], [deal, contactEmail])
 
   return (
     <div className="min-h-screen bg-[#f7f8fa] text-[#1c1d1f] flex flex-col">
@@ -518,7 +522,7 @@ export default function DealProjectPage() {
                   <div>
                     <h3 className="text-[14px] font-bold text-[#1c1d1f]">Project Brief & Working Specs</h3>
                     <p className="text-[12px] text-[#6f7988]">
-                      Use slash commands (<code className="font-mono text-[#266df0]">/scope</code>, <code className="font-mono text-[#266df0]">/call</code>, <code className="font-mono text-[#266df0]">/todo</code>) to draft scope and sync tasks to GTD follow-ups.
+                      Use slash commands (<code className="font-mono text-[#266df0]">/scope</code>, <code className="font-mono text-[#266df0]">/call</code>, <code className="font-mono text-[#266df0]">/todo</code>) to draft scope and sync tasks to follow-ups.
                     </p>
                   </div>
                 </div>
@@ -694,7 +698,7 @@ export default function DealProjectPage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#266df0] uppercase tracking-wider">
                   <AlertCircle size={14} />
-                  <span>Mandatory Next Action (GTD)</span>
+                  <span>Next Action</span>
                 </div>
                 {!isEditingNextAction && (
                   <button

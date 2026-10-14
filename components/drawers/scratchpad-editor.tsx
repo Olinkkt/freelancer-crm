@@ -20,7 +20,7 @@ import {
   Code,
 } from 'lucide-react'
 import { MarkdownFormatter } from '../ui/markdown-formatter'
-import { formatMoney } from '@/lib/config'
+import { formatMoney, OPERATOR_CONFIG } from '@/lib/config'
 
 interface ScratchpadEditorProps {
   notes: string
@@ -69,7 +69,7 @@ export function ScratchpadEditor({
       icon: <PhoneCall size={14} className="text-[#266df0]" />,
       template: (ctx) => {
         const now = new Date()
-        const timeStr = now.toLocaleDateString('cs-CZ', {
+        const timeStr = now.toLocaleDateString(OPERATOR_CONFIG.locale || 'en-US', {
           month: 'short',
           day: 'numeric',
           hour: '2-digit',
@@ -115,7 +115,7 @@ export function ScratchpadEditor({
     {
       id: 'todo',
       command: '/todo',
-      title: 'GTD Next Action Checklist',
+      title: 'Next Action Checklist',
       description: 'Add urgent todo items to sync to dashboard follow-ups',
       icon: <CheckSquare size={14} className="text-[#c4882b]" />,
       template: (ctx) =>

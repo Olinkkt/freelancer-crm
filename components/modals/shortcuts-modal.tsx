@@ -90,7 +90,7 @@ export function ShortcutsModal({ isOpen, onClose }: ShortcutsModalProps) {
                 Keyboard Shortcuts
               </h2>
               <p className="text-[11px] text-[#6f7988]">
-                Superhuman & Linear speed for your personal operator cockpit
+                Fast navigation and shortcuts for your workspace
               </p>
             </div>
           </div>

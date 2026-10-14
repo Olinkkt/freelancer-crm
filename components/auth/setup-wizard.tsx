@@ -200,7 +200,7 @@ export function SetupWizard({ onSetupComplete, envAuthRequired }: SetupWizardPro
             {/* Regional Locale */}
             <div>
               <label className="block text-xs font-medium text-[#c5cdd8] mb-1.5">
-                Workspace Regional Locale (Formát data a čísel) *
+                Locale (date & number format) *
               </label>
               <div className="relative">
                 <Globe size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#636c7e]" />
@@ -220,7 +220,7 @@ export function SetupWizard({ onSetupComplete, envAuthRequired }: SetupWizardPro
                 </div>
               </div>
               <p className="text-[11px] text-[#8f99a8] mt-1">
-                Určuje způsob formátování kalendářních datumů a oddělovače tisíců.
+                Controls how dates and thousands separators are formatted.
               </p>
             </div>
 
@@ -298,7 +298,7 @@ export function SetupWizard({ onSetupComplete, envAuthRequired }: SetupWizardPro
                   </>
                 ) : (
                   <>
-                    <span>Enter My Cockpit</span>
+                    <span>Get Started</span>
                     <ArrowRight size={16} />
                   </>
                 )}

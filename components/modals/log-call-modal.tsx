@@ -19,7 +19,7 @@ import {
 } from 'lucide-react'
 import { Activity, Company, Contact, FollowUpItem, Deal } from '@/lib/crm-types'
 import { getRelativeDayLabel } from '@/lib/date-utils'
-import { formatMoney } from '@/lib/config'
+import { formatMoney, OPERATOR_CONFIG } from '@/lib/config'
 import { Combobox, ComboboxOption } from '@/components/ui/combobox'
 
 interface LogCallModalProps {
@@ -92,7 +92,7 @@ export function LogCallModal({
       icon: <PhoneCall size={13} className="text-[#266df0]" />,
       snippet: (ctx) => {
         const now = new Date()
-        const timeStr = now.toLocaleDateString('cs-CZ', {
+        const timeStr = now.toLocaleDateString(OPERATOR_CONFIG.locale || 'en-US', {
           month: 'short',
           day: 'numeric',
           hour: '2-digit',
@@ -135,7 +135,7 @@ export function LogCallModal({
       id: 'todo',
       command: '/todo',
       title: 'Action Item / Todo',
-      description: 'GTD next action checklist',
+      description: 'Next action checklist',
       icon: <CheckSquare size={13} className="text-[#c4882b]" />,
       snippet: (ctx) =>
         `- [ ] Send revised proposal to ${ctx?.person || ctx?.company || 'client'} by tomorrow 14:00`,

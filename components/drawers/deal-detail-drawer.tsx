@@ -75,13 +75,21 @@ export function DealDetailDrawer({
   const [newMeetingType, setNewMeetingType] = useState<Activity['type']>('Meeting')
   const [isDraftingNote, setIsDraftingNote] = useState(false)
   const [expandedActivityIds, setExpandedActivityIds] = useState<Record<string, boolean>>({})
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false)
 
   useEffect(() => {
     setCurrentDeal(deal)
+    setIsConfirmingDelete(false)
     if (deal) {
       setNotes(deal.notes || '')
     }
   }, [deal])
+
+  useEffect(() => {
+    if (!isOpen) {
+      setIsConfirmingDelete(false)
+    }
+  }, [isOpen])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -854,19 +862,43 @@ export function DealDetailDrawer({
           </div>
 
           {/* Drawer Footer */}
-          <div className="p-4 border-t border-[#edf0f3] bg-[#fafbfc] flex items-center justify-between">
-            {onDeleteDeal && (
-              <button
-                onClick={() => {
-                  onDeleteDeal(currentDeal.id)
-                  onClose()
-                }}
-                className="inline-flex items-center gap-1 text-[11px] font-medium text-[#d73a49] hover:text-[#b31d28] p-1.5 rounded-[8px]"
-              >
-                <Trash2 size={13} />
-                <span>Delete</span>
-              </button>
-            )}
+          <div className="p-4 border-t border-[#edf0f3] bg-[#fafbfc] flex items-center justify-between gap-3">
+            <div>
+              {onDeleteDeal && (
+                isConfirmingDelete ? (
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onDeleteDeal(currentDeal.id)
+                        setIsConfirmingDelete(false)
+                        onClose()
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium text-white bg-[#dc2626] hover:bg-[#b91c1c] rounded-[8px] shadow-xs transition-colors cursor-pointer"
+                    >
+                      <Trash2 size={13} />
+                      <span>Confirm Delete</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsConfirmingDelete(false)}
+                      className="px-2.5 py-1.5 text-[11px] font-medium text-[#64748b] hover:text-[#334155] hover:bg-[#f1f5f9] rounded-[8px] transition-colors cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setIsConfirmingDelete(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium text-[#dc2626] hover:text-[#b91c1c] bg-[#fef2f2] hover:bg-[#fee2e2] border border-[#fecaca] rounded-[8px] transition-colors cursor-pointer"
+                  >
+                    <Trash2 size={13} />
+                    <span>Delete</span>
+                  </button>
+                )
+              )}
+            </div>
             <div className="ml-auto flex items-center gap-1.5 flex-wrap">
               {currentDeal.stage !== 'Won' && currentDeal.stage !== 'Paid' && (
                 <button

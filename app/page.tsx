@@ -1427,6 +1427,7 @@ export default function Page() {
                               </span>
                               <div className="min-w-0">
                                 <strong className="truncate block" title={contact.name}>{contact.name}</strong>
+                                {' '}
                                 {contact.role && <span className="truncate block">{contact.role}</span>}
                               </div>
                             </div>
@@ -1640,13 +1641,17 @@ export default function Page() {
                             </span>
                             <div className="min-w-0">
                               <strong className="truncate block" title={comp.name}>{comp.name}</strong>
+                              {' '}
                               <span className="truncate block">{comp.type}</span>
                             </div>
                           </div>
                           <div className="company-contact">
-                            {comp.contact ? (
+                            {comp.contact || comp.email ? (
                               <div className="min-w-0">
-                                <strong className="truncate block">{comp.contact}</strong>
+                                {comp.contact && (
+                                  <strong className="truncate block" title={comp.contact}>{comp.contact}</strong>
+                                )}
+                                {' '}
                                 {comp.email && (
                                   <span className="truncate block font-mono text-[11px] text-[#8f99a8] mt-0.5" title={comp.email}>
                                     {comp.email}

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { X, UserPlus, Building2, Mail, Phone, Briefcase } from 'lucide-react'
 import { Contact, Company } from '@/lib/crm-types'
+import { Combobox } from '@/components/ui/combobox'
 
 interface NewContactModalProps {
   isOpen: boolean
@@ -35,13 +36,13 @@ export function NewContactModal({
       if (contactToEdit) {
         setName(contactToEdit.name || '')
         setRole(contactToEdit.role || '')
-        setCompany(contactToEdit.company || initialCompany || companies[0]?.name || '')
+        setCompany(contactToEdit.company || initialCompany || '')
         setEmail(contactToEdit.email || '')
         setPhone(contactToEdit.phone || '')
       } else {
         setName('')
         setRole('')
-        setCompany(initialCompany || companies[0]?.name || '')
+        setCompany(initialCompany || '')
         setEmail('')
         setPhone('')
       }
@@ -155,19 +156,18 @@ export function NewContactModal({
               <label className="block text-[11px] font-bold uppercase tracking-wider text-[#505967] mb-1.5">
                 Company
               </label>
-              <input
-                list="contact-companies"
-                maxLength={100}
+              <Combobox
                 value={company}
-                onChange={(e) => setCompany(e.target.value)}
-                placeholder="Select company"
-                className="w-full h-10 px-3 border border-[#e4e7ec] rounded-[10px] text-[13px] text-[#1c1d1f] placeholder:text-[#9fa1a7] focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
+                onChange={setCompany}
+                options={companies.map((c) => ({
+                  id: c.id,
+                  label: c.name,
+                  value: c.name,
+                  sublabel: c.type,
+                }))}
+                placeholder="Select or enter company"
+                maxLength={100}
               />
-              <datalist id="contact-companies">
-                {companies.map((c) => (
-                  <option key={c.id} value={c.name} />
-                ))}
-              </datalist>
             </div>
           </div>
 

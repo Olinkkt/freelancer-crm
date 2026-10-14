@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { X, CirclePlus, ArrowUpRight, Calendar, AlertCircle } from 'lucide-react'
 import { Deal, DealStage, Company, WorkspaceSettings } from '@/lib/crm-types'
 import { formatMoney, OPERATOR_CONFIG } from '@/lib/config'
+import { Combobox } from '@/components/ui/combobox'
 
 interface NewDealModalProps {
   isOpen: boolean
@@ -52,7 +53,7 @@ export function NewDealModal({
       if (dealToEdit) {
         setMode('detailed')
         setTitle(dealToEdit.title || '')
-        setCompany(dealToEdit.company || initialCompany || companies[0]?.name || '')
+        setCompany(dealToEdit.company || initialCompany || '')
         setValue(dealToEdit.value || '')
         setStage(dealToEdit.stage || 'Lead')
         setProbability(dealToEdit.probability || '30%')
@@ -62,7 +63,7 @@ export function NewDealModal({
       } else {
         setMode('quick')
         setTitle('')
-        setCompany(initialCompany || companies[0]?.name || '')
+        setCompany(initialCompany || '')
         setValue(formatMoney(25000, settings))
         setStage('Lead')
         setProbability('20%')
@@ -230,20 +231,19 @@ export function NewDealModal({
               <label className="block text-[11px] font-bold uppercase tracking-wider text-[#505967] mb-1.5">
                 Company Account *
               </label>
-              <input
-                list="company-list"
+              <Combobox
+                value={company}
+                onChange={setCompany}
+                options={companies.map((c) => ({
+                  id: c.id,
+                  label: c.name,
+                  value: c.name,
+                  sublabel: c.type,
+                }))}
+                placeholder="Select or enter company"
                 required
                 maxLength={100}
-                value={company}
-                onChange={(e) => setCompany(e.target.value)}
-                placeholder="Select or enter company"
-                className="w-full h-10 px-3 border border-[#e4e7ec] rounded-[10px] text-[13px] text-[#1c1d1f] placeholder:text-[#9fa1a7] focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
               />
-              <datalist id="company-list">
-                {companies.map((c) => (
-                  <option key={c.id} value={c.name} />
-                ))}
-              </datalist>
             </div>
 
             <div>

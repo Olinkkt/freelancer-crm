@@ -12,6 +12,7 @@ import {
 import {
   deleteGoogleCalendarIntegration,
   clearAllGoogleCalendarEventMappings,
+  updateGoogleCalendarSettings,
 } from '@/lib/db/google-calendar-repository'
 import * as repo from '@/lib/db/repository'
 import { GoogleCalendarStatusResponse, GoogleCalendarSyncResult } from '@/lib/google-calendar/types'
@@ -110,5 +111,26 @@ export async function generateActivityGoogleWebLinkAction(
     return { url }
   } catch (err: any) {
     throw new Error(sanitizeErrorMessage(err, 'Failed to generate Google Calendar web link'))
+  }
+}
+
+/**
+ * Server action to update Google Calendar integration settings (e.g. autoSync, calendar selection).
+ */
+export async function updateGoogleCalendarSettingsAction(data: {
+  autoSync?: boolean
+  calendarId?: string
+  calendarName?: string
+}): Promise<GoogleCalendarStatusResponse> {
+  await assertAuth()
+  try {
+    await updateGoogleCalendarSettings({
+      auto_sync: data.autoSync,
+      calendar_id: data.calendarId,
+      calendar_name: data.calendarName,
+    })
+    return await getGoogleIntegrationStatus()
+  } catch (err: any) {
+    throw new Error(sanitizeErrorMessage(err, 'Failed to update Google Calendar settings'))
   }
 }

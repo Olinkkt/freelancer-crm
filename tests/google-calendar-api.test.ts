@@ -24,6 +24,7 @@ import {
   syncActivityToGoogleCalendarAction,
   deleteActivityFromGoogleCalendarAction,
   generateActivityGoogleWebLinkAction,
+  updateGoogleCalendarSettingsAction,
 } from '@/app/actions/google-calendar'
 
 describe('Google Calendar API Endpoints & Server Actions', () => {
@@ -668,6 +669,24 @@ describe('Google Calendar API Endpoints & Server Actions', () => {
 
       const status = await getGoogleCalendarStatusAction()
       assert.equal(status.connected, false)
+    })
+
+    it('updateGoogleCalendarSettingsAction updates autoSync setting', async () => {
+      await saveGoogleCalendarTokens({
+        access_token: 'action-settings-token',
+        refresh_token: 'refresh-token',
+        token_expiry: Date.now() + 3600000,
+        calendar_id: 'primary',
+      })
+
+      const statusBefore = await getGoogleCalendarStatusAction()
+      assert.equal(statusBefore.autoSync, true)
+
+      const updated = await updateGoogleCalendarSettingsAction({ autoSync: false })
+      assert.equal(updated.autoSync, false)
+
+      const statusAfter = await getGoogleCalendarStatusAction()
+      assert.equal(statusAfter.autoSync, false)
     })
   })
 })

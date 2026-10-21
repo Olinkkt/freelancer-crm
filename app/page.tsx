@@ -30,6 +30,9 @@ import {
   CheckCircle2,
   Edit3,
   Upload,
+  Calendar,
+  ChevronRight,
+  RefreshCw,
 } from 'lucide-react'
 import {
   exportDealsCSV,
@@ -94,6 +97,11 @@ import {
   logoutOperator,
   updateWorkspaceSettingsAction,
 } from '@/app/actions/auth'
+import {
+  getGoogleCalendarStatusAction,
+  triggerGoogleCalendarSyncAction,
+} from '@/app/actions/google-calendar'
+import { GoogleCalendarStatusResponse } from '@/lib/google-calendar/types'
 
 
 function NavItem({
@@ -176,6 +184,9 @@ export default function Page() {
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null)
   const [editingFollowUp, setEditingFollowUp] = useState<FollowUpItem | null>(null)
   const [isEditSettingsOpen, setIsEditSettingsOpen] = useState(false)
+  const [settingsModalInitialTab, setSettingsModalInitialTab] = useState<'profile' | 'integrations'>('profile')
+  const [gcalStatus, setGcalStatus] = useState<GoogleCalendarStatusResponse | null>(null)
+  const [isSyncingGcal, setIsSyncingGcal] = useState(false)
   const [settingsTab, setSettingsTab] = useState<'profile' | 'shortcuts' | 'export' | 'system'>('profile')
   const [shortcutFilter, setShortcutFilter] = useState('')
 
@@ -253,6 +264,52 @@ export default function Page() {
   useEffect(() => {
     loadData()
   }, [loadData])
+
+  const refreshGoogleCalendarStatus = useCallback(async () => {
+    try {
+      const status = await getGoogleCalendarStatusAction()
+      setGcalStatus(status)
+    } catch (err: any) {
+      console.error('Failed to load Google Calendar status:', err)
+    }
+  }, [])
+
+  useEffect(() => {
+    refreshGoogleCalendarStatus()
+  }, [refreshGoogleCalendarStatus])
+
+  // Google Calendar OAuth redirect handling & deep-link parameters
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    const settingsParam = params.get('settings')
+    const gcalParam = params.get('gcal')
+    const messageParam = params.get('message')
+
+    if (settingsParam === 'open' || gcalParam) {
+      if (gcalParam === 'connected') {
+        addToast('Google Calendar connected successfully! 📅', undefined, 'success')
+        setSettingsModalInitialTab('integrations')
+        setIsEditSettingsOpen(true)
+        refreshGoogleCalendarStatus()
+      } else if (gcalParam === 'error') {
+        const errorMsg = messageParam || 'Failed to connect Google Calendar'
+        addToast(errorMsg, undefined, 'warning')
+        setSettingsModalInitialTab('integrations')
+        setIsEditSettingsOpen(true)
+      } else if (settingsParam === 'open') {
+        setIsEditSettingsOpen(true)
+      }
+
+      // Clean up URL search params using window.history.replaceState so refresh does not re-trigger
+      const url = new URL(window.location.href)
+      url.searchParams.delete('settings')
+      url.searchParams.delete('gcal')
+      url.searchParams.delete('message')
+      const cleanUrl = url.pathname + (url.search ? url.search : '') + url.hash
+      window.history.replaceState({}, '', cleanUrl)
+    }
+  }, [addToast, refreshGoogleCalendarStatus])
 
 
   // Two-key chord navigation state ("G" then another key)
@@ -1853,7 +1910,10 @@ export default function Page() {
                           </div>
                           <button
                             type="button"
-                            onClick={() => setIsEditSettingsOpen(true)}
+                            onClick={() => {
+                              setSettingsModalInitialTab('profile')
+                              setIsEditSettingsOpen(true)
+                            }}
                             className="select-button self-start sm:self-center shrink-0"
                           >
                             <Edit3 size={13} className="text-[#6f7988]" />
@@ -1943,12 +2003,110 @@ export default function Page() {
                           ) : (
                             <button
                               type="button"
-                              onClick={() => setIsEditSettingsOpen(true)}
+                              onClick={() => {
+                                setSettingsModalInitialTab('profile')
+                                setIsEditSettingsOpen(true)
+                              }}
                               className="select-button text-[12px] self-start sm:self-center shrink-0"
                             >
                               Configure Passcode
                             </button>
                           )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* SECTION 4: INTEGRATIONS & GOOGLE CALENDAR */}
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start pt-8 border-t border-[#e4e7ec]">
+                    <div className="md:col-span-4">
+                      <h3 className="text-[15px] font-semibold text-[#1c1d1f] tracking-tight">Integrations & Sync</h3>
+                      <p className="text-[13px] text-[#6f7988] mt-1 leading-relaxed">
+                        Connect Google Calendar for real-time synchronization of client calls, meetings, and deal milestones.
+                      </p>
+                    </div>
+                    <div className="md:col-span-8">
+                      <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-[rgba(28,40,64,0.04)_0px_2px_4px_-1px]">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                          <div className="flex items-start gap-3.5 min-w-0">
+                            <div className="w-10 h-10 rounded-[10px] bg-[#f0f4fe] border border-[#d6e4fd] flex items-center justify-center text-[#266df0] shrink-0 mt-0.5">
+                              <Calendar size={20} />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <strong className="text-[15px] font-semibold text-[#1c1d1f] tracking-tight">
+                                  Google Calendar
+                                </strong>
+                                {gcalStatus?.connected ? (
+                                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#027a48] bg-[#ecfdf3] border border-[#d1fadf] px-2 py-0.5 rounded-[7px]">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[#12b76a]" />
+                                    Connected
+                                  </span>
+                                ) : gcalStatus?.configured ? (
+                                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#505967] bg-[#f4f5f6] border border-[#e4e7ec] px-2 py-0.5 rounded-[7px]">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[#9fa1a7]" />
+                                    Disconnected
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#b54708] bg-[#fffaeb] border border-[#fedf89] px-2 py-0.5 rounded-[7px]">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[#f79009]" />
+                                    Setup Needed
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[12px] text-[#6f7988] mt-1 leading-normal">
+                                {gcalStatus?.connected
+                                  ? `Synced with ${gcalStatus.calendarName || 'primary'} calendar. Auto-sync is ${gcalStatus.autoSync ? 'enabled' : 'disabled'}.`
+                                  : gcalStatus?.configured
+                                  ? 'OAuth credentials configured. Ready to connect your Google account.'
+                                  : '1-click fallback links active everywhere. Add OAuth credentials in .env to enable two-way sync.'}
+                              </p>
+                              {gcalStatus?.connected && gcalStatus.lastSyncedAt && (
+                                <span className="block text-[11px] text-[#8f99a8] mt-1">
+                                  Last synced: {new Date(gcalStatus.lastSyncedAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
+                            {gcalStatus?.connected && (
+                              <button
+                                type="button"
+                                disabled={isSyncingGcal}
+                                onClick={async () => {
+                                  setIsSyncingGcal(true)
+                                  try {
+                                    const res = await triggerGoogleCalendarSyncAction()
+                                    if (res.success) {
+                                      addToast(`Synced ${res.syncedCount} item${res.syncedCount === 1 ? '' : 's'} to Google Calendar`, undefined, 'success')
+                                      await refreshGoogleCalendarStatus()
+                                    } else {
+                                      addToast(res.error || 'Sync failed', undefined, 'warning')
+                                    }
+                                  } catch (err: any) {
+                                    addToast(err?.message || 'Sync failed', undefined, 'warning')
+                                  } finally {
+                                    setIsSyncingGcal(false)
+                                  }
+                                }}
+                                className="select-button text-[12px] py-1.5 px-2.5 cursor-pointer disabled:opacity-50"
+                              >
+                                <RefreshCw size={12} className={isSyncingGcal ? 'animate-spin' : ''} />
+                                <span>{isSyncingGcal ? 'Syncing...' : 'Sync Now'}</span>
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSettingsModalInitialTab('integrations')
+                                setIsEditSettingsOpen(true)
+                              }}
+                              className="select-button text-[12px] py-1.5 px-3 font-semibold text-[#1c1d1f] cursor-pointer"
+                            >
+                              <span>Manage</span>
+                              <ChevronRight size={13} className="text-[#6f7988]" />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -2831,14 +2989,20 @@ export default function Page() {
       {/* EDIT SETTINGS & PREFERENCES MODAL */}
       <EditSettingsModal
         isOpen={isEditSettingsOpen}
-        onClose={() => setIsEditSettingsOpen(false)}
+        onClose={() => {
+          setIsEditSettingsOpen(false)
+          refreshGoogleCalendarStatus()
+        }}
         currentSettings={currentSettings}
         onSettingsUpdated={(updated) => {
           setCurrentSettings(updated)
           const firstName = updated.operatorName.trim().split(' ')[0]
           setGreeting(getDynamicGreeting(firstName))
           addToast('Preferences saved successfully')
+          refreshGoogleCalendarStatus()
         }}
+        initialTab={settingsModalInitialTab}
+        onToast={addToast}
       />
 
       {/* FLOATING TOAST HUD */}

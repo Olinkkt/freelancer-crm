@@ -28,27 +28,35 @@ export function formatToDateCompact(date: Date): string {
 }
 
 /**
- * Checks if a string is already in Google compact format (timed: YYYYMMDDTHHmmssZ or all-day: YYYYMMDD)
+ * Checks if a string is already in Google compact timed format: YYYYMMDDTHHmmssZ
  */
 function isCompactTimed(str: string): boolean {
   return /^\d{8}T\d{6}Z?$/i.test(str.trim())
 }
 
-function isCompactDate(str: string): boolean {
-  return /^\d{8}$/.test(str.trim())
+/**
+ * Normalizes a date string (either YYYY-MM-DD or compact YYYYMMDD) to YYYY-MM-DD.
+ */
+function normalizeDateToIso(dateStr: string): string | null {
+  const clean = dateStr.trim()
+  if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) {
+    return clean
+  }
+  const match = clean.match(/^(\d{4})(\d{2})(\d{2})$/)
+  if (match) {
+    return `${match[1]}-${match[2]}-${match[3]}`
+  }
+  return null
 }
 
 /**
  * Parses a YYYY-MM-DD or YYYYMMDD string as a UTC date at 00:00:00
  */
 function parseDateStringUtc(str: string): Date | null {
-  const clean = str.trim()
-  const match = clean.match(/^(\d{4})-?(\d{2})-?(\d{2})$/)
-  if (!match) return null
-  const y = parseInt(match[1], 10)
-  const m = parseInt(match[2], 10) - 1
-  const d = parseInt(match[3], 10)
-  return new Date(Date.UTC(y, m, d))
+  const iso = normalizeDateToIso(str)
+  if (!iso) return null
+  const [y, m, d] = iso.split('-').map(Number)
+  return new Date(Date.UTC(y, m - 1, d))
 }
 
 /**
@@ -90,17 +98,18 @@ function formatDatesParam(params: {
     return `${startCompact}/${endCompact}`
   }
 
-  // 2. Timed event with ISO / parseable startTime
+  // 2. Timed event with ISO / parseable startTime (or date + time-only)
   if (params.startTime) {
     let rawStart = params.startTime.trim()
+    const baseDate = params.date ? normalizeDateToIso(params.date) : null
 
-    // Handle time-only startTime when date is also provided (e.g. date: '2026-10-21', startTime: '14:30')
-    if (params.date && /^\d{1,2}:\d{2}(:\d{2})?$/.test(rawStart)) {
+    // Handle time-only startTime when date is also provided (e.g. date: '2026-10-21' or '20261021', startTime: '14:30')
+    if (baseDate && /^\d{1,2}:\d{2}(:\d{2})?$/.test(rawStart)) {
       const timeParts = rawStart.split(':')
       const h = pad(parseInt(timeParts[0], 10))
       const min = pad(parseInt(timeParts[1], 10))
       const s = pad(timeParts[2] ? parseInt(timeParts[2], 10) : 0)
-      rawStart = `${params.date.trim()}T${h}:${min}:${s}Z`
+      rawStart = `${baseDate}T${h}:${min}:${s}Z`
     }
 
     const startDate = new Date(rawStart)
@@ -108,12 +117,12 @@ function formatDatesParam(params: {
       let endDate: Date
       if (params.endTime) {
         let rawEnd = params.endTime.trim()
-        if (params.date && /^\d{1,2}:\d{2}(:\d{2})?$/.test(rawEnd)) {
+        if (baseDate && /^\d{1,2}:\d{2}(:\d{2})?$/.test(rawEnd)) {
           const timeParts = rawEnd.split(':')
           const h = pad(parseInt(timeParts[0], 10))
           const min = pad(parseInt(timeParts[1], 10))
           const s = pad(timeParts[2] ? parseInt(timeParts[2], 10) : 0)
-          rawEnd = `${params.date.trim()}T${h}:${min}:${s}Z`
+          rawEnd = `${baseDate}T${h}:${min}:${s}Z`
         }
         const parsedEnd = new Date(rawEnd)
         endDate = !isNaN(parsedEnd.getTime())
@@ -135,31 +144,16 @@ function formatDatesParam(params: {
       let endCompact: string
 
       if (params.endTime) {
-        if (isCompactDate(params.endTime)) {
-          endCompact = params.endTime.trim()
-        } else {
-          const parsedEnd = parseDateStringUtc(params.endTime)
-          endCompact = parsedEnd ? formatToDateCompact(parsedEnd) : formatToDateCompact(new Date(parsedStart.getTime() + 86400000))
-        }
+        const parsedEnd = parseDateStringUtc(params.endTime)
+        endCompact = parsedEnd
+          ? formatToDateCompact(parsedEnd)
+          : formatToDateCompact(new Date(parsedStart.getTime() + 86400000))
       } else {
         // All-day end date is exclusive in Google Calendar, so single day = next day
         const nextDay = new Date(parsedStart.getTime() + 86400000)
         endCompact = formatToDateCompact(nextDay)
       }
 
-      return `${startCompact}/${endCompact}`
-    } else if (isCompactDate(params.date)) {
-      const startCompact = params.date.trim()
-      let endCompact = startCompact
-      if (params.endTime && isCompactDate(params.endTime)) {
-        endCompact = params.endTime.trim()
-      } else {
-        const y = parseInt(startCompact.slice(0, 4), 10)
-        const m = parseInt(startCompact.slice(4, 6), 10) - 1
-        const d = parseInt(startCompact.slice(6, 8), 10)
-        const nextDay = new Date(Date.UTC(y, m, d + 1))
-        endCompact = formatToDateCompact(nextDay)
-      }
       return `${startCompact}/${endCompact}`
     }
   }

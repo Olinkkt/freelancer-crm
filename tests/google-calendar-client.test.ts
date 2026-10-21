@@ -91,6 +91,17 @@ describe('Google Calendar Web Links (generateGoogleCalendarWebLink)', () => {
     assert.ok(url.includes('dates=20261021T153000Z/20261021T163000Z'))
   })
 
+  it('combines compact date (20261021) with time-only startTime (14:30) without downgrading to all-day', () => {
+    const url = generateGoogleCalendarWebLink({
+      title: 'Technical Interview',
+      date: '20261021',
+      startTime: '14:30',
+      addHourDuration: 1,
+    })
+
+    assert.ok(url.includes('dates=20261021T143000Z/20261021T153000Z'))
+  })
+
   it('handles already-compact date strings', () => {
     const urlTimed = generateGoogleCalendarWebLink({
       title: 'Quick Sync',
@@ -408,14 +419,13 @@ describe('Google Calendar API Client: HTTP Operations & Responses', () => {
 
   it('exchangeGoogleCode handles HTTP error responses from token endpoint', async () => {
     globalThis.fetch = async () =>
-      ({
-        ok: false,
-        status: 400,
-        json: async () => ({
+      new Response(
+        JSON.stringify({
           error: 'invalid_grant',
           error_description: 'Code has expired or is invalid',
         }),
-      } as any)
+        { status: 400 }
+      )
 
     await assert.rejects(
       exchangeGoogleCode({
@@ -453,14 +463,13 @@ describe('Google Calendar API Client: HTTP Operations & Responses', () => {
 
   it('refreshGoogleAccessToken throws on invalid refresh token', async () => {
     globalThis.fetch = async () =>
-      ({
-        ok: false,
-        status: 401,
-        json: async () => ({
+      new Response(
+        JSON.stringify({
           error: 'invalid_client',
           error_description: 'Unauthorized client',
         }),
-      } as any)
+        { status: 401 }
+      )
 
     await assert.rejects(
       refreshGoogleAccessToken({
@@ -637,13 +646,12 @@ describe('Google Calendar API Client: HTTP Operations & Responses', () => {
 
     // 4. Server Error 500 throws
     globalThis.fetch = async () =>
-      ({
-        ok: false,
-        status: 500,
-        json: async () => ({
+      new Response(
+        JSON.stringify({
           error: { message: 'Internal Calendar Server Error' },
         }),
-      } as any)
+        { status: 500 }
+      )
 
     await assert.rejects(
       deleteGoogleCalendarEvent({
@@ -651,6 +659,35 @@ describe('Google Calendar API Client: HTTP Operations & Responses', () => {
         eventId: 'evt-err',
       }),
       /Failed to delete Google Calendar event: 500 Internal Calendar Server Error/
+    )
+  })
+
+  it('handles non-JSON HTML error responses (such as 502 Bad Gateway) without stream errors', async () => {
+    globalThis.fetch = async () =>
+      ({
+        ok: false,
+        status: 502,
+        statusText: 'Bad Gateway',
+        text: async () => '<html><body>502 Bad Gateway</body></html>',
+      } as any)
+
+    await assert.rejects(
+      listGoogleCalendarEvents({
+        accessToken: 'tok',
+      }),
+      /Failed to list Google Calendar events: 502 <html><body>502 Bad Gateway<\/body><\/html>/
+    )
+
+    await assert.rejects(
+      createGoogleCalendarEvent({
+        accessToken: 'tok',
+        event: {
+          summary: 'Meeting',
+          start: { dateTime: '2026-10-21T10:00:00Z' },
+          end: { dateTime: '2026-10-21T11:00:00Z' },
+        },
+      }),
+      /Failed to create Google Calendar event: 502 <html><body>502 Bad Gateway<\/body><\/html>/
     )
   })
 })

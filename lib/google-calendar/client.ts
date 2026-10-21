@@ -4,6 +4,100 @@ import {
 } from './types'
 
 /**
+ * Shape of raw event data returned by Google Calendar API v3
+ */
+interface RawGoogleCalendarEvent {
+  id: string
+  summary?: string
+  description?: string | null
+  start?: {
+    dateTime?: string
+    date?: string
+    timeZone?: string
+  }
+  end?: {
+    dateTime?: string
+    date?: string
+    timeZone?: string
+  }
+  location?: string | null
+  htmlLink?: string
+}
+
+/**
+ * Maps a raw Google Calendar API event to our strongly-typed GoogleCalendarEventItem.
+ */
+function mapToGoogleCalendarEventItem(item: RawGoogleCalendarEvent): GoogleCalendarEventItem {
+  return {
+    id: item.id,
+    summary: item.summary || '',
+    description: item.description ?? null,
+    start: {
+      dateTime: item.start?.dateTime,
+      date: item.start?.date,
+      timeZone: item.start?.timeZone,
+    },
+    end: {
+      dateTime: item.end?.dateTime,
+      date: item.end?.date,
+      timeZone: item.end?.timeZone,
+    },
+    location: item.location ?? null,
+    htmlLink: item.htmlLink,
+  }
+}
+
+/**
+ * Safely extracts error details from an HTTP response by reading text once,
+ * then attempting JSON parsing, avoiding stream consumption issues.
+ */
+async function extractErrorDetail(res: Response): Promise<string> {
+  try {
+    let text: string | undefined
+    if (typeof res.text === 'function') {
+      text = await res.text()
+    } else if (typeof res.json === 'function') {
+      const data = await res.json()
+      if (typeof data === 'object' && data !== null) {
+        if (data.error && typeof data.error === 'object' && data.error.message) {
+          return data.error.message
+        }
+        if (typeof data.error_description === 'string') {
+          return data.error_description
+        }
+        if (typeof data.error === 'string') {
+          return data.error
+        }
+        return JSON.stringify(data)
+      }
+      return String(data)
+    }
+
+    if (!text) return res.statusText || String(res.status)
+    try {
+      const data = JSON.parse(text)
+      if (typeof data === 'object' && data !== null) {
+        if (data.error && typeof data.error === 'object' && data.error.message) {
+          return data.error.message
+        }
+        if (typeof data.error_description === 'string') {
+          return data.error_description
+        }
+        if (typeof data.error === 'string') {
+          return data.error
+        }
+        return JSON.stringify(data)
+      }
+      return text
+    } catch {
+      return text
+    }
+  } catch {
+    return res.statusText || String(res.status)
+  }
+}
+
+/**
  * Builds the Google OAuth 2.0 authorization URL for initiating user consent.
  */
 export function getGoogleAuthUrl(options: {
@@ -76,13 +170,7 @@ export async function exchangeGoogleCode(options: {
   })
 
   if (!res.ok) {
-    let errorDetail: string
-    try {
-      const data = await res.json()
-      errorDetail = data.error_description || data.error || JSON.stringify(data)
-    } catch {
-      errorDetail = await res.text()
-    }
+    const errorDetail = await extractErrorDetail(res)
     throw new Error(`Failed to exchange authorization code: ${res.status} ${errorDetail}`)
   }
 
@@ -132,13 +220,7 @@ export async function refreshGoogleAccessToken(options: {
   })
 
   if (!res.ok) {
-    let errorDetail: string
-    try {
-      const data = await res.json()
-      errorDetail = data.error_description || data.error || JSON.stringify(data)
-    } catch {
-      errorDetail = await res.text()
-    }
+    const errorDetail = await extractErrorDetail(res)
     throw new Error(`Failed to refresh Google access token: ${res.status} ${errorDetail}`)
   }
 
@@ -185,36 +267,14 @@ export async function listGoogleCalendarEvents(options: {
   })
 
   if (!res.ok) {
-    let errorDetail: string
-    try {
-      const data = await res.json()
-      errorDetail = data.error?.message || data.error_description || JSON.stringify(data)
-    } catch {
-      errorDetail = await res.text()
-    }
+    const errorDetail = await extractErrorDetail(res)
     throw new Error(`Failed to list Google Calendar events: ${res.status} ${errorDetail}`)
   }
 
-  const data = await res.json()
+  const data = (await res.json()) as { items?: RawGoogleCalendarEvent[] }
   const items = Array.isArray(data.items) ? data.items : []
 
-  return items.map((item: any) => ({
-    id: item.id,
-    summary: item.summary || '',
-    description: item.description ?? null,
-    start: {
-      dateTime: item.start?.dateTime,
-      date: item.start?.date,
-      timeZone: item.start?.timeZone,
-    },
-    end: {
-      dateTime: item.end?.dateTime,
-      date: item.end?.date,
-      timeZone: item.end?.timeZone,
-    },
-    location: item.location ?? null,
-    htmlLink: item.htmlLink,
-  }))
+  return items.map(mapToGoogleCalendarEventItem)
 }
 
 /**
@@ -257,34 +317,12 @@ export async function createGoogleCalendarEvent(options: {
   })
 
   if (!res.ok) {
-    let errorDetail: string
-    try {
-      const data = await res.json()
-      errorDetail = data.error?.message || data.error_description || JSON.stringify(data)
-    } catch {
-      errorDetail = await res.text()
-    }
+    const errorDetail = await extractErrorDetail(res)
     throw new Error(`Failed to create Google Calendar event: ${res.status} ${errorDetail}`)
   }
 
-  const data = await res.json()
-  return {
-    id: data.id,
-    summary: data.summary || '',
-    description: data.description ?? null,
-    start: {
-      dateTime: data.start?.dateTime,
-      date: data.start?.date,
-      timeZone: data.start?.timeZone,
-    },
-    end: {
-      dateTime: data.end?.dateTime,
-      date: data.end?.date,
-      timeZone: data.end?.timeZone,
-    },
-    location: data.location ?? null,
-    htmlLink: data.htmlLink,
-  }
+  const data = (await res.json()) as RawGoogleCalendarEvent
+  return mapToGoogleCalendarEventItem(data)
 }
 
 /**
@@ -322,34 +360,12 @@ export async function updateGoogleCalendarEvent(options: {
   })
 
   if (!res.ok) {
-    let errorDetail: string
-    try {
-      const data = await res.json()
-      errorDetail = data.error?.message || data.error_description || JSON.stringify(data)
-    } catch {
-      errorDetail = await res.text()
-    }
+    const errorDetail = await extractErrorDetail(res)
     throw new Error(`Failed to update Google Calendar event: ${res.status} ${errorDetail}`)
   }
 
-  const data = await res.json()
-  return {
-    id: data.id,
-    summary: data.summary || '',
-    description: data.description ?? null,
-    start: {
-      dateTime: data.start?.dateTime,
-      date: data.start?.date,
-      timeZone: data.start?.timeZone,
-    },
-    end: {
-      dateTime: data.end?.dateTime,
-      date: data.end?.date,
-      timeZone: data.end?.timeZone,
-    },
-    location: data.location ?? null,
-    htmlLink: data.htmlLink,
-  }
+  const data = (await res.json()) as RawGoogleCalendarEvent
+  return mapToGoogleCalendarEventItem(data)
 }
 
 /**
@@ -386,12 +402,6 @@ export async function deleteGoogleCalendarEvent(options: {
     return false
   }
 
-  let errorDetail: string
-  try {
-    const data = await res.json()
-    errorDetail = data.error?.message || data.error_description || JSON.stringify(data)
-  } catch {
-    errorDetail = await res.text()
-  }
+  const errorDetail = await extractErrorDetail(res)
   throw new Error(`Failed to delete Google Calendar event: ${res.status} ${errorDetail}`)
 }

@@ -1,9 +1,16 @@
 import { NextResponse } from 'next/server'
 import { getGoogleAuthUrl } from '@/lib/google-calendar/client'
+import { checkIsAuthenticated } from '@/lib/auth/session'
+import { sanitizeErrorMessage } from '@/lib/errors'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: Request) {
+  const isAuthed = await checkIsAuthenticated(req)
+  if (!isAuthed) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   const clientId = process.env.GOOGLE_CLIENT_ID
   if (!clientId || !clientId.trim()) {
     return NextResponse.json(
@@ -29,7 +36,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ url })
   } catch (err: any) {
     return NextResponse.json(
-      { error: err?.message || 'Failed to generate auth URL' },
+      { error: sanitizeErrorMessage(err, 'Failed to generate auth URL') },
       { status: 400 }
     )
   }

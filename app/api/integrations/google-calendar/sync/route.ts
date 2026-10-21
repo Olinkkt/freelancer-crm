@@ -1,10 +1,16 @@
 import { NextResponse } from 'next/server'
 import { syncAllToGoogleCalendar } from '@/lib/google-calendar/service'
+import { checkIsAuthenticated } from '@/lib/auth/session'
 import { sanitizeErrorMessage } from '@/lib/errors'
 
 export const dynamic = 'force-dynamic'
 
-export async function POST() {
+export async function POST(req: Request) {
+  const isAuthed = await checkIsAuthenticated(req)
+  if (!isAuthed) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
     const result = await syncAllToGoogleCalendar()
     if (!result.success && result.error === 'Google Calendar is not connected') {

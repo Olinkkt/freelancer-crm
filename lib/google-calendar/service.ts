@@ -29,6 +29,15 @@ import * as repo from '@/lib/db/repository'
 import { Activity, Deal } from '@/lib/crm-types'
 
 /**
+ * In-flight token refresh promise de-duplication to prevent stampedes.
+ */
+let inFlightTokenRefresh: Promise<{
+  accessToken: string
+  calendarId: string
+  integration: GoogleCalendarIntegration
+} | null> | null = null
+
+/**
  * Returns connection and configuration status of Google Calendar integration.
  */
 export async function getGoogleIntegrationStatus(): Promise<GoogleCalendarStatusResponse> {
@@ -56,6 +65,8 @@ export async function getGoogleIntegrationStatus(): Promise<GoogleCalendarStatus
 
 /**
  * Gets a valid Google access token, automatically refreshing if expired or expiring within 60s.
+ * Uses promise de-duplication to prevent concurrent refresh stampedes.
+ * Returns null if the token is already expired and cannot be refreshed.
  */
 export async function getAuthenticatedGoogleClient(): Promise<{
   accessToken: string
@@ -67,16 +78,23 @@ export async function getAuthenticatedGoogleClient(): Promise<{
     return null
   }
 
-  let accessToken = integration.access_token
   const now = Date.now()
 
-  // If token is expired or expiring within 60 seconds, attempt refresh
+  // If token is expired or expiring within 60 seconds, attempt refresh with promise de-duplication
   if (integration.token_expiry <= now + 60000) {
-    const refreshToken = integration.refresh_token
-    const clientId = process.env.GOOGLE_CLIENT_ID?.trim()
-    const clientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim()
+    if (inFlightTokenRefresh) {
+      return await inFlightTokenRefresh
+    }
 
-    if (refreshToken && clientId && clientSecret) {
+    inFlightTokenRefresh = (async () => {
+      const refreshToken = integration.refresh_token
+      const clientId = process.env.GOOGLE_CLIENT_ID?.trim()
+      const clientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim()
+
+      if (!refreshToken || !clientId || !clientSecret) {
+        return null
+      }
+
       try {
         const refreshed = await refreshGoogleAccessToken({
           refreshToken,
@@ -98,14 +116,26 @@ export async function getAuthenticatedGoogleClient(): Promise<{
           integration: updated,
         }
       } catch (err) {
-        // If refresh fails, log and fallback to current token or null
         console.error('Failed to refresh Google Calendar token:', err)
+        return null
       }
+    })().finally(() => {
+      inFlightTokenRefresh = null
+    })
+
+    const refreshedClient = await inFlightTokenRefresh
+    if (refreshedClient) {
+      return refreshedClient
+    }
+
+    // If refresh failed and token is already expired, return null
+    if (integration.token_expiry <= now) {
+      return null
     }
   }
 
   return {
-    accessToken,
+    accessToken: integration.access_token,
     calendarId: integration.calendar_id || 'primary',
     integration,
   }
@@ -251,6 +281,61 @@ export function getActivityWebLink(activity: Activity): string {
 }
 
 /**
+ * Upserts a Google Calendar event for a given CRM entity:
+ * If mapped, tries PATCH. If remote event not found (404), recreates and updates mapping.
+ * If not mapped, creates and saves mapping.
+ * Returns the Google event ID.
+ */
+export async function upsertGoogleCalendarEvent(options: {
+  client: { accessToken: string; calendarId: string }
+  crmId: string
+  crmType: string
+  eventInput: GoogleCalendarEventInput
+}): Promise<string> {
+  const { client, crmId, crmType, eventInput } = options
+  const mapping = await getGoogleCalendarEventMapping(crmId, crmType)
+
+  if (mapping) {
+    try {
+      const updated = await updateGoogleCalendarEvent({
+        accessToken: client.accessToken,
+        calendarId: client.calendarId,
+        eventId: mapping.google_event_id,
+        event: eventInput,
+      })
+      return updated.id
+    } catch (err: any) {
+      if (String(err?.message || '').includes('404')) {
+        const created = await createGoogleCalendarEvent({
+          accessToken: client.accessToken,
+          calendarId: client.calendarId,
+          event: eventInput,
+        })
+        await saveGoogleCalendarEventMapping({
+          crm_type: crmType,
+          crm_id: crmId,
+          google_event_id: created.id,
+        })
+        return created.id
+      }
+      throw err
+    }
+  }
+
+  const created = await createGoogleCalendarEvent({
+    accessToken: client.accessToken,
+    calendarId: client.calendarId,
+    event: eventInput,
+  })
+  await saveGoogleCalendarEventMapping({
+    crm_type: crmType,
+    crm_id: crmId,
+    google_event_id: created.id,
+  })
+  return created.id
+}
+
+/**
  * Pushes upcoming CRM activities and deal next-steps to Google Calendar.
  */
 export async function syncAllToGoogleCalendar(): Promise<GoogleCalendarSyncResult> {
@@ -277,48 +362,13 @@ export async function syncAllToGoogleCalendar(): Promise<GoogleCalendarSyncResul
   for (const activity of activitiesToSync) {
     try {
       const eventInput = getActivityEventInput(activity)
-      const mapping = await getGoogleCalendarEventMapping(activity.id, 'activity')
-
-      if (mapping) {
-        try {
-          await updateGoogleCalendarEvent({
-            accessToken: client.accessToken,
-            calendarId: client.calendarId,
-            eventId: mapping.google_event_id,
-            event: eventInput,
-          })
-          syncedCount++
-        } catch (err: any) {
-          // If remote event was deleted (404), re-create and update mapping
-          if (String(err?.message || '').includes('404')) {
-            const created = await createGoogleCalendarEvent({
-              accessToken: client.accessToken,
-              calendarId: client.calendarId,
-              event: eventInput,
-            })
-            await saveGoogleCalendarEventMapping({
-              crm_type: 'activity',
-              crm_id: activity.id,
-              google_event_id: created.id,
-            })
-            syncedCount++
-          } else {
-            console.error(`Failed to update activity ${activity.id} in Google Calendar:`, err)
-          }
-        }
-      } else {
-        const created = await createGoogleCalendarEvent({
-          accessToken: client.accessToken,
-          calendarId: client.calendarId,
-          event: eventInput,
-        })
-        await saveGoogleCalendarEventMapping({
-          crm_type: 'activity',
-          crm_id: activity.id,
-          google_event_id: created.id,
-        })
-        syncedCount++
-      }
+      await upsertGoogleCalendarEvent({
+        client,
+        crmId: activity.id,
+        crmType: 'activity',
+        eventInput,
+      })
+      syncedCount++
     } catch (err) {
       console.error(`Error syncing activity ${activity.id}:`, err)
     }
@@ -337,47 +387,13 @@ export async function syncAllToGoogleCalendar(): Promise<GoogleCalendarSyncResul
   for (const deal of dealsToSync) {
     try {
       const eventInput = getDealNextEventInput(deal)
-      const mapping = await getGoogleCalendarEventMapping(deal.id, 'deal')
-
-      if (mapping) {
-        try {
-          await updateGoogleCalendarEvent({
-            accessToken: client.accessToken,
-            calendarId: client.calendarId,
-            eventId: mapping.google_event_id,
-            event: eventInput,
-          })
-          syncedCount++
-        } catch (err: any) {
-          if (String(err?.message || '').includes('404')) {
-            const created = await createGoogleCalendarEvent({
-              accessToken: client.accessToken,
-              calendarId: client.calendarId,
-              event: eventInput,
-            })
-            await saveGoogleCalendarEventMapping({
-              crm_type: 'deal',
-              crm_id: deal.id,
-              google_event_id: created.id,
-            })
-            syncedCount++
-          } else {
-            console.error(`Failed to update deal ${deal.id} in Google Calendar:`, err)
-          }
-        }
-      } else {
-        const created = await createGoogleCalendarEvent({
-          accessToken: client.accessToken,
-          calendarId: client.calendarId,
-          event: eventInput,
-        })
-        await saveGoogleCalendarEventMapping({
-          crm_type: 'deal',
-          crm_id: deal.id,
-          google_event_id: created.id,
-        })
-        syncedCount++
-      }
+      await upsertGoogleCalendarEvent({
+        client,
+        crmId: deal.id,
+        crmType: 'deal',
+        eventInput,
+      })
+      syncedCount++
     } catch (err) {
       console.error(`Error syncing deal ${deal.id}:`, err)
     }
@@ -411,48 +427,12 @@ export async function syncActivityToGoogleCalendar(
   }
 
   const eventInput = getActivityEventInput(activity)
-  const mapping = await getGoogleCalendarEventMapping(activity.id, 'activity')
-
-  let eventId: string
-  if (mapping) {
-    try {
-      const updated = await updateGoogleCalendarEvent({
-        accessToken: client.accessToken,
-        calendarId: client.calendarId,
-        eventId: mapping.google_event_id,
-        event: eventInput,
-      })
-      eventId = updated.id
-    } catch (err: any) {
-      if (String(err?.message || '').includes('404')) {
-        const created = await createGoogleCalendarEvent({
-          accessToken: client.accessToken,
-          calendarId: client.calendarId,
-          event: eventInput,
-        })
-        await saveGoogleCalendarEventMapping({
-          crm_type: 'activity',
-          crm_id: activity.id,
-          google_event_id: created.id,
-        })
-        eventId = created.id
-      } else {
-        throw err
-      }
-    }
-  } else {
-    const created = await createGoogleCalendarEvent({
-      accessToken: client.accessToken,
-      calendarId: client.calendarId,
-      event: eventInput,
-    })
-    await saveGoogleCalendarEventMapping({
-      crm_type: 'activity',
-      crm_id: activity.id,
-      google_event_id: created.id,
-    })
-    eventId = created.id
-  }
+  const eventId = await upsertGoogleCalendarEvent({
+    client,
+    crmId: activity.id,
+    crmType: 'activity',
+    eventInput,
+  })
 
   return { success: true, eventId }
 }

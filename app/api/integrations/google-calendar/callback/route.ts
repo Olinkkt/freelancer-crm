@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { exchangeGoogleCode } from '@/lib/google-calendar/client'
 import { saveGoogleCalendarTokens } from '@/lib/db/google-calendar-repository'
+import { sanitizeErrorMessage } from '@/lib/errors'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,7 +16,10 @@ export async function GET(req: Request) {
     const redirectUrl = new URL(baseUrl)
     redirectUrl.searchParams.set('settings', 'open')
     redirectUrl.searchParams.set('gcal', 'error')
-    redirectUrl.searchParams.set('message', error)
+    redirectUrl.searchParams.set(
+      'message',
+      sanitizeErrorMessage(error, 'Google authorization error')
+    )
     return NextResponse.redirect(redirectUrl)
   }
 
@@ -63,7 +67,10 @@ export async function GET(req: Request) {
     const redirectUrl = new URL(baseUrl)
     redirectUrl.searchParams.set('settings', 'open')
     redirectUrl.searchParams.set('gcal', 'error')
-    redirectUrl.searchParams.set('message', err?.message || 'Token exchange failed')
+    redirectUrl.searchParams.set(
+      'message',
+      sanitizeErrorMessage(err, 'Token exchange failed')
+    )
     return NextResponse.redirect(redirectUrl)
   }
 }

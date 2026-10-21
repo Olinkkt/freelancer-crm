@@ -8,6 +8,7 @@ import {
   getGoogleCalendarIntegration,
   getGoogleCalendarEventMapping,
 } from '@/lib/db/google-calendar-repository'
+import { createSessionToken } from '@/lib/auth/session'
 
 import { GET as getStatus } from '@/app/api/integrations/google-calendar/status/route'
 import { GET as getAuthUrl } from '@/app/api/integrations/google-calendar/auth-url/route'
@@ -40,6 +41,7 @@ describe('Google Calendar API Endpoints & Server Actions', () => {
     await db.deleteFrom('google_calendar_integrations').execute()
     await db.deleteFrom('activities').execute()
     await db.deleteFrom('deals').execute()
+    await db.deleteFrom('companies').execute()
   })
 
   beforeEach(async () => {
@@ -52,6 +54,7 @@ describe('Google Calendar API Endpoints & Server Actions', () => {
     await db.deleteFrom('google_calendar_integrations').execute()
     await db.deleteFrom('activities').execute()
     await db.deleteFrom('deals').execute()
+    await db.deleteFrom('companies').execute()
   })
 
   afterEach(() => {
@@ -245,7 +248,10 @@ describe('Google Calendar API Endpoints & Server Actions', () => {
         token_expiry: Date.now() + 3600000,
       })
 
-      const res = await postDisconnect()
+      const req = new Request('http://localhost:3000/api/integrations/google-calendar/disconnect', {
+        method: 'POST',
+      })
+      const res = await postDisconnect(req)
       assert.equal(res.status, 200)
 
       const body = await res.json()
@@ -348,7 +354,10 @@ describe('Google Calendar API Endpoints & Server Actions', () => {
 
   describe('POST /api/integrations/google-calendar/sync', () => {
     it('returns 400 with error if not connected', async () => {
-      const res = await postSync()
+      const req = new Request('http://localhost:3000/api/integrations/google-calendar/sync', {
+        method: 'POST',
+      })
+      const res = await postSync(req)
       assert.equal(res.status, 400)
 
       const body = await res.json()
@@ -403,7 +412,10 @@ describe('Google Calendar API Endpoints & Server Actions', () => {
         return new Response('Not found', { status: 404 })
       }
 
-      const res = await postSync()
+      const req = new Request('http://localhost:3000/api/integrations/google-calendar/sync', {
+        method: 'POST',
+      })
+      const res = await postSync(req)
       assert.equal(res.status, 200)
 
       const body = await res.json()
@@ -426,6 +438,99 @@ describe('Google Calendar API Endpoints & Server Actions', () => {
       // Verify integration last_synced_at is updated
       const integration = await getGoogleCalendarIntegration()
       assert.ok(integration?.last_synced_at)
+    })
+  })
+
+  describe('Security & Authentication (AUTH_SECRET)', () => {
+    const TEST_AUTH_SECRET = 'secret-auth-key-for-test'
+    let validToken: string
+
+    beforeEach(() => {
+      process.env.AUTH_SECRET = TEST_AUTH_SECRET
+      validToken = createSessionToken()
+    })
+
+    it('rejects unauthenticated requests to protected API routes with 401 Unauthorized', async () => {
+      process.env.GOOGLE_CLIENT_ID = 'test-client'
+
+      // 1. auth-url
+      const authUrlRes = await getAuthUrl(
+        new Request('http://localhost:3000/api/integrations/google-calendar/auth-url')
+      )
+      assert.equal(authUrlRes.status, 401)
+      const authUrlBody = await authUrlRes.json()
+      assert.equal(authUrlBody.error, 'Unauthorized')
+
+      // 2. disconnect
+      const disconnectRes = await postDisconnect(
+        new Request('http://localhost:3000/api/integrations/google-calendar/disconnect', {
+          method: 'POST',
+        })
+      )
+      assert.equal(disconnectRes.status, 401)
+
+      // 3. events
+      const eventsRes = await getEvents(
+        new Request('http://localhost:3000/api/integrations/google-calendar/events')
+      )
+      assert.equal(eventsRes.status, 401)
+
+      // 4. sync
+      const syncRes = await postSync(
+        new Request('http://localhost:3000/api/integrations/google-calendar/sync', {
+          method: 'POST',
+        })
+      )
+      assert.equal(syncRes.status, 401)
+    })
+
+    it('allows requests with valid Authorization Bearer token when AUTH_SECRET is set', async () => {
+      process.env.GOOGLE_CLIENT_ID = 'test-client'
+
+      const authedReq = new Request(
+        'http://localhost:3000/api/integrations/google-calendar/auth-url',
+        {
+          headers: {
+            Authorization: `Bearer ${validToken}`,
+          },
+        }
+      )
+      const res = await getAuthUrl(authedReq)
+      assert.equal(res.status, 200)
+      const body = await res.json()
+      assert.ok(body.url)
+    })
+
+    it('rejects server actions with Unauthorized error when unauthenticated and AUTH_SECRET is set', async () => {
+      await assert.rejects(
+        () => getGoogleCalendarStatusAction(),
+        /Unauthorized: Please authenticate to access workspace/
+      )
+
+      await assert.rejects(
+        () => disconnectGoogleCalendarAction(),
+        /Unauthorized: Please authenticate to access workspace/
+      )
+
+      await assert.rejects(
+        () => triggerGoogleCalendarSyncAction(),
+        /Unauthorized: Please authenticate to access workspace/
+      )
+
+      await assert.rejects(
+        () => syncActivityToGoogleCalendarAction('any-activity-id'),
+        /Unauthorized: Please authenticate to access workspace/
+      )
+
+      await assert.rejects(
+        () => deleteActivityFromGoogleCalendarAction('any-activity-id'),
+        /Unauthorized: Please authenticate to access workspace/
+      )
+
+      await assert.rejects(
+        () => generateActivityGoogleWebLinkAction('any-activity-id'),
+        /Unauthorized: Please authenticate to access workspace/
+      )
     })
   })
 

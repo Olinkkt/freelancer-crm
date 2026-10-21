@@ -1,11 +1,17 @@
 import { NextResponse } from 'next/server'
 import { getAuthenticatedGoogleClient } from '@/lib/google-calendar/service'
 import { listGoogleCalendarEvents } from '@/lib/google-calendar/client'
+import { checkIsAuthenticated } from '@/lib/auth/session'
 import { sanitizeErrorMessage } from '@/lib/errors'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: Request) {
+  const isAuthed = await checkIsAuthenticated(req)
+  if (!isAuthed) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
     const client = await getAuthenticatedGoogleClient()
     if (!client) {

@@ -26,6 +26,7 @@ import {
   generateActivityGoogleWebLinkAction,
   updateGoogleCalendarSettingsAction,
 } from '@/app/actions/google-calendar'
+import { logActivityAction, deleteActivityAction } from '@/app/actions/crm'
 
 describe('Google Calendar API Endpoints & Server Actions', () => {
   const originalEnv = { ...process.env }
@@ -687,6 +688,164 @@ describe('Google Calendar API Endpoints & Server Actions', () => {
 
       const statusAfter = await getGoogleCalendarStatusAction()
       assert.equal(statusAfter.autoSync, false)
+    })
+  })
+
+  describe('CRM Activities Google Calendar Auto-Sync Hook', () => {
+    it('logActivityAction triggers Google Calendar sync when auto_sync is enabled', async () => {
+      await saveGoogleCalendarTokens({
+        access_token: 'auto-sync-test-token',
+        refresh_token: 'test-refresh-token',
+        token_expiry: Date.now() + 3600000,
+        calendar_id: 'primary',
+      })
+
+      let postCalled = false
+      let postedBody: any = null
+
+      globalThis.fetch = async (url: any, init?: any) => {
+        const urlStr = String(url)
+        if (urlStr.includes('/calendars/primary/events') && init?.method === 'POST') {
+          postCalled = true
+          postedBody = JSON.parse(init.body)
+          return new Response(
+            JSON.stringify({
+              id: 'gcal-auto-synced-123',
+              summary: postedBody.summary,
+              start: postedBody.start,
+              end: postedBody.end,
+              htmlLink: 'https://calendar.google.com/event?eid=123',
+            }),
+            { status: 200 }
+          )
+        }
+        return new Response(JSON.stringify({}), { status: 200 })
+      }
+
+      const res = await logActivityAction({
+        type: 'Meeting',
+        title: 'Scoping Session with Alpha',
+        person: 'Bob Smith',
+        company: 'Alpha Inc',
+        date: '2026-10-25T10:00:00Z',
+        summary: 'Discuss architecture and deliverable scope',
+        status: 'Upcoming',
+        color: 'blue',
+      })
+
+      assert.ok(res.activity)
+      assert.equal(postCalled, true)
+      assert.ok(postedBody.summary.includes('Scoping Session with Alpha'))
+
+      // Verify mapping was saved in database
+      const mapping = await getGoogleCalendarEventMapping(res.activity.id, 'activity')
+      assert.ok(mapping)
+      assert.equal(mapping.google_event_id, 'gcal-auto-synced-123')
+    })
+
+    it('logActivityAction succeeds even if Google sync errors out or throws network error', async () => {
+      await saveGoogleCalendarTokens({
+        access_token: 'auto-sync-error-token',
+        refresh_token: 'test-refresh-token',
+        token_expiry: Date.now() + 3600000,
+        calendar_id: 'primary',
+      })
+
+      // Mock Google API throwing an error
+      globalThis.fetch = async () => {
+        throw new Error('Google API connection timeout or offline')
+      }
+
+      const res = await logActivityAction({
+        type: 'Call',
+        title: 'Emergency call with Beta',
+        person: 'Carol',
+        company: 'Beta Corp',
+        date: '2026-10-26T14:00:00Z',
+        status: 'Upcoming',
+        color: 'blue',
+      })
+
+      assert.ok(res.activity)
+      assert.equal(res.activity.title, 'Emergency call with Beta')
+
+      // Local activity created successfully, mapping is not created
+      const mapping = await getGoogleCalendarEventMapping(res.activity.id, 'activity')
+      assert.equal(mapping, null)
+    })
+
+    it('logActivityAction succeeds when Google Calendar is disconnected', async () => {
+      const res = await logActivityAction({
+        type: 'Note',
+        title: 'Disconnected workspace note',
+        person: 'Dan',
+        company: 'Gamma LLC',
+        date: '2026-10-27',
+        status: 'Upcoming',
+        color: 'blue',
+      })
+
+      assert.ok(res.activity)
+      assert.equal(res.activity.title, 'Disconnected workspace note')
+    })
+
+    it('deleteActivityAction unlinks and removes remote Google Calendar event', async () => {
+      await saveGoogleCalendarTokens({
+        access_token: 'delete-sync-token',
+        refresh_token: 'test-refresh-token',
+        token_expiry: Date.now() + 3600000,
+        calendar_id: 'primary',
+      })
+
+      let deleteCalled = false
+      let deletedEventId = ''
+
+      globalThis.fetch = async (url: any, init?: any) => {
+        const urlStr = String(url)
+        if (urlStr.includes('/calendars/primary/events') && init?.method === 'POST') {
+          return new Response(
+            JSON.stringify({
+              id: 'gcal-to-be-deleted-999',
+              summary: 'Sync before delete',
+              start: { date: '2026-10-28' },
+              end: { date: '2026-10-29' },
+            }),
+            { status: 200 }
+          )
+        }
+        if (init?.method === 'DELETE') {
+          deleteCalled = true
+          const match = urlStr.match(/events\/([^?]+)/)
+          if (match) deletedEventId = decodeURIComponent(match[1])
+          return new Response(null, { status: 204 })
+        }
+        return new Response(JSON.stringify({}), { status: 200 })
+      }
+
+      // 1. Create activity with auto-sync
+      const createRes = await logActivityAction({
+        type: 'Call',
+        title: 'Call to be deleted',
+        person: 'Eve',
+        company: 'Epsilon Ltd',
+        date: '2026-10-28',
+        status: 'Upcoming',
+        color: 'blue',
+      })
+
+      const mappingBefore = await getGoogleCalendarEventMapping(createRes.activity.id, 'activity')
+      assert.ok(mappingBefore)
+      assert.equal(mappingBefore.google_event_id, 'gcal-to-be-deleted-999')
+
+      // 2. Delete activity
+      const deleteRes = await deleteActivityAction(createRes.activity.id)
+      assert.equal(deleteRes, true)
+      assert.equal(deleteCalled, true)
+      assert.equal(deletedEventId, 'gcal-to-be-deleted-999')
+
+      // 3. Verify mapping is gone
+      const mappingAfter = await getGoogleCalendarEventMapping(createRes.activity.id, 'activity')
+      assert.equal(mappingAfter, null)
     })
   })
 })

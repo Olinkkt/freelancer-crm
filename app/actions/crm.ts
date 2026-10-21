@@ -12,6 +12,11 @@ import {
   WorkspaceData,
 } from '@/lib/crm-types'
 import { sanitizeErrorMessage } from '@/lib/errors'
+import { getGoogleCalendarIntegration } from '@/lib/db/google-calendar-repository'
+import {
+  syncActivityToGoogleCalendar,
+  deleteActivityFromGoogleCalendar,
+} from '@/lib/google-calendar/service'
 
 async function assertAuth() {
   const isAuthed = await checkIsAuthenticated()
@@ -189,7 +194,19 @@ export async function logActivityAction(
 }> {
   await assertAuth()
   try {
-    return await repo.logActivity(activityData, followUpData, dealId)
+    const result = await repo.logActivity(activityData, followUpData, dealId)
+
+    // Hook activity creation to Google Calendar auto-sync
+    try {
+      const integration = await getGoogleCalendarIntegration()
+      if (integration?.access_token && integration.auto_sync) {
+        await syncActivityToGoogleCalendar(result.activity.id)
+      }
+    } catch (gcalErr) {
+      console.warn('Google Calendar auto-sync skipped or failed:', gcalErr)
+    }
+
+    return result
   } catch (err: any) {
     throw new Error(sanitizeErrorMessage(err, 'Failed to log activity'))
   }
@@ -238,6 +255,12 @@ export async function updateFollowUpAction(followUp: FollowUpItem): Promise<Foll
 export async function deleteActivityAction(id: string): Promise<boolean> {
   await assertAuth()
   try {
+    try {
+      await deleteActivityFromGoogleCalendar(id)
+    } catch (gcalErr) {
+      console.warn('Google Calendar activity deletion skipped or failed:', gcalErr)
+    }
+
     const success = await repo.deleteActivity(id)
     if (!success) {
       throw new Error('Activity not found')

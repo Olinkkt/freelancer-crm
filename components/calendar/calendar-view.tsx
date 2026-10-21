@@ -11,11 +11,14 @@ import {
   FileText,
   ChevronLeft,
   ChevronRight,
+  ExternalLink,
+  RefreshCw,
 } from 'lucide-react'
 import { CalendarEvent, DayColumn, FeaturedEvent } from './types'
 import { INITIAL_DAYS, INITIAL_EVENTS, TOP_FEATURED_EVENTS } from './mock-data'
 import { EventModal } from './event-modal'
 import { Deal, FollowUpItem } from '@/lib/crm-types'
+import { GoogleCalendarEventItem, GoogleCalendarStatusResponse } from '@/lib/google-calendar/types'
 import {
   getWorkweekDays,
   formatWeekRange,
@@ -91,6 +94,75 @@ const THEME_STYLES: Record<string, typeof UNIFIED_THEME> = {
   amber: UNIFIED_THEME,
   green: UNIFIED_THEME,
   dark: UNIFIED_THEME,
+}
+
+function mapGoogleEventToCalendarEvent(
+  item: GoogleCalendarEventItem,
+  days: DayColumn[]
+): CalendarEvent | null {
+  let dateString: string
+  let startHour = 9.0
+  let durationHours = 1.0
+
+  if (item.start?.dateTime) {
+    const startDate = new Date(item.start.dateTime)
+    if (isNaN(startDate.getTime())) return null
+    dateString = getDateString(startDate)
+    const rawStartHour = startDate.getHours() + startDate.getMinutes() / 60
+    startHour = Math.min(END_HOUR, Math.max(START_HOUR, Math.round(rawStartHour * 4) / 4))
+
+    if (item.end?.dateTime) {
+      const endDate = new Date(item.end.dateTime)
+      if (!isNaN(endDate.getTime())) {
+        const diffHours = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60)
+        if (diffHours > 0) {
+          durationHours = Math.max(0.5, Math.round(diffHours * 4) / 4)
+        }
+      }
+    }
+  } else if (item.start?.date) {
+    dateString = item.start.date
+    startHour = 9.0
+    durationHours = 1.0
+  } else {
+    return null
+  }
+
+  const dayIndex = days.findIndex((d) => getDateString(d.fullDate) === dateString)
+  if (dayIndex === -1) {
+    return null
+  }
+
+  const startTimeLabel = formatHourMinute(startHour)
+  const endTimeLabel = formatHourMinute(startHour + durationHours)
+
+  return {
+    id: `gcal-${item.id}`,
+    title: item.summary || '(No title)',
+    description: item.description || undefined,
+    subtitle: item.location || 'Google Calendar',
+    company: item.location || 'Google Calendar',
+    person: 'Google Calendar',
+    dayIndex,
+    dateString,
+    startHour,
+    durationHours,
+    startTimeLabel,
+    endTimeLabel,
+    category: 'meeting',
+    colorTheme: 'blue',
+    source: 'google',
+    htmlLink: item.htmlLink,
+    actionLabel: 'Open in Google Calendar',
+    attendees: [
+      {
+        id: `gcal-att-${item.id}`,
+        name: 'Google Calendar',
+        initials: 'GC',
+        colorTheme: 'blue',
+      },
+    ],
+  }
 }
 
 export function CalendarView({ deals = [], followUps = [], onOpenDeal }: CalendarViewProps) {
@@ -193,19 +265,76 @@ export function CalendarView({ deals = [], followUps = [], onOpenDeal }: Calenda
       .filter(Boolean) as CalendarEvent[]
   }, [followUps, days])
 
-  // Merge base events, deal milestone events, and follow-ups
+  const [googleEvents, setGoogleEvents] = useState<CalendarEvent[]>([])
+  const [gcalStatus, setGcalStatus] = useState<GoogleCalendarStatusResponse | null>(null)
+  const [isSyncing, setIsSyncing] = useState(false)
+
+  // Fetch Google Calendar status and events for active workweek
+  const fetchGoogleCalendarData = useCallback(async () => {
+    if (!days || days.length === 0) return
+
+    try {
+      // 1. Fetch status
+      const statusRes = await fetch('/api/integrations/google-calendar/status')
+      if (statusRes.ok) {
+        const statusData: GoogleCalendarStatusResponse = await statusRes.json()
+        setGcalStatus(statusData)
+
+        if (!statusData.connected) {
+          setGoogleEvents([])
+          return
+        }
+      }
+
+      // 2. Fetch events for active workweek
+      const start = new Date(days[0].fullDate)
+      start.setHours(0, 0, 0, 0)
+      const end = new Date(days[days.length - 1].fullDate)
+      end.setHours(23, 59, 59, 999)
+
+      const eventsRes = await fetch(
+        `/api/integrations/google-calendar/events?timeMin=${encodeURIComponent(
+          start.toISOString()
+        )}&timeMax=${encodeURIComponent(end.toISOString())}`
+      )
+
+      if (eventsRes.ok) {
+        const data = await eventsRes.json()
+        const rawEvents: GoogleCalendarEventItem[] = data.events || []
+
+        const mapped = rawEvents
+          .map((item) => mapGoogleEventToCalendarEvent(item, days))
+          .filter(Boolean) as CalendarEvent[]
+        setGoogleEvents(mapped)
+      }
+    } catch (err) {
+      console.warn('Failed to fetch Google Calendar data:', err)
+    }
+  }, [days])
+
+  useEffect(() => {
+    fetchGoogleCalendarData()
+  }, [fetchGoogleCalendarData])
+
+  // Merge base events, deal milestone events, follow-ups, and Google Calendar events
   const allCombinedEvents = useMemo(() => {
     const existingIds = new Set(INITIAL_EVENTS.map((e) => e.id))
     const uniqueMilestones = dealMilestoneEvents.filter((e) => !existingIds.has(e.id))
     uniqueMilestones.forEach((e) => existingIds.add(e.id))
     const uniqueFollowUps = followUpEvents.filter((e) => !existingIds.has(e.id))
-    return [...INITIAL_EVENTS, ...uniqueMilestones, ...uniqueFollowUps]
-  }, [dealMilestoneEvents, followUpEvents])
+    uniqueFollowUps.forEach((e) => existingIds.add(e.id))
+    const uniqueGoogle = googleEvents.filter((e) => !existingIds.has(e.id))
+    return [...INITIAL_EVENTS, ...uniqueMilestones, ...uniqueFollowUps, ...uniqueGoogle]
+  }, [dealMilestoneEvents, followUpEvents, googleEvents])
 
   const [events, setEvents] = useState<CalendarEvent[]>(allCombinedEvents)
 
   useEffect(() => {
-    setEvents(allCombinedEvents)
+    setEvents((prev) => {
+      const combinedIds = new Set(allCombinedEvents.map((e) => e.id))
+      const customEvents = prev.filter((e) => !combinedIds.has(e.id) && e.id.startsWith('ev-'))
+      return [...allCombinedEvents, ...customEvents]
+    })
   }, [allCombinedEvents])
   const [searchQuery, setSearchQuery] = useState('')
   const [toastMessage, setToastMessage] = useState<string | null>(null)
@@ -247,6 +376,29 @@ export function CalendarView({ deals = [], followUps = [], onOpenDeal }: Calenda
   const showToast = (msg: string) => {
     setToastMessage(msg)
     setTimeout(() => setToastMessage(null), 3000)
+  }
+
+  // Manual Google Calendar sync
+  const handleManualSync = async () => {
+    if (isSyncing) return
+    setIsSyncing(true)
+    try {
+      const res = await fetch('/api/integrations/google-calendar/sync', { method: 'POST' })
+      if (res.ok) {
+        const result = await res.json()
+        showToast(
+          `Synced ${result.syncedCount ?? 0} item${result.syncedCount === 1 ? '' : 's'} with Google Calendar`
+        )
+      } else {
+        const err = await res.json().catch(() => ({}))
+        showToast(err.error || 'Google Calendar sync failed')
+      }
+      await fetchGoogleCalendarData()
+    } catch (err: any) {
+      showToast('Failed to trigger Google Calendar sync')
+    } finally {
+      setIsSyncing(false)
+    }
   }
 
   // Filtered events
@@ -630,6 +782,7 @@ export function CalendarView({ deals = [], followUps = [], onOpenDeal }: Calenda
   // Delete event
   const handleDeleteEvent = (eventId: string) => {
     setEvents((prev) => prev.filter((ev) => ev.id !== eventId))
+    setGoogleEvents((prev) => prev.filter((ev) => ev.id !== eventId))
     showToast('Event removed from schedule')
   }
 
@@ -807,23 +960,71 @@ export function CalendarView({ deals = [], followUps = [], onOpenDeal }: Calenda
             </span>
           </div>
 
-          <label className="search-field">
-            <Search size={14} />
-            <input
-              placeholder="Search schedule..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            {searchQuery && (
+          <div className="flex items-center gap-2.5">
+            {/* Google Calendar Sync Indicator & Manual Sync Button */}
+            <div className="flex items-center gap-1.5">
+              <div
+                className="inline-flex items-center gap-1.5 px-2 py-1 rounded-[6px] text-[11px] font-medium border border-[#edf0f3] bg-[#f8f9fa] text-[#505967]"
+                title={
+                  gcalStatus?.connected
+                    ? `Connected to ${gcalStatus.calendarName || 'Google Calendar'}${
+                        gcalStatus.lastSyncedAt
+                          ? ` • Last synced: ${new Date(gcalStatus.lastSyncedAt).toLocaleTimeString([], {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}`
+                          : ''
+                      }`
+                    : 'Google Calendar not connected'
+                }
+              >
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    gcalStatus?.connected
+                      ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.5)]'
+                      : 'bg-[#9fa1a7]'
+                  }`}
+                />
+                <span className="hidden sm:inline">
+                  {gcalStatus?.connected ? 'Google Calendar' : 'GCal'}
+                </span>
+                {gcalStatus?.connected && (
+                  <span className="text-[10px] text-emerald-600 font-semibold uppercase">
+                    Live
+                  </span>
+                )}
+              </div>
+
               <button
                 type="button"
-                onClick={() => setSearchQuery('')}
-                className="text-xs text-gray-400 hover:text-gray-600 ml-1"
+                onClick={handleManualSync}
+                disabled={isSyncing}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold text-[#505967] hover:text-[#266df0] hover:bg-[#f1f5ff] rounded-[6px] border border-[#edf0f3] bg-white transition-colors disabled:opacity-50 cursor-pointer shadow-2xs"
+                title="Sync now with Google Calendar"
               >
-                ×
+                <RefreshCw size={12} className={isSyncing ? 'animate-spin text-[#266df0]' : ''} />
+                <span>{isSyncing ? 'Syncing...' : 'Sync'}</span>
               </button>
-            )}
-          </label>
+            </div>
+
+            <label className="search-field">
+              <Search size={14} />
+              <input
+                placeholder="Search schedule..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="text-xs text-gray-400 hover:text-gray-600 ml-1"
+                >
+                  ×
+                </button>
+              )}
+            </label>
+          </div>
         </div>
 
         {/* Scrollable Viewport for Time Schedule */}
@@ -1016,13 +1217,40 @@ export function CalendarView({ deals = [], followUps = [], onOpenDeal }: Calenda
                             ? formatHourMinute(event.startHour + durationHours)
                             : event.endTimeLabel}
                         </span>
+                        {event.source === 'google' && (
+                          <span
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[4px] bg-[#e8f0fe] border border-[#d2e3fc] text-[#1967d2] text-[9px] font-semibold tracking-wide shrink-0"
+                            title="Synced from Google Calendar"
+                          >
+                            <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z" />
+                            </svg>
+                            <span>GCal</span>
+                          </span>
+                        )}
                       </div>
 
                       {/* Title & subtitle */}
                       <div>
-                        <h4 className="text-[12px] font-bold text-[#1c1d1f] group-hover:text-[#266df0] transition-colors line-clamp-2 leading-tight">
-                          {event.title}
-                        </h4>
+                        <div className="flex items-start justify-between gap-1">
+                          <h4 className="text-[12px] font-bold text-[#1c1d1f] group-hover:text-[#266df0] transition-colors line-clamp-2 leading-tight">
+                            {event.title}
+                          </h4>
+                          {event.source === 'google' && event.htmlLink && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                window.open(event.htmlLink, '_blank', 'noopener,noreferrer')
+                              }}
+                              className="text-[#1967d2] hover:text-[#174ea6] hover:bg-[#d2e3fc]/60 p-0.5 rounded transition-colors shrink-0"
+                              title="Open in Google Calendar"
+                              aria-label="Open in Google Calendar"
+                            >
+                              <ExternalLink size={11} />
+                            </button>
+                          )}
+                        </div>
 
                         {event.subtitle && (
                           <p className="text-[10px] text-[#8f99a8] mt-0.5 line-clamp-1 leading-snug">

@@ -31,6 +31,7 @@ import { ScratchpadEditor } from './scratchpad-editor'
 import { DeliverablesTracker } from './deliverables-tracker'
 import { MarkdownFormatter } from '../ui/markdown-formatter'
 import { formatDealValue, formatMoney, OPERATOR_CONFIG } from '@/lib/config'
+import { generateGoogleCalendarWebLink, resolveEventDates } from '@/lib/google-calendar/web-links'
 
 interface DealDetailDrawerProps {
   deal: Deal | null
@@ -803,6 +804,35 @@ export function DealDetailDrawer({
                             </div>
 
                             <div className="flex items-center gap-2 shrink-0">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  const dates = resolveEventDates(act.date)
+                                  const isAllDay = Boolean(dates.start.date)
+                                  const url = generateGoogleCalendarWebLink({
+                                    title: act.title || `${act.type} with ${act.person || act.company}`,
+                                    details: [
+                                      act.person ? `Person: ${act.person}` : null,
+                                      act.company ? `Company: ${act.company}` : null,
+                                      act.summary || act.notes ? act.summary || act.notes : null,
+                                    ]
+                                      .filter(Boolean)
+                                      .join('\n\n'),
+                                    location: act.company || undefined,
+                                    date: isAllDay ? dates.start.date : undefined,
+                                    startTime: !isAllDay ? dates.start.dateTime : undefined,
+                                    endTime: !isAllDay ? dates.end.dateTime : undefined,
+                                    addHourDuration: 1,
+                                  })
+                                  window.open(url, '_blank', 'noopener,noreferrer')
+                                }}
+                                className="p-1 rounded-[5px] text-[#8f99a8] hover:text-[#266df0] hover:bg-[#edf2fe] transition-colors"
+                                title="Add to Google Calendar"
+                                aria-label="Add to Google Calendar"
+                              >
+                                <Calendar size={13} />
+                              </button>
                               <span className="px-1.5 py-0.2 rounded-[5px] text-[9px] font-mono font-semibold uppercase bg-white border border-[#e4e7ec] text-[#6f7988]">
                                 {act.type}
                               </span>

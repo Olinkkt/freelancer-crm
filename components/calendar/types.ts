@@ -26,6 +26,8 @@ export interface CalendarEvent {
   actionLabel?: string // e.g. "Chalupa U lesa" or "Client meeting"
   dealId?: string
   amountLabel?: string
+  source?: 'crm' | 'google'
+  htmlLink?: string
 }
 
 export interface FeaturedEvent {

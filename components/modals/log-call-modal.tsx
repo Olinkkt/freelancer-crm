@@ -21,6 +21,7 @@ import { Activity, Company, Contact, FollowUpItem, Deal } from '@/lib/crm-types'
 import { getRelativeDayLabel } from '@/lib/date-utils'
 import { formatMoney, OPERATOR_CONFIG } from '@/lib/config'
 import { Combobox, ComboboxOption } from '@/components/ui/combobox'
+import { generateGoogleCalendarWebLink, resolveEventDates } from '@/lib/google-calendar/web-links'
 
 interface LogCallModalProps {
   isOpen: boolean
@@ -444,6 +445,38 @@ export function LogCallModal({
     setIsSlashMenuOpen(false)
   }
 
+  const handleOpenGoogleCalendar = () => {
+    const dates = resolveEventDates(nextDue || undefined)
+    const isAllDay = Boolean(dates.start.date)
+
+    const eventTitle =
+      title.trim() ||
+      (nextAction.trim()
+        ? `Next: ${nextAction.trim()}`
+        : `${type} with ${person || company || 'Client'}`)
+
+    const details = [
+      person ? `Person: ${person}` : null,
+      company ? `Company: ${company}` : null,
+      summary.trim() ? `Notes:\n${summary.trim()}` : null,
+      nextAction.trim() ? `Next action: ${nextAction.trim()}` : null,
+    ]
+      .filter(Boolean)
+      .join('\n\n')
+
+    const url = generateGoogleCalendarWebLink({
+      title: eventTitle,
+      details,
+      location: company || undefined,
+      date: isAllDay ? dates.start.date : undefined,
+      startTime: !isAllDay ? dates.start.dateTime : undefined,
+      endTime: !isAllDay ? dates.end.dateTime : undefined,
+      addHourDuration: 1,
+    })
+
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }
+
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault()
     if (!person.trim() && !company.trim()) return
@@ -842,6 +875,15 @@ export function LogCallModal({
               <kbd className="px-1 bg-[#f4f5f6] border border-[#e4e7ec] rounded-[5px] text-[10px]">↵</kbd>
             </span>
             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleOpenGoogleCalendar}
+                className="inline-flex items-center gap-1.5 px-3 py-2 border border-[#dce0e8] hover:border-[#b5bcc9] bg-white text-[#232529] hover:bg-[#fafbfc] text-[12px] font-medium rounded-[10px] shadow-2xs transition-all cursor-pointer"
+                title="Create event in Google Calendar"
+              >
+                <Calendar size={14} className="text-[#266df0]" />
+                <span>Add to Google Calendar</span>
+              </button>
               <button
                 type="button"
                 onClick={onClose}

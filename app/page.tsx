@@ -102,6 +102,7 @@ import {
   triggerGoogleCalendarSyncAction,
 } from '@/app/actions/google-calendar'
 import { GoogleCalendarStatusResponse } from '@/lib/google-calendar/types'
+import { generateGoogleCalendarWebLink, resolveEventDates } from '@/lib/google-calendar/web-links'
 
 
 function NavItem({
@@ -1307,6 +1308,32 @@ export default function Page() {
                                     onClick: () => {
                                       setEditingActivity(activity)
                                       setIsLogCallOpen(true)
+                                    },
+                                  },
+                                  {
+                                    label: 'Add to Google Calendar',
+                                    icon: Calendar,
+                                    onClick: () => {
+                                      const dates = resolveEventDates(activity.date)
+                                      const isAllDay = Boolean(dates.start.date)
+                                      const url = generateGoogleCalendarWebLink({
+                                        title: activity.title
+                                          ? `${activity.type}: ${activity.title}`
+                                          : `${activity.type} with ${activity.person || activity.company}`,
+                                        details: [
+                                          activity.person ? `Person: ${activity.person}` : null,
+                                          activity.company ? `Company: ${activity.company}` : null,
+                                          activity.summary || activity.notes ? activity.summary || activity.notes : null,
+                                        ]
+                                          .filter(Boolean)
+                                          .join('\n\n'),
+                                        location: activity.company || undefined,
+                                        date: isAllDay ? dates.start.date : undefined,
+                                        startTime: !isAllDay ? dates.start.dateTime : undefined,
+                                        endTime: !isAllDay ? dates.end.dateTime : undefined,
+                                        addHourDuration: 1,
+                                      })
+                                      window.open(url, '_blank', 'noopener,noreferrer')
                                     },
                                   },
                                   ...(associatedDeal

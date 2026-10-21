@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { X, Trash2 } from 'lucide-react'
+import { X, Trash2, ExternalLink, Calendar } from 'lucide-react'
 import { CalendarEvent, DayColumn } from './types'
 import { getWorkweekDays, getDateString } from '@/lib/date-utils'
 
@@ -137,6 +137,48 @@ export function EventModal({
 
         {/* Clean minimal form: Name, Date, From & To, Description */}
         <form onSubmit={handleSubmit}>
+          {selectedEvent?.source === 'google' && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                backgroundColor: '#e8f0fe',
+                border: '1px solid #d2e3fc',
+                color: '#1967d2',
+                fontSize: '12px',
+                marginBottom: '12px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
+                <Calendar size={14} />
+                <span>Google Calendar Event</span>
+              </div>
+              {selectedEvent.htmlLink && (
+                <a
+                  href={selectedEvent.htmlLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    color: '#1a73e8',
+                    fontWeight: 600,
+                    textDecoration: 'none',
+                    fontSize: '11px',
+                  }}
+                  className="hover:underline"
+                >
+                  <span>Open in Google Calendar</span>
+                  <ExternalLink size={12} />
+                </a>
+              )}
+            </div>
+          )}
+
           {/* 1. Name */}
           <label>
             Name
@@ -252,7 +294,26 @@ export function EventModal({
               </button>
             ) : null}
 
-            <div style={{ display: 'flex', gap: '8px' }}>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              {selectedEvent?.htmlLink && (
+                <a
+                  href={selectedEvent.htmlLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="select-button"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    textDecoration: 'none',
+                    color: '#1a73e8',
+                    fontWeight: 600,
+                  }}
+                >
+                  <ExternalLink size={13} />
+                  <span>Google Calendar</span>
+                </a>
+              )}
               <button type="button" className="select-button" onClick={onClose}>
                 Cancel
               </button>

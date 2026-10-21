@@ -88,6 +88,7 @@ export interface WorkspaceSettingsTable {
   locale: string
   passcode_hash: string | null
   is_claimed: number // 0 or 1
+  calendar_feed_token?: string | null
   created_at: string
   updated_at: string
 }

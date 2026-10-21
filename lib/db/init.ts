@@ -1,7 +1,7 @@
 import { sql } from 'kysely'
 import { db } from './client'
 
-const SCHEMA_VERSION = 3
+const SCHEMA_VERSION = 4
 
 const globalForInit = globalThis as unknown as {
   dbInitPromise?: Promise<void>
@@ -127,10 +127,18 @@ export async function ensureDbInitialized(force = false): Promise<void> {
         locale TEXT NOT NULL DEFAULT 'en-US',
         passcode_hash TEXT,
         is_claimed INTEGER NOT NULL DEFAULT 0,
+        calendar_feed_token TEXT,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL
       );
     `.execute(db)
+
+    // Migration: ensure calendar_feed_token column exists if table was created in prior schema
+    try {
+      await sql`ALTER TABLE workspace_settings ADD COLUMN calendar_feed_token TEXT;`.execute(db)
+    } catch {
+      // Column already exists
+    }
 
     // 7. Google Calendar Integration
     await sql`

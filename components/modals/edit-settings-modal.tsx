@@ -20,6 +20,9 @@ import {
   CheckCircle2,
   ChevronRight,
   KeyRound,
+  Copy,
+  Rss,
+  CalendarPlus,
 } from 'lucide-react'
 import { updateWorkspaceSettingsAction } from '@/app/actions/auth'
 import {
@@ -28,6 +31,11 @@ import {
   triggerGoogleCalendarSyncAction,
   updateGoogleCalendarSettingsAction,
 } from '@/app/actions/google-calendar'
+import {
+  getCalendarFeedInfoAction,
+  regenerateCalendarFeedTokenAction,
+  CalendarFeedInfo,
+} from '@/app/actions/calendar-feed'
 import { WorkspaceSettings } from '@/lib/crm-types'
 import { GoogleCalendarStatusResponse } from '@/lib/google-calendar/types'
 
@@ -96,6 +104,12 @@ export function EditSettingsModal({
   const [gcalError, setGcalError] = useState<string | null>(null)
   const [gcalSuccess, setGcalSuccess] = useState<string | null>(null)
 
+  // Calendar Subscription Feed (.ics) state
+  const [feedInfo, setFeedInfo] = useState<CalendarFeedInfo | null>(null)
+  const [loadingFeed, setLoadingFeed] = useState(false)
+  const [feedCopied, setFeedCopied] = useState(false)
+  const [rotatingFeed, setRotatingFeed] = useState(false)
+
   const fetchGcalStatus = async () => {
     setLoadingGcal(true)
     try {
@@ -105,6 +119,53 @@ export function EditSettingsModal({
       console.error('Failed to load Google Calendar status:', err)
     } finally {
       setLoadingGcal(false)
+    }
+  }
+
+  const fetchCalendarFeedInfo = async () => {
+    setLoadingFeed(true)
+    try {
+      const info = await getCalendarFeedInfoAction()
+      setFeedInfo(info)
+    } catch (err: any) {
+      console.error('Failed to load calendar feed info:', err)
+    } finally {
+      setLoadingFeed(false)
+    }
+  }
+
+  const handleCopyFeed = async () => {
+    if (!feedInfo?.feedUrl) return
+    try {
+      await navigator.clipboard.writeText(feedInfo.feedUrl)
+      setFeedCopied(true)
+      setTimeout(() => setFeedCopied(false), 2000)
+      onToast?.('Calendar feed URL copied to clipboard!', undefined, 'success')
+    } catch {
+      // Fallback
+    }
+  }
+
+  const handleRotateFeedToken = async () => {
+    if (
+      !confirm(
+        'Rotate calendar feed secret? Any calendars previously subscribed to the old URL will stop syncing until updated.'
+      )
+    ) {
+      return
+    }
+
+    setRotatingFeed(true)
+    try {
+      const updated = await regenerateCalendarFeedTokenAction()
+      setFeedInfo(updated)
+      onToast?.('Calendar feed secret rotated successfully', undefined, 'success')
+    } catch (err: any) {
+      const msg = err?.message || 'Failed to rotate feed secret'
+      setGcalError(msg)
+      onToast?.(msg, undefined, 'warning')
+    } finally {
+      setRotatingFeed(false)
     }
   }
 
@@ -124,6 +185,7 @@ export function EditSettingsModal({
       setGcalSuccess(null)
       setActiveTab(initialTab)
       fetchGcalStatus()
+      fetchCalendarFeedInfo()
     }
   }, [isOpen, currentSettings, initialTab])
 
@@ -514,7 +576,98 @@ export function EditSettingsModal({
               </div>
             )}
 
-            {/* GOOGLE CALENDAR CARD */}
+            {/* 1. UNIVERSAL ICAL / GOOGLE CALENDAR SUBSCRIPTION FEED (RECOMMENDED ZERO-CONFIG) */}
+            <div className="bg-white border-2 border-[#b2ccff] rounded-xl p-5 shadow-[rgba(38,109,240,0.06)_0px_4px_12px_-2px] relative overflow-hidden">
+              <div className="absolute top-0 right-0 bg-[#e9f0ff] border-b border-l border-[#c4dafe] text-[#266df0] text-[10px] font-bold px-2.5 py-0.5 rounded-bl-[8px] uppercase tracking-wider">
+                Recommended • Zero Config
+              </div>
+
+              {/* Card Header */}
+              <div className="flex items-start gap-3 pb-4 border-b border-[#f0f1f3]">
+                <div className="w-10 h-10 rounded-[10px] bg-[#eef4ff] border border-[#d0e0fd] flex items-center justify-center text-[#266df0] shrink-0">
+                  <Rss size={20} />
+                </div>
+                <div className="min-w-0 pr-16">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-[14px] font-semibold text-[#1c1d1f]">
+                      Calendar Subscription Feed (.ics)
+                    </h3>
+                  </div>
+                  <p className="text-[12px] text-[#6f7988] mt-0.5">
+                    Live feed of all upcoming deal milestones, calls, and meetings. Works out-of-the-box in Google Calendar, Apple Calendar, and phone calendars.
+                  </p>
+                </div>
+              </div>
+
+              {/* Feed URL input & Actions */}
+              <div className="pt-4 space-y-3.5">
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-[#505967] mb-1.5">
+                    Private Calendar Feed URL
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <input
+                        type="text"
+                        readOnly
+                        value={feedInfo?.feedUrl || 'Generating feed URL...'}
+                        className="w-full h-9.5 px-3 bg-[#fafbfc] border border-[#e4e7ec] rounded-[9px] text-[12px] font-mono text-[#1c1d1f] focus:outline-none select-all"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleCopyFeed}
+                      disabled={!feedInfo?.feedUrl}
+                      className="h-9.5 px-3.5 bg-[#232529] hover:bg-[#101113] text-white text-[12px] font-semibold rounded-[9px] transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0"
+                    >
+                      {feedCopied ? <Check size={13} className="text-[#55b467]" /> : <Copy size={13} />}
+                      <span>{feedCopied ? 'Copied!' : 'Copy Feed URL'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 1-Click Subscribe Buttons */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                  <a
+                    href={feedInfo?.googleCalendarUrl || '#'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 py-2 px-3 rounded-[9px] bg-[#f0f4fe] hover:bg-[#e4edfd] border border-[#d2e3fc] text-[#1a73e8] text-[12px] font-semibold transition-colors text-center"
+                  >
+                    <Calendar size={14} />
+                    <span>Subscribe in Google Calendar</span>
+                    <ExternalLink size={12} className="opacity-70" />
+                  </a>
+
+                  <a
+                    href={feedInfo?.webcalUrl || '#'}
+                    className="flex items-center justify-center gap-2 py-2 px-3 rounded-[9px] bg-[#fafbfc] hover:bg-[#f2f4f7] border border-[#e4e7ec] text-[#344054] text-[12px] font-semibold transition-colors text-center"
+                  >
+                    <CalendarPlus size={14} className="text-[#667085]" />
+                    <span>Subscribe in Apple / Desktop</span>
+                  </a>
+                </div>
+
+                {/* Footer notes & Rotate secret */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-[#f0f1f3] text-[11px] text-[#8f99a8]">
+                  <span>
+                    Zero setup required. Google Calendar automatically updates in background.
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleRotateFeedToken}
+                    disabled={rotatingFeed}
+                    className="text-[#6f7988] hover:text-[#cf1322] flex items-center gap-1 transition-colors self-start sm:self-auto cursor-pointer"
+                    title="Rotate the secret token in the URL if needed"
+                  >
+                    <RefreshCw size={11} className={rotatingFeed ? 'animate-spin' : ''} />
+                    <span>Rotate Secret Key</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* 2. GOOGLE CALENDAR OAUTH CARD (ADVANCED) */}
             <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-[rgba(28,40,64,0.03)_0px_2px_4px_-1px]">
               {/* Card Header & Status Badge */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#f0f1f3]">
@@ -524,10 +677,10 @@ export function EditSettingsModal({
                   </div>
                   <div>
                     <h3 className="text-[14px] font-semibold text-[#1c1d1f]">
-                      Google Calendar
+                      Google Calendar API (Two-Way OAuth)
                     </h3>
                     <p className="text-[12px] text-[#6f7988]">
-                      Two-way schedule sync for client meetings & deal milestones
+                      Advanced: Direct push sync into your primary Google Calendar (requires Google Cloud project)
                     </p>
                   </div>
                 </div>

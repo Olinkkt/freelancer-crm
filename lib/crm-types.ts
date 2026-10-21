@@ -113,6 +113,7 @@ export interface WorkspaceSettings {
   currencySymbol: string
   locale: string
   isClaimed: boolean
+  calendarFeedToken?: string
   updatedAt?: string
 }
 

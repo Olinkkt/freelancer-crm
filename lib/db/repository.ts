@@ -1139,6 +1139,7 @@ export async function getWorkspaceSettings(): Promise<(WorkspaceSettings & { pas
       locale: row.locale,
       isClaimed: Boolean(row.is_claimed),
       passcodeHash: row.passcode_hash,
+      calendarFeedToken: row.calendar_feed_token || undefined,
       updatedAt: row.updated_at,
     }
   } catch (err: unknown) {
@@ -1162,6 +1163,7 @@ export async function getWorkspaceSettings(): Promise<(WorkspaceSettings & { pas
         locale: row.locale,
         isClaimed: Boolean(row.is_claimed),
         passcodeHash: row.passcode_hash,
+        calendarFeedToken: row.calendar_feed_token || undefined,
         updatedAt: row.updated_at,
       }
     }
@@ -1276,8 +1278,85 @@ export async function updateWorkspaceSettings(params: {
     currencySymbol: newSymbol,
     locale: newLocale,
     isClaimed: true,
+    calendarFeedToken: existing.calendarFeedToken,
     updatedAt: now,
   }
+}
+
+/**
+ * Retrieves the current calendar feed token, automatically generating and persisting one if missing.
+ */
+export async function getOrCreateCalendarFeedToken(): Promise<string> {
+  await ensureDbInitialized()
+  const settings = await getWorkspaceSettings()
+  if (settings && settings.calendarFeedToken) {
+    return settings.calendarFeedToken
+  }
+
+  const crypto = await import('crypto')
+  const token = crypto.randomBytes(24).toString('hex')
+  const now = new Date().toISOString()
+
+  if (settings) {
+    await db
+      .updateTable('workspace_settings')
+      .set({
+        calendar_feed_token: token,
+        updated_at: now,
+      })
+      .where('id', '=', 'current')
+      .execute()
+  } else {
+    await claimWorkspace({
+      operatorName: 'Alex Rivera',
+      operatorEmail: 'alex@example.com',
+      currency: 'USD',
+      currencySymbol: '$',
+      locale: 'en-US',
+    })
+    await db
+      .updateTable('workspace_settings')
+      .set({
+        calendar_feed_token: token,
+        updated_at: now,
+      })
+      .where('id', '=', 'current')
+      .execute()
+  }
+
+  return token
+}
+
+/**
+ * Regenerates a new random calendar feed token, revoking any previous subscriber access.
+ */
+export async function regenerateCalendarFeedToken(): Promise<string> {
+  await ensureDbInitialized()
+  const crypto = await import('crypto')
+  const token = crypto.randomBytes(24).toString('hex')
+  const now = new Date().toISOString()
+
+  const existing = await getWorkspaceSettings()
+  if (!existing) {
+    await claimWorkspace({
+      operatorName: 'Alex Rivera',
+      operatorEmail: 'alex@example.com',
+      currency: 'USD',
+      currencySymbol: '$',
+      locale: 'en-US',
+    })
+  }
+
+  await db
+    .updateTable('workspace_settings')
+    .set({
+      calendar_feed_token: token,
+      updated_at: now,
+    })
+    .where('id', '=', 'current')
+    .execute()
+
+  return token
 }
 
 // -------------------------------------------------------------

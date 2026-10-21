@@ -35,17 +35,17 @@
 ### Task Breakdown
 
 #### Task 1: Google Calendar Core Library & Web Link Fallback
-- [ ] Create `lib/google-calendar/types.ts` with integration, token, and event mapping types.
-- [ ] Create `lib/google-calendar/web-links.ts` to generate `https://calendar.google.com/calendar/render?action=TEMPLATE...` links with titles, dates, descriptions, attendees.
-- [ ] Create `lib/google-calendar/client.ts` with pure utility functions for auth URL generation, token refresh handling, and Google Calendar API endpoints (mockable fetch).
-- [ ] Write unit tests in `tests/google-calendar-client.test.ts` for URL generation, date formatting for Google Calendar API (RFC3339 / ISO), and parameter escaping.
-- [ ] Run tests and verify they pass.
-- [ ] Commit changes with message `feat(gcal): add google calendar types, api client, and web link generator`.
+- [x] Create `lib/google-calendar/types.ts` with integration, token, and event mapping types.
+- [x] Create `lib/google-calendar/web-links.ts` to generate `https://calendar.google.com/calendar/render?action=TEMPLATE...` links with titles, dates, descriptions, attendees.
+- [x] Create `lib/google-calendar/client.ts` with pure utility functions for auth URL generation, token refresh handling, and Google Calendar API endpoints (mockable fetch).
+- [x] Write unit tests in `tests/google-calendar-client.test.ts` for URL generation, date formatting for Google Calendar API (RFC3339 / ISO), and parameter escaping.
+- [x] Run tests and verify they pass.
+- [x] Commit changes with message `feat(gcal): add google calendar types, api client, and web link generator`.
 
 #### Task 2: Database Schema & Repository for Google Calendar Integration
-- [ ] Update `lib/db/schema.ts` to add `GoogleCalendarIntegrationTable` and `GoogleCalendarEventTable`.
-- [ ] Update `lib/db/init.ts` to add `CREATE TABLE IF NOT EXISTS google_calendar_integrations` and `google_calendar_events` with indexes.
-- [ ] Implement `lib/db/google-calendar-repository.ts` with functions:
+- [x] Update `lib/db/schema.ts` to add `GoogleCalendarIntegrationTable` and `GoogleCalendarEventTable`.
+- [x] Update `lib/db/init.ts` to add `CREATE TABLE IF NOT EXISTS google_calendar_integrations` and `google_calendar_events` with indexes.
+- [x] Implement `lib/db/google-calendar-repository.ts` with functions:
   - `getGoogleCalendarIntegration()`
   - `saveGoogleCalendarTokens(integration)`
   - `updateGoogleCalendarSettings(settings)`
@@ -53,34 +53,34 @@
   - `getGoogleCalendarEventMapping(crmId, crmType)`
   - `saveGoogleCalendarEventMapping(mapping)`
   - `deleteGoogleCalendarEventMapping(crmId, crmType)`
-- [ ] Write repository tests in `tests/google-calendar-db.test.ts`.
-- [ ] Run tests and verify they pass.
-- [ ] Commit changes with message `feat(gcal): add database tables and repository for google calendar sync`.
+- [x] Write repository tests in `tests/google-calendar-db.test.ts`.
+- [x] Run tests and verify they pass.
+- [x] Commit changes with message `feat(gcal): add database tables and repository for google calendar sync`.
 
 #### Task 3: API Routes & Server Actions for Google Calendar
-- [ ] Implement `app/api/integrations/google-calendar/auth-url/route.ts`.
-- [ ] Implement `app/api/integrations/google-calendar/callback/route.ts` with error handling and redirect to `/?settings=open&gcal=connected`.
-- [ ] Implement `app/api/integrations/google-calendar/status/route.ts`.
-- [ ] Implement `app/api/integrations/google-calendar/disconnect/route.ts`.
-- [ ] Implement `app/api/integrations/google-calendar/sync/route.ts` and `events/route.ts`.
-- [ ] Create `app/actions/google-calendar.ts` wrapping sync and status operations for UI server actions.
-- [ ] Write route integration tests in `tests/google-calendar-api.test.ts`.
-- [ ] Run all tests and verify they pass.
-- [ ] Commit changes with message `feat(gcal): implement google calendar oauth and sync api endpoints`.
+- [x] Implement `app/api/integrations/google-calendar/auth-url/route.ts`.
+- [x] Implement `app/api/integrations/google-calendar/callback/route.ts` with error handling and redirect to `/?settings=open&gcal=connected`.
+- [x] Implement `app/api/integrations/google-calendar/status/route.ts`.
+- [x] Implement `app/api/integrations/google-calendar/disconnect/route.ts`.
+- [x] Implement `app/api/integrations/google-calendar/sync/route.ts` and `events/route.ts`.
+- [x] Create `app/actions/google-calendar.ts` wrapping sync and status operations for UI server actions.
+- [x] Write route integration tests in `tests/google-calendar-api.test.ts`.
+- [x] Run all tests and verify they pass.
+- [x] Commit changes with message `feat(gcal): implement google calendar oauth and sync api endpoints`.
 
 #### Task 4: Settings Modal Google Calendar Configuration UI
-- [ ] Update `components/modals/edit-settings-modal.tsx` to include an "Integrations" section with Google Calendar.
-- [ ] Add connection status badges (Connected / Disconnected / Missing API Keys).
-- [ ] Add "Connect Google Calendar" button, "Disconnect" button, and "Auto-sync Activities" toggle.
-- [ ] Add copy explaining setup and `.env` variables (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`).
-- [ ] Update `.env.example` with Google Calendar OAuth configuration comments.
-- [ ] Run test suite and check build.
-- [ ] Commit changes with message `feat(gcal): add google calendar integration settings to settings modal`.
+- [x] Update `components/modals/edit-settings-modal.tsx` to include an "Integrations" section with Google Calendar.
+- [x] Add connection status badges (Connected / Disconnected / Missing API Keys).
+- [x] Add "Connect Google Calendar" button, "Disconnect" button, and "Auto-sync Activities" toggle.
+- [x] Add copy explaining setup and `.env` variables (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`).
+- [x] Update `.env.example` with Google Calendar OAuth configuration comments.
+- [x] Run test suite and check build.
+- [x] Commit changes with message `feat(gcal): add google calendar integration settings to settings modal`.
 
 #### Task 5: CRM Calendar View & Activity Cards Sync Integration
-- [ ] Update `components/calendar/calendar-view.tsx` to optionally display synced Google Calendar events with a distinct badge.
-- [ ] Add "Add to Google Calendar" 1-click web link to `components/modals/log-call-modal.tsx` and activity cards.
-- [ ] Hook activity creation (`logActivity`) to auto-sync to Google Calendar when auto-sync is enabled.
-- [ ] Write test verifying activity sync trigger and web link output.
-- [ ] Run full test suite (`pnpm test`) and build check (`pnpm build`).
-- [ ] Commit changes with message `feat(gcal): integrate google calendar events in calendar view and activity creation`.
+- [x] Update `components/calendar/calendar-view.tsx` to optionally display synced Google Calendar events with a distinct badge.
+- [x] Add "Add to Google Calendar" 1-click web link to `components/modals/log-call-modal.tsx` and activity cards.
+- [x] Hook activity creation (`logActivity`) to auto-sync to Google Calendar when auto-sync is enabled.
+- [x] Write test verifying activity sync trigger and web link output.
+- [x] Run full test suite (`pnpm test`) and build check (`pnpm build`).
+- [x] Commit changes with message `feat(gcal): integrate google calendar events in calendar view and activity creation`.

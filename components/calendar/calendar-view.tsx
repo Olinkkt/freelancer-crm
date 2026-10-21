@@ -270,14 +270,17 @@ export function CalendarView({ deals = [], followUps = [], onOpenDeal }: Calenda
   const [isSyncing, setIsSyncing] = useState(false)
 
   // Fetch Google Calendar status and events for active workweek
-  const fetchGoogleCalendarData = useCallback(async () => {
+  const fetchGoogleCalendarData = useCallback(async (signal?: AbortSignal) => {
     if (!days || days.length === 0) return
 
     try {
       // 1. Fetch status
-      const statusRes = await fetch('/api/integrations/google-calendar/status')
+      const statusRes = await fetch('/api/integrations/google-calendar/status', { signal })
+      if (signal?.aborted) return
+
       if (statusRes.ok) {
         const statusData: GoogleCalendarStatusResponse = await statusRes.json()
+        if (signal?.aborted) return
         setGcalStatus(statusData)
 
         if (!statusData.connected) {
@@ -295,11 +298,14 @@ export function CalendarView({ deals = [], followUps = [], onOpenDeal }: Calenda
       const eventsRes = await fetch(
         `/api/integrations/google-calendar/events?timeMin=${encodeURIComponent(
           start.toISOString()
-        )}&timeMax=${encodeURIComponent(end.toISOString())}`
+        )}&timeMax=${encodeURIComponent(end.toISOString())}`,
+        { signal }
       )
+      if (signal?.aborted) return
 
       if (eventsRes.ok) {
         const data = await eventsRes.json()
+        if (signal?.aborted) return
         const rawEvents: GoogleCalendarEventItem[] = data.events || []
 
         const mapped = rawEvents
@@ -307,13 +313,18 @@ export function CalendarView({ deals = [], followUps = [], onOpenDeal }: Calenda
           .filter(Boolean) as CalendarEvent[]
         setGoogleEvents(mapped)
       }
-    } catch (err) {
+    } catch (err: any) {
+      if (err?.name === 'AbortError') return
       console.warn('Failed to fetch Google Calendar data:', err)
     }
   }, [days])
 
   useEffect(() => {
-    fetchGoogleCalendarData()
+    const controller = new AbortController()
+    fetchGoogleCalendarData(controller.signal)
+    return () => {
+      controller.abort()
+    }
   }, [fetchGoogleCalendarData])
 
   // Merge base events, deal milestone events, follow-ups, and Google Calendar events
@@ -474,6 +485,7 @@ export function CalendarView({ deals = [], followUps = [], onOpenDeal }: Calenda
   // Start free dragging with snapping
   const handleCardPointerDown = (e: React.PointerEvent<HTMLDivElement>, event: CalendarEvent) => {
     if (e.button !== 0) return
+    if (event.source === 'google') return // Google Calendar events are read-only from Google sync
 
     const cardEl = e.currentTarget
     const cardRect = cardEl.getBoundingClientRect()
@@ -1204,7 +1216,11 @@ export function CalendarView({ deals = [], followUps = [], onOpenDeal }: Calenda
                         opacity: isBeingDragged ? 0.3 : 1,
                         touchAction: 'none',
                       }}
-                      className={`absolute left-1.5 right-1.5 rounded-[8px] p-2.5 border shadow-2xs hover:shadow-md transition-[box-shadow,border-color] flex flex-col justify-start gap-1 z-10 overflow-hidden select-none group cursor-grab active:cursor-grabbing ${
+                      className={`absolute left-1.5 right-1.5 rounded-[8px] p-2.5 border shadow-2xs hover:shadow-md transition-[box-shadow,border-color] flex flex-col justify-start gap-1 z-10 overflow-hidden select-none group ${
+                        event.source === 'google'
+                          ? 'cursor-pointer'
+                          : 'cursor-grab active:cursor-grabbing'
+                      } ${
                         isBeingDragged ? 'border-dashed !cursor-grabbing' : ''
                       } ${isBeingResized ? 'ring-2 ring-[#266df0]/30 shadow-md' : ''}`}
                     >
@@ -1236,7 +1252,7 @@ export function CalendarView({ deals = [], followUps = [], onOpenDeal }: Calenda
                           <h4 className="text-[12px] font-bold text-[#1c1d1f] group-hover:text-[#266df0] transition-colors line-clamp-2 leading-tight">
                             {event.title}
                           </h4>
-                          {event.source === 'google' && event.htmlLink && (
+                          {event.source === 'google' && event.htmlLink && event.htmlLink.startsWith('https://') && (
                             <button
                               type="button"
                               onClick={(e) => {
@@ -1273,14 +1289,16 @@ export function CalendarView({ deals = [], followUps = [], onOpenDeal }: Calenda
                         )}
                       </div>
 
-                      {/* Bottom resize handle - hidden when not dragging/hovering */}
-                      <div
-                        onPointerDown={(e) => handleResizeStart(e, event)}
-                        className="absolute bottom-0 left-0 right-0 h-2 cursor-ns-resize flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20"
-                        title="Drag to resize duration (:15 snap)"
-                      >
-                        <div className="w-6 h-0.5 rounded-full bg-black/20 hover:bg-[#266df0] transition-colors" />
-                      </div>
+                      {/* Bottom resize handle - hidden when not dragging/hovering, disabled for synced Google events */}
+                      {event.source !== 'google' && (
+                        <div
+                          onPointerDown={(e) => handleResizeStart(e, event)}
+                          className="absolute bottom-0 left-0 right-0 h-2 cursor-ns-resize flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20"
+                          title="Drag to resize duration (:15 snap)"
+                        >
+                          <div className="w-6 h-0.5 rounded-full bg-black/20 hover:bg-[#266df0] transition-colors" />
+                        </div>
+                      )}
                     </div>
                   )
                 })}

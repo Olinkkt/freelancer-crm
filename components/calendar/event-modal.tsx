@@ -156,7 +156,7 @@ export function EventModal({
                 <Calendar size={14} />
                 <span>Google Calendar Event</span>
               </div>
-              {selectedEvent.htmlLink && (
+              {selectedEvent.htmlLink && selectedEvent.htmlLink.startsWith('https://') && (
                 <a
                   href={selectedEvent.htmlLink}
                   target="_blank"
@@ -295,7 +295,7 @@ export function EventModal({
             ) : null}
 
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              {selectedEvent?.htmlLink && (
+              {selectedEvent?.htmlLink && selectedEvent.htmlLink.startsWith('https://') && (
                 <a
                   href={selectedEvent.htmlLink}
                   target="_blank"

@@ -66,3 +66,18 @@ export interface GoogleCalendarWebLinkParams {
   date?: string
   addHourDuration?: number
 }
+
+export interface GoogleCalendarStatusResponse {
+  connected: boolean
+  configured: boolean
+  calendarName?: string
+  calendarId?: string
+  autoSync?: boolean
+  lastSyncedAt?: string | null
+}
+
+export interface GoogleCalendarSyncResult {
+  syncedCount: number
+  success: boolean
+  error?: string
+}

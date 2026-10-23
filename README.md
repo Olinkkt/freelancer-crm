@@ -114,6 +114,7 @@ Press <kbd>O</kbd> on any deal or navigate to `/deals/[id]` to open the dedicate
 | <kbd>N</kbd> | New deal | Global |
 | <kbd>C</kbd> | New contact | Global |
 | <kbd>L</kbd> | Log activity (prefilled with the current deal/project) | Global |
+| <kbd>P</kbd> | Start project (prefilled from the open deal; opens the existing project if there is one) | Global |
 
 ### Navigate
 
@@ -158,6 +159,56 @@ Press <kbd>O</kbd> on any deal or navigate to `/deals/[id]` to open the dedicate
 | Shortcut | Action | Where |
 |---|---|---|
 | <kbd>O</kbd> | Open the deal page | Deal drawer |
+
+### Task lists
+
+| Shortcut | Action | Where |
+|---|---|---|
+| <kbd>J</kbd> / <kbd>↓</kbd> | Next item | Task lists |
+| <kbd>K</kbd> / <kbd>↑</kbd> | Previous item | Task lists |
+| <kbd>X</kbd> / <kbd>Space</kbd> | Complete / reopen | Task lists |
+| <kbd>T</kbd> | Add task | Task lists |
+| <kbd>E</kbd> | Rename inline | Task lists |
+| <kbd>Enter</kbd> | Open details (Today: open in project) | Task lists |
+| <kbd>D</kbd> | Set due date | Task lists |
+| <kbd>Shift</kbd> + <kbd>D</kbd> | Clear due date | Task lists |
+| <kbd>F</kbd> | Pin to / unpin from Today | Task lists |
+| <kbd>M</kbd> | Move to milestone | Task lists |
+| <kbd>Alt</kbd> + <kbd>↑</kbd> / <kbd>Shift</kbd> + <kbd>K</kbd> | Move up | Task lists |
+| <kbd>Alt</kbd> + <kbd>↓</kbd> / <kbd>Shift</kbd> + <kbd>J</kbd> | Move down | Task lists |
+| <kbd>Backspace</kbd> / <kbd>Delete</kbd> | Delete (undo with Z) | Task lists |
+| <kbd>H</kbd> | Show / hide completed | Task lists |
+
+### Project
+
+| Shortcut | Action | Where |
+|---|---|---|
+| <kbd>[</kbd> | Previous stage (reopens a closed project) | Project workspace |
+| <kbd>]</kbd> | Next stage (into Closed: opens Close dialog) | Project workspace |
+| <kbd>R</kbd> | Log client feedback | Project workspace |
+| <kbd>I</kbd> | New invoice | Project workspace |
+| <kbd>Shift</kbd> + <kbd>M</kbd> | New milestone (retainer: next month) | Project workspace |
+| <kbd>W</kbd> | Waiting on client on/off | Project workspace |
+| <kbd>Shift</kbd> + <kbd>P</kbd> | Edit project details | Project workspace |
+| <kbd>Shift</kbd> + <kbd>C</kbd> | Close project | Project workspace |
+| <kbd>Shift</kbd> + <kbd>E</kbd> | Archive / unarchive | Project workspace |
+| <kbd>G</kbd> then <kbd>R</kbd> | Focus milestones and money | Project workspace |
+| <kbd>G</kbd> then <kbd>B</kbd> | Edit brief | Project workspace |
+| <kbd>⌘</kbd>/<kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd> | Sync brief checkboxes to tasks | Project workspace |
+
+### Milestones & money
+
+| Shortcut | Action | Where |
+|---|---|---|
+| <kbd>J</kbd> / <kbd>↓</kbd> | Next milestone/invoice | Milestones & money |
+| <kbd>K</kbd> / <kbd>↑</kbd> | Previous milestone/invoice | Milestones & money |
+| <kbd>D</kbd> | Mark milestone delivered | Milestones & money |
+| <kbd>A</kbd> | Mark milestone approved | Milestones & money |
+| <kbd>$</kbd> | Mark invoice paid | Milestones & money |
+| <kbd>S</kbd> | Mark invoice sent | Milestones & money |
+| <kbd>V</kbd> | Void invoice | Milestones & money |
+| <kbd>E</kbd> / <kbd>Enter</kbd> | Edit | Milestones & money |
+| <kbd>Backspace</kbd> | Delete (undo with Z) | Milestones & money |
 
 ### Settings
 

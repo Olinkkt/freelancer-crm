@@ -2,25 +2,10 @@ import { z } from 'zod'
 import { checkIsAuthenticated } from '@/lib/auth/session'
 import { sanitizeErrorMessage } from '@/lib/errors'
 import type { Suggestion } from './suggestions'
+import { DomainError, type ErrorCode } from './errors'
 
-export type ErrorCode =
-  | 'UNAUTHORIZED'
-  | 'VALIDATION'
-  | 'NOT_FOUND'
-  | 'DEAL_ALREADY_HAS_PROJECT'
-  | 'STAGE_TRANSITION_NOT_ALLOWED'
-  | 'USE_CLOSE_PROJECT'
-  | 'USE_REOPEN_PROJECT'
-  | 'ARCHIVE_NOT_ALLOWED'
-  | 'INVOICES_UNRESOLVED'
-  | 'INVOICE_TRANSITION_NOT_ALLOWED'
-  | 'MILESTONE_TRANSITION_NOT_ALLOWED'
-  | 'STAGE_IN_USE'
-  | 'LAST_STAGE_IN_CATEGORY'
-  | 'BUILTIN_TEMPLATE_READONLY'
-  | 'SHORTCUT_CONFLICT'
-  | 'SHORTCUT_LOCKED'
-  | 'INTERNAL'
+export { DomainError }
+export type { ErrorCode }
 
 export type ActionResult<T> =
   | { ok: true; data: T; suggestions: Suggestion[] }
@@ -32,17 +17,6 @@ export type ActionResult<T> =
         details?: Record<string, unknown>
       }
     }
-
-export class DomainError extends Error {
-  constructor(
-    public code: ErrorCode,
-    message: string,
-    public details?: Record<string, unknown>
-  ) {
-    super(message)
-    this.name = 'DomainError'
-  }
-}
 
 export async function runAction<S extends z.ZodTypeAny, T>(
   schema: S,

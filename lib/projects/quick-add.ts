@@ -1,5 +1,5 @@
 import { parseDateInput } from './dates'
-import { DomainError } from './action-result'
+import { DomainError } from './errors'
 
 export interface QuickAddOptions {
   today: string

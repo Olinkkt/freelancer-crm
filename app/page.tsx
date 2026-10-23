@@ -28,6 +28,7 @@ import {
   Mail,
   Banknote,
   CheckCircle2,
+  FolderKanban,
   Edit3,
   Upload,
   Calendar,
@@ -62,6 +63,7 @@ import { ShortcutSettings } from '@/components/settings/shortcut-settings'
 import { NewDealModal } from '@/components/modals/new-deal-modal'
 import { NewContactModal } from '@/components/modals/new-contact-modal'
 import { NewCompanyModal } from '@/components/modals/new-company-modal'
+import { ProjectSheet } from '@/components/projects/project-sheet'
 import { LogCallModal } from '@/components/modals/log-call-modal'
 import { EditFollowUpModal } from '@/components/modals/edit-follow-up-modal'
 import { EditSettingsModal } from '@/components/modals/edit-settings-modal'
@@ -138,6 +140,7 @@ function GlobalShortcuts({
   onNewDeal,
   onNewContact,
   onLogCall,
+  onStartProject,
   onNavigate,
   onAcceptToast,
   onUndoToast,
@@ -147,6 +150,7 @@ function GlobalShortcuts({
   onNewDeal: () => void
   onNewContact: () => void
   onLogCall: () => void
+  onStartProject: () => void
   onNavigate: (view: string, chord: string) => void
   onAcceptToast: () => void
   onUndoToast: () => void
@@ -156,6 +160,7 @@ function GlobalShortcuts({
   useShortcut('deal.new', onNewDeal)
   useShortcut('contact.new', onNewContact)
   useShortcut('activity.log', onLogCall)
+  useShortcut('project.start', onStartProject)
   useShortcut('nav.dashboard', () => onNavigate('Dashboard', 'G D'))
   useShortcut('nav.deals', () => onNavigate('Deals', 'G P'))
   useShortcut('nav.companies', () => onNavigate('Companies', 'G C'))
@@ -228,6 +233,25 @@ export default function Page() {
   const [isSyncingGcal, setIsSyncingGcal] = useState(false)
   const [settingsTab, setSettingsTab] = useState<'profile' | 'shortcuts' | 'export' | 'system'>('profile')
   const [shortcutFilter, setShortcutFilter] = useState('')
+  const [isProjectSheetOpen, setIsProjectSheetOpen] = useState(false)
+  const [startProjectCompany, setStartProjectCompany] = useState<string | null>(null)
+  const [startProjectDealId, setStartProjectDealId] = useState<string | null>(null)
+
+  const handleStartProject = () => {
+    if (selectedDeal && isDealDrawerOpen) {
+      if (selectedDeal.projectId) {
+        router.push(`/projects/${selectedDeal.projectId}`)
+        return
+      }
+      setStartProjectDealId(selectedDeal.id)
+      setStartProjectCompany(selectedDeal.company)
+    } else {
+      setStartProjectDealId(null)
+      setStartProjectCompany(null)
+    }
+    setIsProjectSheetOpen(true)
+    addToast('Start Project', 'P')
+  }
 
   // Floating Toasts / HUD
   const [toasts, setToasts] = useState<ToastHUDItem[]>([])
@@ -866,6 +890,7 @@ export default function Page() {
           setIsLogCallOpen(true)
           addToast('Quick Log Call / Note', 'L')
         }}
+        onStartProject={handleStartProject}
         onNavigate={(view, chord) => {
           setActiveView(view)
           addToast(`Navigated to ${view}`, chord)
@@ -1713,6 +1738,15 @@ export default function Page() {
                                 onClick: () => {
                                   setPrefilledCompany(comp.name)
                                   setIsNewContactOpen(true)
+                                },
+                              },
+                              {
+                                label: 'Start project',
+                                icon: FolderKanban,
+                                onClick: () => {
+                                  setStartProjectCompany(comp.name)
+                                  setStartProjectDealId(null)
+                                  setIsProjectSheetOpen(true)
                                 },
                               },
                               {
@@ -2667,6 +2701,19 @@ export default function Page() {
                                 },
                               },
                               {
+                                label: 'Start project',
+                                icon: FolderKanban,
+                                onClick: () => {
+                                  if (deal.projectId) {
+                                    router.push(`/projects/${deal.projectId}`)
+                                    return
+                                  }
+                                  setStartProjectCompany(deal.company)
+                                  setStartProjectDealId(deal.id)
+                                  setIsProjectSheetOpen(true)
+                                },
+                              },
+                              {
                                 label: 'Log interaction',
                                 icon: PhoneCall,
                                 onClick: () => {
@@ -2783,6 +2830,18 @@ export default function Page() {
         companyToEdit={editingCompany}
         onUpdateCompany={handleUpdateCompany}
         settings={currentSettings}
+      />
+
+      {/* START / EDIT PROJECT SHEET (P) */}
+      <ProjectSheet
+        isOpen={isProjectSheetOpen}
+        onClose={() => {
+          setIsProjectSheetOpen(false)
+          setStartProjectCompany(null)
+          setStartProjectDealId(null)
+        }}
+        initialCompany={startProjectCompany}
+        initialDealId={startProjectDealId}
       />
 
       {/* QUICK LOG CALL / EDIT INTERACTION MODAL (L) */}

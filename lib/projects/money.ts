@@ -110,7 +110,8 @@ export interface ScheduledInvoiceDraft {
 export function scheduleInvoices(
   schedule: PaymentSchedule,
   budgetMinor: number | null,
-  milestones: Array<{ title: string; amountPct?: number | null }> = []
+  milestones: Array<{ title: string; amountPct?: number | null }> = [],
+  startDate?: string
 ): ScheduledInvoiceDraft[] {
   if (!budgetMinor || budgetMinor <= 0) return []
 
@@ -143,7 +144,13 @@ export function scheduleInvoices(
     }
 
     case 'monthly': {
-      return [{ label: 'Retainer', amountMinor: budgetMinor }]
+      let monthLabel = 'Monthly'
+      if (startDate && /^\d{4}-\d{2}-\d{2}/.test(startDate)) {
+        const [y, m, d] = startDate.split('-').map(Number)
+        const dt = new Date(Date.UTC(y, m - 1, d))
+        monthLabel = dt.toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })
+      }
+      return [{ label: `${monthLabel} retainer`, amountMinor: budgetMinor }]
     }
 
     default:

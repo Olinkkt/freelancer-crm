@@ -18,6 +18,7 @@ import {
 import { formatMoney, OPERATOR_CONFIG } from '@/lib/config'
 import { convertLegacyDeal, type LegacyContext } from '@/lib/projects/legacy'
 import type { StageCategory } from '@/lib/projects/constants'
+import { listProjectCards } from './projects-repository'
 
 function safeParseJson<T>(jsonStr: string | null | undefined, fallback: T): T {
   if (!jsonStr) return fallback
@@ -64,7 +65,7 @@ export function mapDealRow(r: any): Deal {
 // -------------------------------------------------------------
 // WORKSPACE AGGREGATE
 // -------------------------------------------------------------
-export async function getWorkspaceData(): Promise<WorkspaceData> {
+export async function getWorkspaceData(today?: string): Promise<WorkspaceData> {
   await ensureDbInitialized()
 
   const [dealRows, companyRows, contactRows, activityRows, followUpRows, settingsRow] = await Promise.all([
@@ -184,9 +185,17 @@ export async function getWorkspaceData(): Promise<WorkspaceData> {
         currencySymbol: settingsRow.currency_symbol,
         locale: settingsRow.locale,
         isClaimed: Boolean(settingsRow.is_claimed),
+        invoiceNetDays: settingsRow.invoice_net_days ?? 14,
+        lastWeeklyReviewAt: settingsRow.last_weekly_review_at ?? null,
+        shortcutOverrides: safeParseJson<Record<string, string[]>>(settingsRow.shortcut_overrides, {}),
         updatedAt: settingsRow.updated_at,
       }
     : undefined
+
+  const projects = await listProjectCards({
+    includeArchived: false,
+    today: today || new Date().toISOString().slice(0, 10),
+  })
 
   return {
     deals,
@@ -195,6 +204,7 @@ export async function getWorkspaceData(): Promise<WorkspaceData> {
     activities,
     followUps,
     settings,
+    projects,
   }
 }
 
@@ -1074,9 +1084,32 @@ export async function syncTodos(
   const now = new Date().toISOString()
   const created: FollowUpItem[] = []
 
+  // §9.4 Dedupe: skip lines whose text matches the action of an open follow-up of the same deal (case-insensitive)
+  const existingOpenActions = new Set<string>()
+  if (dealId) {
+    const existing = await db
+      .selectFrom('follow_ups')
+      .select('action')
+      .where('deal_id', '=', dealId)
+      .where('completed', '=', 0)
+      .execute()
+    for (const e of existing) {
+      if (e.action) existingOpenActions.add(e.action.trim().toLowerCase())
+    }
+  }
+
+  const seenInBatch = new Set<string>()
+
   for (let i = 0; i < todos.length; i++) {
     const todo = todos[i]
-    if (!todo.trim()) continue
+    const trimmed = todo.trim()
+    if (!trimmed) continue
+    const lower = trimmed.toLowerCase()
+
+    if (existingOpenActions.has(lower) || seenInBatch.has(lower)) {
+      continue
+    }
+    seenInBatch.add(lower)
 
     const fuId = generateId('fu')
     await db
@@ -1086,7 +1119,7 @@ export async function syncTodos(
         deal_id: dealId || null,
         day: 'Today',
         company: companyName,
-        action: todo.trim(),
+        action: trimmed,
         time: '14:00',
         tone: 'urgent',
         completed: 0,
@@ -1098,7 +1131,7 @@ export async function syncTodos(
       id: fuId,
       day: 'Today',
       company: companyName,
-      action: todo.trim(),
+      action: trimmed,
       time: '14:00',
       tone: 'urgent',
       completed: false,

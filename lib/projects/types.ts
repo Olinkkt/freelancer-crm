@@ -162,6 +162,18 @@ export interface Invoice {
   updatedAt: string
 }
 
+export interface TemplateMilestone {
+  title: string
+  offsetDays: number
+  amountPct: number | null
+}
+
+export interface TemplateTask {
+  title: string
+  milestoneIndex: number | null
+  offsetDays: number | null
+}
+
 export interface ProjectTemplate {
   id: string
   name: string
@@ -169,8 +181,8 @@ export interface ProjectTemplate {
   paymentSchedule: 'none' | 'upfront_100' | 'split_50_50' | 'split_30_40_30' | 'per_milestone' | 'monthly'
   durationDays: number | null
   revisionsIncluded: number | null
-  milestones: Array<{ title: string; offsetDays: number; amountPct: number | null }>
-  tasks: Array<{ title: string; milestoneIndex: number | null; offsetDays: number | null }>
+  milestones: TemplateMilestone[]
+  tasks: TemplateTask[]
   isBuiltin: boolean
   position: number
   createdAt: string

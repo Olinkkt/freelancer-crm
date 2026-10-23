@@ -1,3 +1,5 @@
+import type { ProjectCard } from './projects/types'
+
 export type DealStage =
   | 'Lead'
   | 'Qualified'
@@ -126,5 +128,6 @@ export interface WorkspaceData {
   activities: Activity[]
   followUps: FollowUpItem[]
   settings?: WorkspaceSettings
+  projects?: ProjectCard[]
 }
 

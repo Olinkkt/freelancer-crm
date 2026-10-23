@@ -34,6 +34,7 @@ describe('Server Actions Integration', () => {
     await db.deleteFrom('deals').execute()
     await db.deleteFrom('contacts').execute()
     await db.deleteFrom('companies').execute()
+    await db.updateTable('workspace_settings').set({ passcode_hash: null, is_claimed: 0 }).where('id', '=', 'current').execute()
   })
 
   beforeEach(async () => {

@@ -1203,6 +1203,11 @@ export async function getWorkspaceSettings(): Promise<(WorkspaceSettings & { pas
 
     if (!row) return null
 
+    let shortcutOverrides: Record<string, string[]> = {}
+    try {
+      shortcutOverrides = JSON.parse(row.shortcut_overrides || '{}')
+    } catch {}
+
     return {
       operatorName: row.operator_name,
       operatorEmail: row.operator_email,
@@ -1213,6 +1218,9 @@ export async function getWorkspaceSettings(): Promise<(WorkspaceSettings & { pas
       isClaimed: Boolean(row.is_claimed),
       passcodeHash: row.passcode_hash,
       calendarFeedToken: row.calendar_feed_token || undefined,
+      invoiceNetDays: row.invoice_net_days !== undefined ? Number(row.invoice_net_days) : 14,
+      lastWeeklyReviewAt: row.last_weekly_review_at ?? null,
+      shortcutOverrides,
       updatedAt: row.updated_at,
     }
   } catch (err: unknown) {
@@ -1377,6 +1385,22 @@ export async function updateWorkspaceSettings(params: {
     shortcutOverrides: params.shortcutOverrides ?? existing.shortcutOverrides,
     updatedAt: now,
   }
+}
+
+export async function updateShortcutOverrides(
+  overrides: Record<string, string[]>
+): Promise<Record<string, string[]>> {
+  await ensureDbInitialized()
+  const now = new Date().toISOString()
+  await db
+    .updateTable('workspace_settings')
+    .set({
+      shortcut_overrides: JSON.stringify(overrides),
+      updated_at: now,
+    })
+    .where('id', '=', 'current')
+    .execute()
+  return overrides
 }
 
 /**

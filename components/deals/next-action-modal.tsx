@@ -13,6 +13,8 @@ import {
 } from 'lucide-react'
 import { Deal } from './types'
 import { isDueToday } from '@/lib/date-utils'
+import { useEscapeLayer } from '@/components/shortcuts/escape-layer'
+import { handleFormKeys } from '@/components/shortcuts/form-keys'
 
 interface NextActionModalProps {
   isOpen: boolean
@@ -66,15 +68,7 @@ export function NextActionModal({
     }
   }, [deal, isCompletingPrevious])
 
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape' && isOpen) {
-        onClose()
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, onClose])
+  useEscapeLayer(onClose, isOpen)
 
   if (!isOpen || !deal) return null
 
@@ -98,6 +92,7 @@ export function NextActionModal({
         className="composer"
         style={{ width: 'min(100%, 480px)', padding: '24px 26px', borderRadius: '12px' }}
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => handleFormKeys(e, { onSubmit: () => handleSave(e as any), onCancel: onClose })}
       >
         {/* Top Header */}
         <div className="composer-top" style={{ marginBottom: '18px' }}>

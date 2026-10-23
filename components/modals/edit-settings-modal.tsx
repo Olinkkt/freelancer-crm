@@ -38,6 +38,8 @@ import {
 } from '@/app/actions/calendar-feed'
 import { WorkspaceSettings } from '@/lib/crm-types'
 import { GoogleCalendarStatusResponse } from '@/lib/google-calendar/types'
+import { useEscapeLayer } from '@/components/shortcuts/escape-layer'
+import { handleFormKeys } from '@/components/shortcuts/form-keys'
 
 interface EditSettingsModalProps {
   isOpen: boolean
@@ -78,6 +80,8 @@ export function EditSettingsModal({
   initialTab = 'profile',
   onToast,
 }: EditSettingsModalProps) {
+  useEscapeLayer(onClose, isOpen)
+
   // Tab state
   const [activeTab, setActiveTab] = useState<'profile' | 'integrations'>(initialTab)
 

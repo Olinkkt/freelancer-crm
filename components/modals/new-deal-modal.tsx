@@ -5,6 +5,8 @@ import { X, CirclePlus, ArrowUpRight, Calendar, AlertCircle } from 'lucide-react
 import { Deal, DealStage, STAGE_DEFAULT_PROBABILITIES, Company, WorkspaceSettings } from '@/lib/crm-types'
 import { formatMoney, OPERATOR_CONFIG } from '@/lib/config'
 import { Combobox } from '@/components/ui/combobox'
+import { useEscapeLayer } from '@/components/shortcuts/escape-layer'
+import { handleFormKeys } from '@/components/shortcuts/form-keys'
 
 interface NewDealModalProps {
   isOpen: boolean
@@ -132,14 +134,7 @@ export function NewDealModal({
     onClose()
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      onClose()
-    } else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-      e.preventDefault()
-      handleSubmit()
-    }
-  }
+  useEscapeLayer(onClose, isOpen)
 
   return (
     <div
@@ -149,7 +144,7 @@ export function NewDealModal({
       <div
         className="w-full max-w-lg bg-white rounded-[12px] shadow-xl border border-[#e4e7ec] overflow-hidden animate-in fade-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
-        onKeyDown={handleKeyDown}
+        onKeyDown={(e) => handleFormKeys(e, { onSubmit: handleSubmit, onCancel: onClose })}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-3.5 border-b border-[#edf0f3] bg-[#fafbfc]">

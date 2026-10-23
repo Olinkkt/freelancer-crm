@@ -4,6 +4,8 @@ import React, { useState, useEffect, useRef } from 'react'
 import { X, UserPlus, Building2, Mail, Phone, Briefcase } from 'lucide-react'
 import { Contact, Company } from '@/lib/crm-types'
 import { Combobox } from '@/components/ui/combobox'
+import { useEscapeLayer } from '@/components/shortcuts/escape-layer'
+import { handleFormKeys } from '@/components/shortcuts/form-keys'
 
 interface NewContactModalProps {
   isOpen: boolean
@@ -83,14 +85,7 @@ export function NewContactModal({
     onClose()
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      onClose()
-    } else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-      e.preventDefault()
-      handleSubmit()
-    }
-  }
+  useEscapeLayer(onClose, isOpen)
 
   return (
     <div
@@ -100,7 +95,7 @@ export function NewContactModal({
       <div
         className="w-full max-w-md bg-white rounded-[12px] shadow-xl border border-[#e4e7ec] overflow-hidden animate-in fade-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
-        onKeyDown={handleKeyDown}
+        onKeyDown={(e) => handleFormKeys(e, { onSubmit: handleSubmit, onCancel: onClose })}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#edf0f3] bg-[#fafbfc]">

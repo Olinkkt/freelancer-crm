@@ -22,6 +22,8 @@ import { getRelativeDayLabel } from '@/lib/date-utils'
 import { formatMoney, OPERATOR_CONFIG } from '@/lib/config'
 import { Combobox, ComboboxOption } from '@/components/ui/combobox'
 import { generateGoogleCalendarWebLink, resolveEventDates } from '@/lib/google-calendar/web-links'
+import { useEscapeLayer } from '@/components/shortcuts/escape-layer'
+import { handleFormKeys } from '@/components/shortcuts/form-keys'
 
 interface LogCallModalProps {
   isOpen: boolean
@@ -582,13 +584,10 @@ export function LogCallModal({
       }
     }
 
-    if (e.key === 'Escape') {
-      onClose()
-    } else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-      e.preventDefault()
-      handleSubmit()
-    }
+    handleFormKeys(e, { onSubmit: handleSubmit, onCancel: onClose })
   }
+
+  useEscapeLayer(onClose, isOpen && !isSlashMenuOpen)
 
   return (
     <div

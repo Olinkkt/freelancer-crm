@@ -57,6 +57,8 @@ import {
   PaletteActionType,
 } from '@/components/command-palette/command-palette'
 import { ShortcutsModal } from '@/components/modals/shortcuts-modal'
+import { ShortcutProvider, useShortcut } from '@/components/shortcuts/shortcut-provider'
+import { ShortcutSettings } from '@/components/settings/shortcut-settings'
 import { NewDealModal } from '@/components/modals/new-deal-modal'
 import { NewContactModal } from '@/components/modals/new-contact-modal'
 import { NewCompanyModal } from '@/components/modals/new-company-modal'
@@ -130,6 +132,42 @@ function NavItem({
   )
 }
 
+function GlobalShortcuts({
+  onTogglePalette,
+  onOpenShortcuts,
+  onNewDeal,
+  onNewContact,
+  onLogCall,
+  onNavigate,
+  onAcceptToast,
+  onUndoToast,
+}: {
+  onTogglePalette: () => void
+  onOpenShortcuts: () => void
+  onNewDeal: () => void
+  onNewContact: () => void
+  onLogCall: () => void
+  onNavigate: (view: string, chord: string) => void
+  onAcceptToast: () => void
+  onUndoToast: () => void
+}) {
+  useShortcut('palette.open', onTogglePalette)
+  useShortcut('help.open', onOpenShortcuts)
+  useShortcut('deal.new', onNewDeal)
+  useShortcut('contact.new', onNewContact)
+  useShortcut('activity.log', onLogCall)
+  useShortcut('nav.dashboard', () => onNavigate('Dashboard', 'G D'))
+  useShortcut('nav.deals', () => onNavigate('Deals', 'G P'))
+  useShortcut('nav.companies', () => onNavigate('Companies', 'G C'))
+  useShortcut('nav.contacts', () => onNavigate('Contacts', 'G U'))
+  useShortcut('nav.activities', () => onNavigate('Activities', 'G A'))
+  useShortcut('nav.calendar', () => onNavigate('Calendar', 'G K'))
+  useShortcut('nav.settings', () => onNavigate('Settings', 'G S'))
+  useShortcut('toast.accept', onAcceptToast)
+  useShortcut('toast.undo', onUndoToast)
+  return null
+}
+
 export default function Page() {
   const router = useRouter()
   // Navigation & View State
@@ -195,19 +233,46 @@ export default function Page() {
   const [toasts, setToasts] = useState<ToastHUDItem[]>([])
   const toastCounterRef = useRef(0)
 
-  const addToast = useCallback((message: string, shortcut?: string, type: ToastHUDItem['type'] = 'success') => {
-    toastCounterRef.current += 1
-    const rand = Math.random().toString(36).substring(2, 7)
-    const id = `toast-${Date.now()}-${toastCounterRef.current}-${rand}`
-    setToasts((prev) => [...prev.slice(-1), { id, message, shortcut, type }])
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id))
-    }, 2500)
+  const addToast = useCallback(
+    (
+      message: string,
+      shortcut?: string,
+      type: ToastHUDItem['type'] = 'success',
+      action?: { label: string; onRun: () => void; kind: 'accept' | 'undo' },
+      durationMs?: number
+    ) => {
+      toastCounterRef.current += 1
+      const rand = Math.random().toString(36).substring(2, 7)
+      const id = `toast-${Date.now()}-${toastCounterRef.current}-${rand}`
+      setToasts((prev) => [...prev.slice(-1), { id, message, shortcut, type, action, durationMs }])
+      setTimeout(() => {
+        setToasts((prev) => prev.filter((t) => t.id !== id))
+      }, durationMs ?? 2500)
+    },
+    []
+  )
+
+  const dismissToast = useCallback((id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id))
   }, [])
 
-  const dismissToast = (id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id))
-  }
+  const handleAcceptToast = useCallback(() => {
+    const visible = toasts.slice(-2)
+    const matching = [...visible].reverse().find((t) => t.action?.kind === 'accept')
+    if (matching?.action) {
+      matching.action.onRun()
+      setToasts((prev) => prev.filter((t) => t.id !== matching.id))
+    }
+  }, [toasts])
+
+  const handleUndoToast = useCallback(() => {
+    const visible = toasts.slice(-2)
+    const matching = [...visible].reverse().find((t) => t.action?.kind === 'undo')
+    if (matching?.action) {
+      matching.action.onRun()
+      setToasts((prev) => prev.filter((t) => t.id !== matching.id))
+    }
+  }, [toasts])
 
   // Auth & Backend Loading State
   const [isLoading, setIsLoading] = useState(true)
@@ -313,158 +378,7 @@ export default function Page() {
   }, [addToast, refreshGoogleCalendarStatus])
 
 
-  // Two-key chord navigation state ("G" then another key)
-  const pendingChordRef = useRef<string | null>(null)
-  const chordTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Global Keyboard Shortcuts Listener
-  useEffect(() => {
-    const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement
-      const isInput =
-        target.tagName === 'INPUT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.isContentEditable
-
-      // Ctrl+K or Cmd+K: Toggle Command Palette anywhere
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault()
-        setIsPaletteOpen((prev) => !prev)
-        return
-      }
-
-      // If user is inside an input, do not trigger single-letter shortcuts
-      if (isInput) return
-
-      // If any modal/drawer is open, handle ESC to close
-      const isBlockingModalOpen =
-        isPaletteOpen ||
-        isShortcutsOpen ||
-        isNewDealOpen ||
-        isNewContactOpen ||
-        isLogCallOpen
-
-      if (e.key === 'Escape') {
-        if (isPaletteOpen) setIsPaletteOpen(false)
-        if (isShortcutsOpen) setIsShortcutsOpen(false)
-        if (isNewDealOpen) setIsNewDealOpen(false)
-        if (isNewContactOpen) setIsNewContactOpen(false)
-        if (isLogCallOpen) setIsLogCallOpen(false)
-        if (isDealDrawerOpen) setIsDealDrawerOpen(false)
-        return
-      }
-
-      // If a blocking modal is open, don't trigger global background hotkeys
-      if (isBlockingModalOpen) return
-
-      const key = e.key.toLowerCase()
-
-      // When deal drawer is open: allow pressing 'l' to open Quick Log Call modal
-      if (isDealDrawerOpen) {
-        if (key === 'l' && !e.metaKey && !e.ctrlKey) {
-          e.preventDefault()
-          setIsLogCallOpen(true)
-          addToast('Quick Log Call / Note', 'L')
-        }
-        return
-      }
-
-      // ? or Shift+/ : Show Shortcuts
-      if (e.key === '?' || (e.shiftKey && e.key === '/')) {
-        e.preventDefault()
-        setIsShortcutsOpen(true)
-        return
-      }
-
-      // Handle G chords: 'g' then 'd', 'p', 'c', 'u', 'k', 'a', 's'
-      if (pendingChordRef.current === 'g') {
-        if (chordTimeoutRef.current) clearTimeout(chordTimeoutRef.current)
-        pendingChordRef.current = null
-
-        if (key === 'd') {
-          e.preventDefault()
-          setActiveView('Dashboard')
-          addToast('Navigated to Dashboard', 'G D')
-          return
-        } else if (key === 'p') {
-          e.preventDefault()
-          setActiveView('Deals')
-          addToast('Navigated to Deals & Pipeline', 'G P')
-          return
-        } else if (key === 'c') {
-          e.preventDefault()
-          setActiveView('Companies')
-          addToast('Navigated to Companies', 'G C')
-          return
-        } else if (key === 'u') {
-          e.preventDefault()
-          setActiveView('Contacts')
-          addToast('Navigated to Contacts', 'G U')
-          return
-        } else if (key === 'k') {
-          e.preventDefault()
-          setActiveView('Calendar')
-          addToast('Navigated to Calendar', 'G K')
-          return
-        } else if (key === 'a') {
-          e.preventDefault()
-          setActiveView('Activities')
-          addToast('Navigated to Activities', 'G A')
-          return
-        } else if (key === 's') {
-          e.preventDefault()
-          setActiveView('Settings')
-          addToast('Navigated to Settings', 'G S')
-          return
-        }
-      }
-
-      if (key === 'g' && !e.metaKey && !e.ctrlKey) {
-        pendingChordRef.current = 'g'
-        if (chordTimeoutRef.current) clearTimeout(chordTimeoutRef.current)
-        chordTimeoutRef.current = setTimeout(() => {
-          pendingChordRef.current = null
-        }, 1200)
-        return
-      }
-
-      // Single-key Operator Hotkeys (Linear / Superhuman speed)
-      if (key === 'n' && !e.metaKey && !e.ctrlKey) {
-        e.preventDefault()
-        setIsNewDealOpen(true)
-        addToast('Quick Capture Deal', 'N')
-        return
-      }
-
-      if (key === 'c' && !e.metaKey && !e.ctrlKey) {
-        e.preventDefault()
-        setIsNewContactOpen(true)
-        addToast('Quick Capture Contact', 'C')
-        return
-      }
-
-      if (key === 'l' && !e.metaKey && !e.ctrlKey) {
-        e.preventDefault()
-        setIsLogCallOpen(true)
-        addToast('Quick Log Call / Note', 'L')
-        return
-      }
-    }
-
-    window.addEventListener('keydown', handleGlobalKeyDown)
-    return () => {
-      window.removeEventListener('keydown', handleGlobalKeyDown)
-      if (chordTimeoutRef.current) clearTimeout(chordTimeoutRef.current)
-    }
-  }, [
-    isPaletteOpen,
-    isShortcutsOpen,
-    isNewDealOpen,
-    isNewContactOpen,
-    isLogCallOpen,
-    isDealDrawerOpen,
-    addToast,
-  ])
 
   // Handle Command Palette Selection
   const handlePaletteAction = (actionType: PaletteActionType, payload?: any) => {
@@ -936,7 +850,30 @@ export default function Page() {
   }
 
   return (
-    <div className="app-shell">
+    <ShortcutProvider initialOverrides={currentSettings?.shortcutOverrides}>
+      <GlobalShortcuts
+        onTogglePalette={() => setIsPaletteOpen((prev) => !prev)}
+        onOpenShortcuts={() => setIsShortcutsOpen(true)}
+        onNewDeal={() => {
+          setIsNewDealOpen(true)
+          addToast('Quick Capture Deal', 'N')
+        }}
+        onNewContact={() => {
+          setIsNewContactOpen(true)
+          addToast('Quick Capture Contact', 'C')
+        }}
+        onLogCall={() => {
+          setIsLogCallOpen(true)
+          addToast('Quick Log Call / Note', 'L')
+        }}
+        onNavigate={(view, chord) => {
+          setActiveView(view)
+          addToast(`Navigated to ${view}`, chord)
+        }}
+        onAcceptToast={handleAcceptToast}
+        onUndoToast={handleUndoToast}
+      />
+      <div className="app-shell">
       {/* SIDEBAR */}
       <aside className="sidebar">
 
@@ -2114,99 +2051,7 @@ export default function Page() {
 
               {/* TAB 2: KEYBOARD SHORTCUTS */}
               {settingsTab === 'shortcuts' && (
-                <div className="space-y-6 max-w-4xl">
-                  {/* SEARCH & VELOCITY BANNER */}
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pb-4 border-b border-[#e4e7ec]">
-                    <div>
-                      <h3 className="text-[16px] font-semibold text-[#1c1d1f] tracking-tight">Workflow Preferences</h3>
-                      <p className="text-[13px] text-[#6f7988] mt-0.5">
-                        Execute actions with single keystrokes without reaching for your mouse.
-                      </p>
-                    </div>
-                    <div className="relative min-w-[240px]">
-                      <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9fa1a7]" />
-                      <input
-                        type="text"
-                        value={shortcutFilter}
-                        onChange={(e) => setShortcutFilter(e.target.value)}
-                        placeholder="Search shortcuts..."
-                        className="w-full pl-8 pr-3 py-1.5 text-[12px] bg-white border border-[#e4e7ec] rounded-[10px] focus:outline-none focus:border-[#266df0] focus:ring-1 focus:ring-[#266df0] placeholder:text-[#9fa1a7]"
-                      />
-                    </div>
-                  </div>
-
-                  {/* SHORTCUT GROUPS */}
-                  {[
-                    {
-                      category: 'Global & Quick Capture',
-                      items: [
-                        { label: 'Universal Command Palette', keys: ['Ctrl+K'], note: 'Search deals, contacts, views' },
-                        { label: 'Quick-add new deal drawer', keys: ['N'], note: 'Instant lead capture slide-over' },
-                        { label: 'Quick-add new contact drawer', keys: ['C'], note: 'Register new client contact' },
-                        { label: 'Quick-log call / meeting note', keys: ['L'], note: 'Log notes and next actions' },
-                        { label: 'Keyboard shortcut cheat-sheet', keys: ['?'], note: 'Open floating shortcut modal' },
-                      ],
-                    },
-                    {
-                      category: 'Deals & Pipeline',
-                      items: [
-                        { label: 'Navigate Kanban stage columns', keys: ['←', '→'], note: 'Shift active column focus' },
-                        { label: 'Select deal card in column', keys: ['↑', '↓'], note: 'Navigate deal cards' },
-                        { label: 'Cycle forward through deals', keys: ['Tab'], note: 'Fast linear card cycling' },
-                        { label: 'Inspect deal (slide-over drawer)', keys: ['↵'], note: 'Open full deal inspector' },
-                        { label: 'Shift deal stage left / right', keys: ['[', ']'], note: 'Advance or revert stage' },
-                      ],
-                    },
-                    {
-                      category: 'Workspace Navigation (Go-to)',
-                      items: [
-                        { label: 'Jump to Dashboard overview', keys: ['G', 'D'], note: 'Daily executive brief' },
-                        { label: 'Jump to Deals pipeline', keys: ['G', 'P'], note: 'Kanban stages and values' },
-                        { label: 'Jump to Companies directory', keys: ['G', 'C'], note: 'Client account rollups' },
-                        { label: 'Jump to Contacts directory', keys: ['G', 'T'], note: 'People touch history' },
-                        { label: 'Jump to Activities log', keys: ['G', 'A'], note: 'Audited interactions' },
-                        { label: 'Jump to Settings view', keys: ['G', 'S'], note: 'Workspace preferences' },
-                      ],
-                    },
-                  ]
-                    .map((group) => ({
-                      ...group,
-                      items: group.items.filter((item) =>
-                        !shortcutFilter.trim() ||
-                        item.label.toLowerCase().includes(shortcutFilter.toLowerCase()) ||
-                        item.keys.some((k) => k.toLowerCase().includes(shortcutFilter.toLowerCase())) ||
-                        item.note.toLowerCase().includes(shortcutFilter.toLowerCase())
-                      ),
-                    }))
-                    .filter((group) => group.items.length > 0)
-                    .map((group, gIdx) => (
-                      <div key={gIdx} className="bg-white border border-[#e4e7ec] rounded-xl overflow-hidden shadow-[rgba(28,40,64,0.04)_0px_2px_4px_-1px]">
-                        <div className="px-4 py-2.5 bg-[#fafbfc] border-b border-[#e4e7ec]">
-                          <span className="text-[12px] font-semibold text-[#1c1d1f]">{group.category}</span>
-                        </div>
-                        <div className="divide-y divide-[#f0f1f3]">
-                          {group.items.map((item, idx) => (
-                            <div key={idx} className="flex items-center justify-between px-4 py-3 hover:bg-[#fafbfc] transition-colors">
-                              <div className="min-w-0 pr-4">
-                                <span className="text-[13px] font-medium text-[#1c1d1f] block truncate">{item.label}</span>
-                                <span className="text-[11px] text-[#6f7988] block truncate">{item.note}</span>
-                              </div>
-                              <div className="flex items-center gap-1 shrink-0">
-                                {item.keys.map((k, kIdx) => (
-                                  <kbd
-                                    key={kIdx}
-                                    className="px-2 py-0.5 min-w-[22px] text-center text-[11px] font-mono font-semibold text-[#505967] bg-[#f4f5f6] border border-[#dce0e8] rounded-[5px] shadow-2xs"
-                                  >
-                                    {k}
-                                  </kbd>
-                                ))}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                </div>
+                <ShortcutSettings onToast={addToast} />
               )}
 
               {/* TAB 3: DATA & PORTABILITY */}
@@ -2890,6 +2735,10 @@ export default function Page() {
       <ShortcutsModal
         isOpen={isShortcutsOpen}
         onClose={() => setIsShortcutsOpen(false)}
+        onOpenSettings={() => {
+          setActiveView('Settings')
+          setSettingsTab('shortcuts')
+        }}
       />
 
       {/* QUICK ADD / EDIT DEAL MODAL (N) */}
@@ -2997,5 +2846,6 @@ export default function Page() {
       {/* FLOATING TOAST HUD */}
       <ToastHUD toasts={toasts} onDismiss={dismissToast} />
     </div>
+    </ShortcutProvider>
   )
 }

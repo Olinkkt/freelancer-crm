@@ -12,6 +12,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "shortcuts:readme": "tsx scripts/sync-shortcuts-readme.ts",
     "test": "DATABASE_URL=file:./data/test.db node --import tsx --test --test-concurrency=1 tests/*.test.ts"
   },
   "dependencies": {

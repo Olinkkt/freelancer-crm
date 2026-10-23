@@ -31,6 +31,7 @@ import { RowActionMenu } from '@/components/ui/row-action-menu'
 import { formatDealValue, formatMoney } from '@/lib/config'
 import { WorkspaceSettings } from '@/lib/crm-types'
 import { dealNeedsNextAction } from '@/lib/deals/next-action'
+import { useShortcutContext, useShortcut } from '@/components/shortcuts/shortcut-provider'
 
 interface DealKanbanProps {
   deals: Deal[]
@@ -69,6 +70,7 @@ export function DealKanban({
   const [dragOverStage, setDragOverStage] = useState<DealStage | null>(null)
   const [hideEmptyStages, setHideEmptyStages] = useState<boolean>(false)
   const boardRef = useRef<HTMLDivElement>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
   const isDraggingRef = useRef<boolean>(false)
   const dragCounters = useRef<Record<string, number>>({})
 
@@ -198,125 +200,67 @@ export function DealKanban({
     }
   }, [focusedColIndex, currentStageDeals.length, focusedCardIndex])
 
-  // Keyboard navigation for Kanban (H, J, K, L, Arrows, Tab, Enter, [, ])
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore if user is inside an input, textarea, or contentEditable
-      const target = e.target as HTMLElement
-      if (
-        target.tagName === 'INPUT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.isContentEditable
-      ) {
-        return
-      }
+  useShortcutContext('board')
 
-      // Check if any modal is open
-      if (document.querySelector('.modal-backdrop') || document.querySelector('[role="dialog"]')) {
-        return
-      }
+  useShortcut('board.left', () => {
+    setIsBoardFocused(true)
+    setFocusedColIndex((prev) => (prev > 0 ? prev - 1 : STAGES.length - 1))
+    setFocusedCardIndex(0)
+  })
 
-      const key = e.key.toLowerCase()
+  useShortcut('board.right', () => {
+    setIsBoardFocused(true)
+    setFocusedColIndex((prev) => (prev < STAGES.length - 1 ? prev + 1 : 0))
+    setFocusedCardIndex(0)
+  })
 
-      // H or ArrowLeft: Move to previous column
-      if (key === 'h' || e.key === 'ArrowLeft') {
-        e.preventDefault()
-        setIsBoardFocused(true)
-        setFocusedColIndex((prev) => (prev > 0 ? prev - 1 : STAGES.length - 1))
-        setFocusedCardIndex(0)
-      }
-      // L or ArrowRight: Move to next column
-      else if (key === 'l' || e.key === 'ArrowRight') {
-        e.preventDefault()
-        setIsBoardFocused(true)
-        setFocusedColIndex((prev) => (prev < STAGES.length - 1 ? prev + 1 : 0))
-        setFocusedCardIndex(0)
-      }
-      // J or ArrowDown: Move to next deal in column
-      else if (key === 'j' || e.key === 'ArrowDown') {
-        e.preventDefault()
-        setIsBoardFocused(true)
-        const colDeals = dealsByStage[STAGES[focusedColIndex]] || []
-        if (colDeals.length > 0) {
-          setFocusedCardIndex((prev) => (prev < colDeals.length - 1 ? prev + 1 : 0))
-        }
-      }
-      // K or ArrowUp: Move to previous deal in column
-      else if (key === 'k' || e.key === 'ArrowUp') {
-        e.preventDefault()
-        setIsBoardFocused(true)
-        const colDeals = dealsByStage[STAGES[focusedColIndex]] || []
-        if (colDeals.length > 0) {
-          setFocusedCardIndex((prev) => (prev > 0 ? prev - 1 : colDeals.length - 1))
-        }
-      }
-      // Tab: Cycle through deals
-      else if (e.key === 'Tab') {
-        // Find next non-empty column or cycle
-        setIsBoardFocused(true)
-        const allDealsList = STAGES.flatMap((s) => dealsByStage[s])
-        if (allDealsList.length > 0 && focusedDeal) {
-          e.preventDefault()
-          const currentGlobalIdx = allDealsList.findIndex((d) => d.id === focusedDeal.id)
-          const nextGlobalIdx = e.shiftKey
-            ? (currentGlobalIdx - 1 + allDealsList.length) % allDealsList.length
-            : (currentGlobalIdx + 1) % allDealsList.length
-          const nextDeal = allDealsList[nextGlobalIdx]
-          if (nextDeal) {
-            const nextColIdx = STAGES.indexOf(nextDeal.stage)
-            if (nextColIdx !== -1) {
-              setFocusedColIndex(nextColIdx)
-              const cardIdx = (dealsByStage[nextDeal.stage] || []).findIndex(
-                (d) => d.id === nextDeal.id
-              )
-              setFocusedCardIndex(Math.max(0, cardIdx))
-            }
-          }
-        }
-      }
-      // Enter: Open focused deal
-      else if (e.key === 'Enter') {
-        if (focusedDeal) {
-          e.preventDefault()
-          onOpenDeal(focusedDeal)
-        }
-      }
-      // [ or Shift+H: Move deal to previous stage
-      else if (e.key === '[' || (e.shiftKey && key === 'h')) {
-        if (focusedDeal) {
-          e.preventDefault()
-          const curIdx = STAGES.indexOf(focusedDeal.stage)
-          if (curIdx > 0) {
-            const prevStage = STAGES[curIdx - 1]
-            onMoveDealStage(focusedDeal.id, prevStage)
-            setFocusedColIndex(curIdx - 1)
-          }
-        }
-      }
-      // ] or Shift+L: Move deal to next stage
-      else if (e.key === ']' || (e.shiftKey && key === 'l')) {
-        if (focusedDeal) {
-          e.preventDefault()
-          const curIdx = STAGES.indexOf(focusedDeal.stage)
-          if (curIdx < STAGES.length - 1) {
-            const nextStage = STAGES[curIdx + 1]
-            onMoveDealStage(focusedDeal.id, nextStage)
-            setFocusedColIndex(curIdx + 1)
-          }
-        }
+  useShortcut('board.up', () => {
+    setIsBoardFocused(true)
+    const colDeals = dealsByStage[STAGES[focusedColIndex]] || []
+    if (colDeals.length > 0) {
+      setFocusedCardIndex((prev) => (prev > 0 ? prev - 1 : colDeals.length - 1))
+    }
+  })
+
+  useShortcut('board.down', () => {
+    setIsBoardFocused(true)
+    const colDeals = dealsByStage[STAGES[focusedColIndex]] || []
+    if (colDeals.length > 0) {
+      setFocusedCardIndex((prev) => (prev < colDeals.length - 1 ? prev + 1 : 0))
+    }
+  })
+
+  useShortcut('board.open', () => {
+    if (focusedDeal) {
+      onOpenDeal(focusedDeal)
+    }
+  })
+
+  useShortcut('board.stagePrev', () => {
+    if (focusedDeal) {
+      const curIdx = STAGES.indexOf(focusedDeal.stage)
+      if (curIdx > 0) {
+        const prevStage = STAGES[curIdx - 1]
+        onMoveDealStage(focusedDeal.id, prevStage)
+        setFocusedColIndex(curIdx - 1)
       }
     }
+  })
 
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [
-    focusedColIndex,
-    focusedCardIndex,
-    dealsByStage,
-    focusedDeal,
-    onOpenDeal,
-    onMoveDealStage,
-  ])
+  useShortcut('board.stageNext', () => {
+    if (focusedDeal) {
+      const curIdx = STAGES.indexOf(focusedDeal.stage)
+      if (curIdx < STAGES.length - 1) {
+        const nextStage = STAGES[curIdx + 1]
+        onMoveDealStage(focusedDeal.id, nextStage)
+        setFocusedColIndex(curIdx + 1)
+      }
+    }
+  })
+
+  useShortcut('board.filter', () => {
+    searchInputRef.current?.focus()
+  })
 
   // Calculate stage summary amounts
   const stageAmounts = useMemo(() => {
@@ -358,10 +302,11 @@ export function DealKanban({
           <label className="search-field">
             <Search size={14} />
             <input
+              ref={searchInputRef}
               type="text"
               value={searchFilter}
               onChange={(e) => setSearchFilter(e.target.value)}
-              placeholder="Search deals"
+              placeholder="Search deals (/)"
             />
           </label>
           {emptyStagesCount > 0 && (

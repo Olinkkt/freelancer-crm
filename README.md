@@ -95,23 +95,83 @@ Press <kbd>O</kbd> on any deal or navigate to `/deals/[id]` to open the dedicate
 
 ## ⌨️ Keyboard Velocity Cheat Sheet
 
-| Shortcut | Action | Context |
-| :--- | :--- | :--- |
-| <kbd>N</kbd> | New Deal modal | Global |
-| <kbd>L</kbd> | Log Activity / Meeting Notes | Global |
-| <kbd>C</kbd> | Add Client Contact | Global |
-| <kbd>O</kbd> | Open Project Workspace (`/deals/[id]`) | Kanban Drawer / Card |
-| <kbd>⌘</kbd> <kbd>K</kbd> / <kbd>Ctrl</kbd> <kbd>K</kbd> | Command Palette | Global |
-| <kbd>?</kbd> | Show Keyboard Shortcuts overlay | Global |
-| <kbd>H</kbd> / <kbd>L</kbd> | Move cursor Left / Right across columns | Kanban Board |
-| <kbd>J</kbd> / <kbd>K</kbd> | Move cursor Down / Up across deal cards | Kanban Board |
-| <kbd>Enter</kbd> / <kbd>Space</kbd> | Open deal inspect drawer | Kanban Board |
-| <kbd>G</kbd> then <kbd>D</kbd> | Jump to Deals board | Global |
-| <kbd>G</kbd> then <kbd>C</kbd> | Jump to Companies list | Global |
-| <kbd>G</kbd> then <kbd>K</kbd> | Jump to Contacts list | Global |
-| <kbd>G</kbd> then <kbd>A</kbd> | Jump to Activity stream | Global |
-| <kbd>G</kbd> then <kbd>S</kbd> | Jump to Settings | Global |
-| <kbd>Esc</kbd> | Close any active modal or drawer | Global |
+<!-- shortcuts:start -->
+
+### Global
+
+| Shortcut | Action | Where |
+|---|---|---|
+| <kbd>⌘</kbd>/<kbd>Ctrl</kbd> + <kbd>K</kbd> | Open command palette | Global |
+| <kbd>?</kbd> | Show keyboard shortcuts | Global |
+| <kbd>Esc</kbd> | Close the top layer (modal › panel › rail focus) | Global |
+| <kbd>Y</kbd> | Accept the suggestion in the toast | Global |
+| <kbd>Z</kbd> | Undo the last action | Global |
+
+### Create
+
+| Shortcut | Action | Where |
+|---|---|---|
+| <kbd>N</kbd> | New deal | Global |
+| <kbd>C</kbd> | New contact | Global |
+| <kbd>L</kbd> | Log activity (prefilled with the current deal/project) | Global |
+
+### Navigate
+
+| Shortcut | Action | Where |
+|---|---|---|
+| <kbd>G</kbd> then <kbd>D</kbd> | Go to Dashboard | Global |
+| <kbd>G</kbd> then <kbd>P</kbd> | Go to Deals (pipeline) | Global |
+| <kbd>G</kbd> then <kbd>C</kbd> | Go to Companies | Global |
+| <kbd>G</kbd> then <kbd>U</kbd> | Go to Contacts | Global |
+| <kbd>G</kbd> then <kbd>A</kbd> | Go to Activities | Global |
+| <kbd>G</kbd> then <kbd>K</kbd> | Go to Calendar | Global |
+| <kbd>G</kbd> then <kbd>S</kbd> | Go to Settings | Global |
+
+### Forms
+
+| Shortcut | Action | Where |
+|---|---|---|
+| <kbd>⌘</kbd>/<kbd>Ctrl</kbd> + <kbd>Enter</kbd> | Save / submit | Forms |
+| <kbd>⌘</kbd>/<kbd>Ctrl</kbd> + <kbd>Backspace</kbd> | Delete (in edit sheets, after confirm) | Forms |
+
+### Help
+
+| Shortcut | Action | Where |
+|---|---|---|
+| <kbd>E</kbd> | Edit shortcuts | Shortcuts modal |
+
+### Boards
+
+| Shortcut | Action | Where |
+|---|---|---|
+| <kbd>←</kbd> | Previous column | Boards |
+| <kbd>→</kbd> | Next column | Boards |
+| <kbd>K</kbd> / <kbd>↑</kbd> | Previous card | Boards |
+| <kbd>J</kbd> / <kbd>↓</kbd> | Next card | Boards |
+| <kbd>Enter</kbd> / <kbd>Space</kbd> | Open card | Boards |
+| <kbd>[</kbd> | Move card to previous stage | Boards |
+| <kbd>]</kbd> | Move card to next stage | Boards |
+| <kbd>/</kbd> | Focus the filter | Boards |
+
+### Deal drawer
+
+| Shortcut | Action | Where |
+|---|---|---|
+| <kbd>O</kbd> | Open the deal page | Deal drawer |
+
+### Settings
+
+| Shortcut | Action | Where |
+|---|---|---|
+| <kbd>J</kbd> / <kbd>↓</kbd> | Next shortcut | Settings › Keyboard Shortcuts |
+| <kbd>K</kbd> / <kbd>↑</kbd> | Previous shortcut | Settings › Keyboard Shortcuts |
+| <kbd>Enter</kbd> | Rebind | Settings › Keyboard Shortcuts |
+| <kbd>Backspace</kbd> | Reset to default | Settings › Keyboard Shortcuts |
+| <kbd>Shift</kbd> + <kbd>R</kbd> | Reset all to defaults | Settings › Keyboard Shortcuts |
+
+All shortcuts can be changed in **Settings › Keyboard Shortcuts**.
+
+<!-- shortcuts:end -->
 
 ---
 

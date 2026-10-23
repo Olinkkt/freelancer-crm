@@ -48,7 +48,7 @@ export async function runAction<S extends z.ZodTypeAny, T>(
   schema: S,
   input: z.input<S>,
   fn: (data: z.output<S>) => Promise<{ data: T; suggestions?: Suggestion[] }>,
-  fallback: string
+  fallback: string = 'Operation failed'
 ): Promise<ActionResult<T>> {
   try {
     const isAuthed = await checkIsAuthenticated()

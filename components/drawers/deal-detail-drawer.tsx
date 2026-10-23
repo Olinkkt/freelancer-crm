@@ -34,6 +34,8 @@ import { formatDealValue, formatMoney, OPERATOR_CONFIG } from '@/lib/config'
 import { generateGoogleCalendarWebLink, resolveEventDates } from '@/lib/google-calendar/web-links'
 
 import { dealNeedsNextAction } from '@/lib/deals/next-action'
+import { useShortcutContext, useShortcut } from '@/components/shortcuts/shortcut-provider'
+import { useEscapeLayer } from '@/components/shortcuts/escape-layer'
 
 interface DealDetailDrawerProps {
   deal: Deal | null
@@ -109,38 +111,17 @@ export function DealDetailDrawer({
     }
   }, [isOpen])
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose()
-      }
-      if (
-        (e.key === 'l' || e.key === 'L') &&
-        isOpen &&
-        !e.metaKey &&
-        !e.ctrlKey &&
-        !['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName) &&
-        !(e.target as HTMLElement)?.isContentEditable &&
-        onOpenLogCallModal
-      ) {
-        e.preventDefault()
-        onOpenLogCallModal()
-        return
-      }
-      if (
-        (e.key === 'o' || e.key === 'O') &&
-        isOpen &&
-        currentDeal &&
-        !['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName) &&
-        !(e.target as HTMLElement)?.isContentEditable
-      ) {
-        e.preventDefault()
+  useEscapeLayer(onClose, isOpen)
+  useShortcutContext('drawer')
+  useShortcut(
+    'drawer.openDealPage',
+    () => {
+      if (currentDeal) {
         router.push(`/deals/${currentDeal.id}`)
       }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, onClose, currentDeal, router, onOpenLogCallModal])
+    },
+    { enabled: isOpen && Boolean(currentDeal) }
+  )
 
   const dealInvoices = React.useMemo(() => {
     if (!currentDeal) return []

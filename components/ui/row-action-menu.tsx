@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { MoreHorizontal } from 'lucide-react'
+import { useEscapeLayer } from '@/components/shortcuts/escape-layer'
 
 export interface RowActionMenuItem {
   label: string
@@ -100,20 +101,14 @@ export function RowActionMenu({
       }
     }
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setIsOpen(false)
-      }
-    }
-
     document.addEventListener('mousedown', handleClickOutside)
-    document.addEventListener('keydown', handleKeyDown)
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
-      document.removeEventListener('keydown', handleKeyDown)
     }
   }, [isOpen])
+
+  useEscapeLayer(() => setIsOpen(false), isOpen)
 
   return (
     <div

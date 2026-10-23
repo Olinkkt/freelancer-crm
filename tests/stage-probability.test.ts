@@ -74,13 +74,7 @@ describe('Deal Win Probability Consistency Across Stages (#28)', () => {
     assert.equal(fetchedWon.stage, 'Won')
     assert.equal(fetchedWon.probability, '100%')
 
-    // 5. Move deal to 'Paid' stage -> default 100%
-    const paidDeal = await repo.moveDealStage(deal.id, 'Paid')
-    assert.ok(paidDeal)
-    assert.equal(paidDeal.stage, 'Paid')
-    assert.equal(paidDeal.probability, '100%')
-
-    // 6. Move back to 'Lead' stage -> default 20%
+    // 5. Move back to 'Lead' stage -> default 20%
     const leadAgainDeal = await repo.moveDealStage(deal.id, 'Lead')
     assert.ok(leadAgainDeal)
     assert.equal(leadAgainDeal.stage, 'Lead')

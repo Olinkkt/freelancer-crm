@@ -747,25 +747,10 @@ export default function Page() {
   }
 
   const handleMoveDealStage = async (dealId: string, newStage: DealStage) => {
-    const isClosed = newStage === 'Won' || newStage === 'Paid'
-    const isPaid = newStage === 'Paid'
     const isWon = newStage === 'Won'
     const targetDeal = deals.find((d) => d.id === dealId)
 
-    // If moving to Paid (Completed Project), ensure all existing milestones are marked done
-    let dealDeliverables = targetDeal?.deliverables
-
-    if (isPaid && targetDeal) {
-      if (dealDeliverables && dealDeliverables.length > 0) {
-        dealDeliverables = dealDeliverables.map((d) => ({
-          ...d,
-          status: 'Done' as const,
-          clientSignOff: true,
-        }))
-      }
-    }
-
-    const nextProb = isClosed
+    const nextProb = isWon
       ? '100%'
       : STAGE_DEFAULT_PROBABILITIES[newStage] || '20%'
 
@@ -776,11 +761,9 @@ export default function Page() {
             ...d,
             stage: newStage,
             probability: nextProb,
-            color: isClosed ? 'green' : 'blue',
-            deliverables: isPaid && dealDeliverables ? dealDeliverables : d.deliverables,
-            invoices: d.invoices,
-            next: isPaid ? 'Request testimonial & case study review' : isWon ? 'Kickoff meeting & design sprint' : d.next,
-            nextDueDate: isPaid ? 'In 3 days' : isWon ? 'Tomorrow, 10:00' : d.nextDueDate,
+            color: isWon ? 'green' : 'blue',
+            next: isWon ? 'Kickoff meeting & design sprint' : d.next,
+            nextDueDate: isWon ? 'Tomorrow, 10:00' : d.nextDueDate,
           }
         }
         return d
@@ -793,24 +776,13 @@ export default function Page() {
             ...prev,
             stage: newStage,
             probability: nextProb,
-            color: isClosed ? 'green' : 'blue',
+            color: isWon ? 'green' : 'blue',
           }
         : prev
     )
 
-    if (isPaid) {
-      const deal = deals.find((d) => d.id === dealId)
-      if (deal) {
-        const toComplete = followUps
-          .filter((f) => f.company === deal.company && !completedFollowUps.includes(f.id))
-          .map((f) => f.id)
-        if (toComplete.length > 0) {
-          setCompletedFollowUps((prev) => [...new Set([...prev, ...toComplete])])
-        }
-      }
-      addToast('🎉 All milestones completed & invoices settled! Project finished.')
-    } else if (isWon) {
-      addToast('Deal Won! Active client project started.')
+    if (isWon) {
+      addToast('Deal Won!')
     } else {
       addToast(`Moved deal to ${newStage}`)
     }
@@ -846,7 +818,7 @@ export default function Page() {
 
 
   // Compute metrics
-  const openDeals = deals.filter((d) => d.stage !== 'Won' && d.stage !== 'Paid')
+  const openDeals = deals.filter((d) => d.stage !== 'Won')
   const openDealsCount = openDeals.length
   const totalPipelineAmount = openDeals.reduce(
     (sum, d) => sum + (d.rawAmount || parseInt(d.value.replace(/[^0-9]/g, '')) || 0),
@@ -902,7 +874,7 @@ export default function Page() {
   ).length
   const winRate =
     deals.length > 0
-      ? `${Math.round((deals.filter((d) => d.stage === 'Won' || d.stage === 'Paid').length / deals.length) * 100)}%`
+      ? `${Math.round((deals.filter((d) => d.stage === 'Won').length / deals.length) * 100)}%`
       : '0%'
 
   const pipelineStagesSummary: { label: DealStage; count: number; amount: string }[] = [
@@ -910,7 +882,6 @@ export default function Page() {
     'Qualified',
     'Proposal',
     'Won',
-    'Paid',
   ].map((st) => {
     const stageDeals = deals.filter((d) => d.stage === st)
     const stageSum = stageDeals.reduce(
@@ -2817,13 +2788,13 @@ export default function Page() {
                           <strong className="font-mono tabular-nums">{formatDealValue(deal.value)}</strong>
                           <span className="probability font-mono">{deal.probability}</span>
                           <span className="next-action flex items-center gap-1">
-                            {deal.stage === 'Paid' ? (
-                              <span className="text-[#8f99a8]">—</span>
-                            ) : deal.next ? (
+                            {deal.next ? (
                               <>
                                 <Clock size={12} className="text-[#266df0] shrink-0" />
                                 <span className="truncate">{deal.next}</span>
                               </>
+                            ) : deal.stage === 'Won' ? (
+                              <span className="text-[#8f99a8]">—</span>
                             ) : (
                               <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#b54708] bg-[#fff9f0] border border-[#fedf89] px-2 py-0.5 rounded-[6px]">
                                 <AlertCircle size={11} className="shrink-0" />
@@ -2858,21 +2829,12 @@ export default function Page() {
                                   setIsLogCallOpen(true)
                                 },
                               },
-                              ...(deal.stage !== 'Won' && deal.stage !== 'Paid'
+                              ...(deal.stage !== 'Won'
                                 ? [
                                     {
                                       label: 'Mark as Won',
                                       icon: Check,
                                       onClick: () => handleMoveDealStage(deal.id, 'Won'),
-                                    },
-                                  ]
-                                : []),
-                              ...(deal.stage !== 'Paid'
-                                ? [
-                                    {
-                                      label: 'Mark as Paid',
-                                      icon: Banknote,
-                                      onClick: () => handleMoveDealStage(deal.id, 'Paid'),
                                     },
                                   ]
                                 : []),

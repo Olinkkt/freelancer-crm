@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { checkIsAuthenticated } from '@/lib/auth/session'
 import * as repo from '@/lib/db/repository'
+import { getProjectConfig, mapProjectRow, mapMilestoneRow, mapTaskRow, mapInvoiceRow } from '@/lib/db/projects-repository'
+import { db } from '@/lib/db/client'
 import { BackupPayloadSchema } from '@/lib/validations'
 import { sanitizeErrorMessage } from '@/lib/errors'
 
@@ -17,13 +19,29 @@ export async function GET(req: Request) {
   }
 
   const workspace = await repo.getWorkspaceData()
+  const config = await getProjectConfig()
+
+  // Load all projects, milestones, tasks, invoices for v3 backup
+  const [pRows, mRows, tRows, iRows] = await Promise.all([
+    db.selectFrom('projects').selectAll().execute(),
+    db.selectFrom('project_milestones').selectAll().execute(),
+    db.selectFrom('project_tasks').selectAll().execute(),
+    db.selectFrom('invoices').selectAll().execute(),
+  ])
+
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
   const filename = `freelancer-crm-backup-${timestamp}.json`
 
   const payload = {
-    version: '1.0',
+    version: 3,
     exportedAt: new Date().toISOString(),
     ...workspace,
+    projectStages: config.stages,
+    projects: pRows.map(mapProjectRow),
+    milestones: mRows.map(mapMilestoneRow),
+    tasks: tRows.map(mapTaskRow),
+    invoices: iRows.map(mapInvoiceRow),
+    projectTemplates: config.templates.filter((t) => !t.isBuiltin),
   }
 
   return new NextResponse(JSON.stringify(payload, null, 2), {

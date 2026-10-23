@@ -67,7 +67,7 @@ describe('iCalendar (RFC 5545) Generator', () => {
       assert.ok(!ics.includes('BEGIN:VEVENT'))
     })
 
-    it('includes active deal milestones and omits Paid deals or completed milestones', () => {
+    it('includes active deal milestones and omits Won deals with Done milestones or completed milestones', () => {
       const deals: Deal[] = [
         {
           id: 'deal-1',
@@ -88,7 +88,7 @@ describe('iCalendar (RFC 5545) Generator', () => {
           company: 'Finished Corp',
           value: '$5,000',
           rawAmount: 5000,
-          stage: 'Paid',
+          stage: 'Won',
           probability: '100%',
           next: 'Invoice settlement',
           nextDueDate: 'Done',

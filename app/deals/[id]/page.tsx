@@ -58,7 +58,6 @@ const STAGES: DealStage[] = [
   'Qualified',
   'Proposal',
   'Won',
-  'Paid',
 ]
 
 export default function DealProjectPage() {
@@ -165,13 +164,10 @@ export default function DealProjectPage() {
   // Stage Change helper
   const handleStageChange = async (newStage: DealStage) => {
     if (!deal) return
-    const isPaid = newStage === 'Paid'
     const updated: Deal = {
       ...deal,
       stage: newStage,
       probability: STAGE_DEFAULT_PROBABILITIES[newStage],
-      next: isPaid ? 'Request testimonial & case study review' : deal.next,
-      nextDueDate: isPaid ? 'In 3 days' : deal.nextDueDate,
     }
     setDeal(updated)
     addToast(`Shifted stage to ${newStage}`)

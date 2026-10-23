@@ -4,6 +4,7 @@ import { Pool } from 'pg'
 import path from 'path'
 import fs from 'fs'
 import { Database } from './schema'
+import { getDialect } from './dialect'
 
 // Global cache for Next.js hot module reloading
 const globalForDb = globalThis as unknown as {
@@ -14,7 +15,7 @@ const globalForDb = globalThis as unknown as {
 export function createDb(): Kysely<Database> {
   const dbUrl = process.env.DATABASE_URL || 'file:./data/crm.db'
 
-  if (dbUrl.startsWith('postgres://') || dbUrl.startsWith('postgresql://')) {
+  if (getDialect(dbUrl) === 'postgres') {
     // Coolify Option A: Managed PostgreSQL
     const pool = new Pool({
       connectionString: dbUrl,

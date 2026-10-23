@@ -33,6 +33,8 @@ import { MarkdownFormatter } from '../ui/markdown-formatter'
 import { formatDealValue, formatMoney, OPERATOR_CONFIG } from '@/lib/config'
 import { generateGoogleCalendarWebLink, resolveEventDates } from '@/lib/google-calendar/web-links'
 
+import { dealNeedsNextAction } from '@/lib/deals/next-action'
+
 interface DealDetailDrawerProps {
   deal: Deal | null
   isOpen: boolean
@@ -52,7 +54,6 @@ const STAGES: DealStage[] = [
   'Qualified',
   'Proposal',
   'Won',
-  'Paid',
 ]
 
 function resolveDealProbability(deal: Deal | null): Deal | null {
@@ -152,12 +153,7 @@ export function DealDetailDrawer({
   if (!isOpen || !currentDeal) return null
 
   const handleStageChange = (newStage: DealStage) => {
-    const isClosed = newStage === 'Won' || newStage === 'Paid'
-    const isPaid = newStage === 'Paid'
     const isWon = newStage === 'Won'
-
-    // Do NOT automatically alter invoice statuses when moving stages
-    const updatedInvoices = currentDeal.invoices || []
 
     // Smart next action sync
     let nextAction = currentDeal.next
@@ -167,19 +163,15 @@ export function DealDetailDrawer({
         nextAction = 'Kickoff meeting & design sprint'
         nextDueDate = 'Tomorrow, 10:00'
       }
-    } else if (isPaid) {
-      nextAction = 'Request testimonial & case study review'
-      nextDueDate = 'In 3 days'
     }
 
     const updated: Deal = {
       ...currentDeal,
       stage: newStage,
       probability: STAGE_DEFAULT_PROBABILITIES[newStage],
-      color: isClosed ? 'green' : (currentDeal.color || 'blue'),
+      color: isWon ? 'green' : (currentDeal.color || 'blue'),
       next: nextAction,
       nextDueDate: nextDueDate,
-      invoices: updatedInvoices,
     }
     setCurrentDeal(updated)
     onUpdateDeal(updated)
@@ -415,7 +407,7 @@ export function DealDetailDrawer({
                     <div className="text-[12px] text-[#2c3f60] flex items-center justify-between">
                       <span>Invoices:</span>
                       <strong className="font-semibold text-[#1c1d1f]">
-                        {currentDeal.invoices?.filter((i) => i.status === 'Paid').length || 0} of{' '}
+                        {currentDeal.invoices?.filter((i) => i.status.toLowerCase() === 'paid').length || 0} of{' '}
                         {currentDeal.invoices?.length || 0} collected
                       </strong>
                     </div>
@@ -438,104 +430,20 @@ export function DealDetailDrawer({
                       />
                     </div>
 
-                    {(() => {
-                      const totalDel = currentDeal.deliverables?.length || 0
-                      const doneDel = currentDeal.deliverables?.filter((d) => d.status === 'Done').length || 0
-                      const totalInv = currentDeal.invoices?.length || 0
-                      const paidInv = currentDeal.invoices?.filter((i) => i.status === 'Paid').length || 0
-                      const isReadyToComplete =
-                        totalDel > 0 && doneDel === totalDel && totalInv > 0 && paidInv === totalInv
-
-                      return (
-                        <div className="space-y-2 pt-1">
-                          {!isReadyToComplete && (
-                            <p className="text-[11px] text-[#556987] bg-white/70 p-2 rounded-[8px] border border-[#dce8fc]">
-                              💡 To mark as completed: all {totalDel || 'milestone'} deliverables must be marked Done and all {totalInv || 'billing'} invoices must be marked Paid.
-                            </p>
-                          )}
-
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <button
-                              type="button"
-                              onClick={() => setActiveTab('deliverables')}
-                              className="px-2.5 py-1.5 bg-white hover:bg-[#f5f8ff] text-[#266df0] border border-[#b8d2fe] text-[11px] font-semibold rounded-[8px] shadow-2xs transition-colors cursor-pointer"
-                            >
-                              Manage Milestones & Invoices →
-                            </button>
-
-                            {isReadyToComplete ? (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const updated: Deal = {
-                                    ...currentDeal,
-                                    stage: 'Paid',
-                                    probability: '100%',
-                                    next: 'Request testimonial & case study review',
-                                    nextDueDate: 'In 3 days',
-                                  }
-                                  setCurrentDeal(updated)
-                                  onUpdateDeal(updated)
-                                  if (onToast) {
-                                    onToast(`🎉 All milestones done & invoices paid! Project Completed.`)
-                                  }
-                                }}
-                                className="px-2.5 py-1.5 bg-[#16a34a] hover:bg-[#15803d] text-white text-[11px] font-semibold rounded-[8px] shadow-2xs transition-colors cursor-pointer inline-flex items-center gap-1"
-                              >
-                                <Check size={12} strokeWidth={2.5} />
-                                <span>Mark Project as Completed & Paid</span>
-                              </button>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (
-                                    !window.confirm(
-                                      `Mark all ${totalDel} deliverables as Done and all ${totalInv} invoices as Paid to complete this project?`
-                                    )
-                                  ) {
-                                    return
-                                  }
-                                  const allDel = (currentDeal.deliverables || []).map((d) => ({
-                                    ...d,
-                                    status: 'Done' as const,
-                                    clientSignOff: true,
-                                  }))
-                                  const allInv = (currentDeal.invoices || []).map((inv) => ({
-                                    ...inv,
-                                    status: 'Paid' as const,
-                                    paidAt: inv.paidAt || 'Just now',
-                                  }))
-                                  const updated: Deal = {
-                                    ...currentDeal,
-                                    stage: 'Paid',
-                                    probability: '100%',
-                                    deliverables: allDel,
-                                    invoices: allInv,
-                                    next: 'Request testimonial & case study review',
-                                    nextDueDate: 'In 3 days',
-                                  }
-                                  setCurrentDeal(updated)
-                                  onUpdateDeal(updated)
-                                  if (onToast) {
-                                    onToast(`🎉 All deliverables marked done & invoices paid! Project completed.`)
-                                  }
-                                }}
-                                className="px-2.5 py-1.5 bg-white hover:bg-[#edf5ee] text-[#1f7a47] border border-[#a2e3b9] text-[11px] font-semibold rounded-[8px] shadow-2xs transition-colors cursor-pointer inline-flex items-center gap-1"
-                              >
-                                <Check size={12} />
-                                <span>Settle & Complete All</span>
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      )
-                    })()}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('deliverables')}
+                        className="px-2.5 py-1.5 bg-white hover:bg-[#f5f8ff] text-[#266df0] border border-[#b8d2fe] text-[11px] font-semibold rounded-[8px] shadow-2xs transition-colors cursor-pointer"
+                      >
+                        Manage Milestones & Invoices →
+                      </button>
+                    </div>
                   </div>
                 )}
 
                 {/* Mandatory Next Action (GTD Rule) */}
-                {currentDeal.stage !== 'Paid' && currentDeal.next ? (
+                {currentDeal.next ? (
                   <div className="p-4 bg-[#f8faff] border border-[#d6e3fc] rounded-[12px] space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#266df0] uppercase tracking-wider">
@@ -548,7 +456,7 @@ export function DealDetailDrawer({
                     </div>
                     <p className="text-[13px] font-semibold text-[#1c1d1f]">{currentDeal.next}</p>
                   </div>
-                ) : currentDeal.stage !== 'Paid' ? (
+                ) : dealNeedsNextAction(currentDeal) ? (
                   /* GTD Alert: Missing next action! */
                   <div className="p-3 bg-[#fff9f0] border border-[#fedf89] rounded-[12px] flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -575,56 +483,6 @@ export function DealDetailDrawer({
                     </button>
                   </div>
                 ) : null}
-
-                {/* Post-Delivery High-Leverage Follow-Up Prompts */}
-                {currentDeal.stage === 'Paid' && (
-                  <div className="p-4 bg-[#eaf8f0] border border-[#b8eccb] rounded-[12px] space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#1f7a47] uppercase tracking-wider">
-                        <Check size={14} />
-                        <span>Project Completed & 100% Paid</span>
-                      </div>
-                      <span className="text-[10px] font-medium text-[#1f7a47] bg-[#d5f4e2] px-2 py-0.5 rounded-[7px]">
-                        Post-Delivery
-                      </span>
-                    </div>
-                    <p className="text-[12px] text-[#234d34]">
-                      Turn this finished project into referrals and recurring revenue:
-                    </p>
-                    <div className="flex items-center gap-2 flex-wrap pt-1">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const updated = {
-                            ...currentDeal,
-                            next: 'Request testimonial & case study review',
-                            nextDueDate: 'In 3 days',
-                          }
-                          setCurrentDeal(updated)
-                          onUpdateDeal(updated)
-                        }}
-                        className="px-2.5 py-1.5 bg-white hover:bg-[#f3fbf6] text-[#1f7a47] border border-[#a2e3b9] text-[11px] font-semibold rounded-[8px] shadow-2xs transition-colors cursor-pointer"
-                      >
-                        + Request Testimonial (in 3 days)
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const updated = {
-                            ...currentDeal,
-                            next: `Pitch monthly maintenance retainer (${formatMoney(8000, settings)}/mo)`,
-                            nextDueDate: 'In 14 days',
-                          }
-                          setCurrentDeal(updated)
-                          onUpdateDeal(updated)
-                        }}
-                        className="px-2.5 py-1.5 bg-white hover:bg-[#f3fbf6] text-[#1f7a47] border border-[#a2e3b9] text-[11px] font-semibold rounded-[8px] shadow-2xs transition-colors cursor-pointer"
-                      >
-                        + Pitch Monthly Retainer (in 14 days)
-                      </button>
-                    </div>
-                  </div>
-                )}
 
                 {/* Contact Information */}
                 <div className="space-y-2 pt-2 border-t border-[#f0f1f3]">
@@ -939,7 +797,7 @@ export function DealDetailDrawer({
               )}
             </div>
             <div className="ml-auto flex items-center gap-1.5 flex-wrap">
-              {currentDeal.stage !== 'Won' && currentDeal.stage !== 'Paid' && (
+              {currentDeal.stage !== 'Won' && (
                 <button
                   type="button"
                   onClick={() => handleStageChange('Won')}
@@ -947,16 +805,6 @@ export function DealDetailDrawer({
                 >
                   <Check size={13} className="text-[#3b9b6d]" />
                   <span>Mark Won</span>
-                </button>
-              )}
-              {currentDeal.stage !== 'Paid' && (
-                <button
-                  type="button"
-                  onClick={() => handleStageChange('Paid')}
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-[#f0f2f5] hover:bg-[#e4e7ec] text-[#232529] text-[11px] font-medium rounded-[10px] transition-colors cursor-pointer"
-                >
-                  <Banknote size={13} className="text-[#059669]" />
-                  <span>Mark Paid</span>
                 </button>
               )}
               <button

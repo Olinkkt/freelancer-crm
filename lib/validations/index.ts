@@ -1,4 +1,13 @@
 import { z } from 'zod'
+import { DEAL_STAGES } from '@/lib/projects/constants'
+import {
+  stageSchema,
+  projectSchema,
+  milestoneSchema,
+  taskSchema,
+  invoiceSchema,
+  templateSchema,
+} from './projects'
 
 export const CompanyBackupSchema = z.object({
   id: z.string().min(1),
@@ -51,6 +60,7 @@ export const DealBackupSchema = z.object({
 export const ActivityBackupSchema = z.object({
   id: z.string().min(1),
   dealId: z.string().nullable().optional(),
+  projectId: z.string().nullable().optional(),
   type: z.string(),
   title: z.string(),
   person: z.string(),
@@ -72,20 +82,25 @@ export const FollowUpBackupSchema = z.object({
   completed: z.boolean().optional(),
 })
 
-export const WorkspaceSettingsBackupSchema = z.object({
-  operatorName: z.string().optional(),
-  operatorEmail: z.string().optional(),
-  operatorRole: z.string().optional(),
-  currency: z.string().optional(),
-  currencySymbol: z.string().optional(),
-  locale: z.string().optional(),
-  isClaimed: z.boolean().optional(),
-  passcodeHash: z.string().optional(),
-}).optional()
+export const WorkspaceSettingsBackupSchema = z
+  .object({
+    operatorName: z.string().optional(),
+    operatorEmail: z.string().optional(),
+    operatorRole: z.string().optional(),
+    currency: z.string().optional(),
+    currencySymbol: z.string().optional(),
+    locale: z.string().optional(),
+    isClaimed: z.boolean().optional(),
+    passcodeHash: z.string().optional(),
+    invoiceNetDays: z.number().int().min(0).max(120).optional(),
+    lastWeeklyReviewAt: z.string().nullable().optional(),
+    shortcutOverrides: z.record(z.string(), z.array(z.string())).optional(),
+  })
+  .optional()
 
 export const BackupPayloadSchema = z
   .object({
-    version: z.string().optional(),
+    version: z.union([z.string(), z.number()]).optional(),
     exportedAt: z.string().optional(),
     companies: z.array(CompanyBackupSchema).optional(),
     contacts: z.array(ContactBackupSchema).optional(),
@@ -93,6 +108,12 @@ export const BackupPayloadSchema = z
     activities: z.array(ActivityBackupSchema).optional(),
     followUps: z.array(FollowUpBackupSchema).optional(),
     settings: WorkspaceSettingsBackupSchema.optional(),
+    projectStages: z.array(stageSchema).optional(),
+    projects: z.array(projectSchema).optional(),
+    milestones: z.array(milestoneSchema).optional(),
+    tasks: z.array(taskSchema).optional(),
+    invoices: z.array(invoiceSchema).optional(),
+    projectTemplates: z.array(templateSchema).optional(),
   })
   .refine(
     (data) => {
@@ -101,7 +122,8 @@ export const BackupPayloadSchema = z
         (data.contacts?.length ?? 0) +
         (data.deals?.length ?? 0) +
         (data.activities?.length ?? 0) +
-        (data.followUps?.length ?? 0)
+        (data.followUps?.length ?? 0) +
+        (data.projects?.length ?? 0)
       return totalItems > 0
     },
     {
@@ -109,6 +131,21 @@ export const BackupPayloadSchema = z
       path: ['backup'],
     }
   )
+  .superRefine((data, ctx) => {
+    // If version is >= 3, validate that no deal has stage 'Paid'
+    const verNum = Number(data.version)
+    if (!isNaN(verNum) && verNum >= 3 && data.deals) {
+      data.deals.forEach((deal, idx) => {
+        if (deal.stage === 'Paid') {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Stage 'Paid' is retired and disallowed in v3+ backups",
+            path: ['deals', idx, 'stage'],
+          })
+        }
+      })
+    }
+  })
 
 export type ValidatedBackupPayload = z.infer<typeof BackupPayloadSchema>
 
@@ -132,7 +169,7 @@ export const DealCreateInputSchema = z.object({
     .transform((val) => (typeof val === 'number' ? String(val) : val))
     .optional(),
   rawAmount: z.number().min(0, 'Amount cannot be negative').optional(),
-  stage: z.enum(['Lead', 'Discovery', 'Proposal', 'Won', 'Paid', 'Lost']),
+  stage: z.enum(DEAL_STAGES),
   probability: z.union([z.string(), z.number()]).optional(),
   next: z.string().optional(),
   nextDueDate: z.string().nullable().optional(),

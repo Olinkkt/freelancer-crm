@@ -4,6 +4,7 @@ import React from 'react'
 import { Check, Clock, AlertTriangle } from 'lucide-react'
 import { Deal } from './types'
 import { isDueToday } from '@/lib/date-utils'
+import { dealNeedsNextAction } from '@/lib/deals/next-action'
 
 interface DealNextActionCellProps {
   deal: Deal
@@ -16,7 +17,7 @@ export function DealNextActionCell({
   onOpenModal,
   onComplete,
 }: DealNextActionCellProps) {
-  if (deal.stage === 'Paid') {
+  if (!dealNeedsNextAction(deal as any)) {
     return <span className="text-[#8f99a8] text-[11px] font-medium">—</span>
   }
 

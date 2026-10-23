@@ -1,5 +1,6 @@
 import { Activity, Deal } from '@/lib/crm-types'
 import { resolveEventDates } from '@/lib/google-calendar/web-links'
+import { dealNeedsNextAction } from '@/lib/deals/next-action'
 
 /**
  * Escapes characters with special meaning in iCalendar format per RFC 5545 Section 3.3.11.
@@ -82,7 +83,7 @@ export function generateIcsCalendar(options: IcsCalendarOptions = {}): string {
 
   // 1. Process Deals with upcoming milestones
   for (const deal of deals) {
-    if (deal.stage === 'Paid' || !deal.next || !deal.nextDueDate || deal.nextDueDate === 'Done') {
+    if (!dealNeedsNextAction(deal) || !deal.next || !deal.nextDueDate || deal.nextDueDate === 'Done') {
       continue
     }
 

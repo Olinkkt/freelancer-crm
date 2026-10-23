@@ -3,7 +3,6 @@ export type DealStage =
   | 'Qualified'
   | 'Proposal'
   | 'Won'
-  | 'Paid'
 
 export type DealColor = 'blue' | 'violet' | 'amber' | 'green'
 

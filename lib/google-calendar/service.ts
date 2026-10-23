@@ -27,6 +27,7 @@ import {
 } from './types'
 import * as repo from '@/lib/db/repository'
 import { Activity, Deal } from '@/lib/crm-types'
+import { dealNeedsNextAction } from '@/lib/deals/next-action'
 
 /**
  * In-flight token refresh promise de-duplication to prevent stampedes.
@@ -320,8 +321,7 @@ export async function syncAllToGoogleCalendar(): Promise<GoogleCalendarSyncResul
       d.next &&
       d.next.trim().length > 0 &&
       d.next.toLowerCase() !== 'done' &&
-      d.stage !== 'Won' &&
-      d.stage !== 'Paid'
+      dealNeedsNextAction(d)
   )
 
   for (const deal of dealsToSync) {

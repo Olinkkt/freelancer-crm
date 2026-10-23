@@ -182,7 +182,7 @@ describe('CRM Database Repository', () => {
       assert.ok(beta.value.includes('50'))
     })
 
-    it('moveDealStage sets 100% on Won and preserves custom color', async () => {
+    it('move-deal-to-won-touches-only-stage-fields', async () => {
       const deal = await repo.createDeal({
         title: 'Mobile App',
         company: 'Innovatech',
@@ -192,13 +192,35 @@ describe('CRM Database Repository', () => {
         probability: '75%',
         next: 'Sign proposal',
         color: 'violet',
+        deliverables: [
+          {
+            id: 'del-1',
+            title: 'Design screens',
+            status: 'Pending',
+          },
+        ],
+        invoices: [
+          {
+            id: 'inv-1',
+            type: 'Deposit',
+            label: 'Deposit invoice',
+            amount: 40000,
+            formattedAmount: '40 000 Kč',
+            percentage: 50,
+            status: 'Draft',
+          },
+        ],
       })
 
       const moved = await repo.moveDealStage(deal.id, 'Won')
       assert.ok(moved)
       assert.equal(moved.stage, 'Won')
       assert.equal(moved.probability, '100%')
-      assert.equal(moved.color, 'violet') // Should not be overwritten with 'blue'
+      assert.equal(moved.color, 'violet') // Preserves custom color
+      assert.equal(moved.next, 'Sign proposal') // Next action not cleared
+      // Deliverables and invoices untouched
+      assert.equal(moved.deliverables?.[0]?.status, 'Pending')
+      assert.equal(moved.invoices?.[0]?.status, 'Draft')
 
       const data = await repo.getWorkspaceData()
       assert.equal(data.deals[0].stage, 'Won')
@@ -206,37 +228,47 @@ describe('CRM Database Repository', () => {
       assert.equal(data.deals[0].color, 'violet')
     })
 
-    it('moveDealStage sets 100% and clears next on Paid stage', async () => {
+    it('deal-has-project-id', async () => {
       const deal = await repo.createDeal({
-        title: 'API Integration',
-        company: 'Fintech Co',
-        value: '60 000 Kč',
-        rawAmount: 60000,
+        title: 'Project Deal',
+        company: 'Innovatech',
+        value: '50 000 Kč',
+        rawAmount: 50000,
         stage: 'Won',
         probability: '100%',
-        next: 'Deliver milestones',
-        color: 'green',
-        invoices: [
-          {
-            id: 'inv-1',
-            type: 'Final',
-            label: 'Final invoice',
-            amount: 60000,
-            formattedAmount: '60 000 Kč',
-            percentage: 100,
-            status: 'Sent',
-            dueDate: 'End of month',
-          },
-        ],
+        next: 'Start work',
+        color: 'blue',
       })
 
-      const paid = await repo.moveDealStage(deal.id, 'Paid')
-      assert.ok(paid)
-      assert.equal(paid.stage, 'Paid')
-      assert.equal(paid.probability, '100%')
-      assert.equal(paid.next, '')
-      assert.equal(paid.nextDueDate, undefined)
-      assert.equal(paid.invoices?.[0]?.status, 'Sent')
+      let fetched = await repo.getDealById(deal.id)
+      assert.ok(fetched)
+      assert.equal(fetched.projectId, null)
+
+      // Insert linked project
+      const { db } = await import('@/lib/db/client')
+      const now = new Date().toISOString()
+      await db.insertInto('projects').values({
+        id: `prj-${deal.id}`,
+        title: deal.title,
+        company: deal.company,
+        deal_id: deal.id,
+        stage_id: 'stg-active',
+        billing_type: 'fixed',
+        currency: 'USD',
+        brief: '',
+        stage_changed_at: now,
+        created_at: now as any,
+        updated_at: now,
+      }).execute()
+
+      fetched = await repo.getDealById(deal.id)
+      assert.ok(fetched)
+      assert.equal(fetched.projectId, `prj-${deal.id}`)
+
+      const ws = await repo.getWorkspaceData()
+      const wsDeal = ws.deals.find((d) => d.id === deal.id)
+      assert.ok(wsDeal)
+      assert.equal(wsDeal.projectId, `prj-${deal.id}`)
     })
 
     it('deleteDeal unlinks activities and follow-ups and recalculates metrics', async () => {

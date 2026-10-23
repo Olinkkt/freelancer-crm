@@ -30,6 +30,7 @@ import { Deal, DealStage } from '@/lib/crm-types'
 import { RowActionMenu } from '@/components/ui/row-action-menu'
 import { formatDealValue, formatMoney } from '@/lib/config'
 import { WorkspaceSettings } from '@/lib/crm-types'
+import { dealNeedsNextAction } from '@/lib/deals/next-action'
 
 interface DealKanbanProps {
   deals: Deal[]
@@ -47,7 +48,6 @@ const STAGES: DealStage[] = [
   'Qualified',
   'Proposal',
   'Won',
-  'Paid',
 ]
 
 export function DealKanban({
@@ -79,7 +79,6 @@ export function DealKanban({
       Qualified: [],
       Proposal: [],
       Won: [],
-      Paid: [],
     }
 
     const filtered = searchFilter
@@ -326,7 +325,6 @@ export function DealKanban({
       Qualified: 0,
       Proposal: 0,
       Won: 0,
-      Paid: 0,
     }
     deals.forEach((d) => {
       const amt = d.rawAmount || parseInt(d.value.replace(/[^0-9]/g, '')) || 0
@@ -454,7 +452,7 @@ export function DealKanban({
                     }`}
                   />
                   <h3 className="text-[12px] font-semibold text-[#1c1d1f] tracking-tight whitespace-nowrap truncate">
-                    {stage === 'Won' ? 'Won • Active Work' : stage === 'Paid' ? 'Paid • Delivered' : stage}
+                    {stage === 'Won' ? 'Won • Active Work' : stage}
                   </h3>
                   <span className="w-4 h-4 rounded-full bg-[#e9ebef] text-[#6f7988] text-[10px] font-mono font-medium flex items-center justify-center shrink-0">
                     {stageDeals.length}
@@ -597,21 +595,12 @@ export function DealKanban({
                                           },
                                         ]
                                       : []),
-                                    ...(deal.stage !== 'Won' && deal.stage !== 'Paid'
+                                    ...(deal.stage !== 'Won'
                                       ? [
                                           {
                                             label: 'Mark as Won',
                                             icon: Check,
                                             onClick: () => onMoveDealStage(deal.id, 'Won'),
-                                          },
-                                        ]
-                                      : []),
-                                    ...(deal.stage !== 'Paid'
-                                      ? [
-                                          {
-                                            label: 'Mark as Paid',
-                                            icon: Banknote,
-                                            onClick: () => onMoveDealStage(deal.id, 'Paid'),
                                           },
                                         ]
                                       : []),
@@ -671,15 +660,8 @@ export function DealKanban({
 
                           {/* Invoicing Status Badge */}
                           {(() => {
-                            if (deal.stage === 'Paid') {
-                              return (
-                                <div className="mt-1.5 flex items-center gap-1 text-[9px] font-mono font-semibold text-[#1f7a47] bg-[#eaf8f0] px-1.5 py-0.5 rounded-[5px] w-fit">
-                                  <span>✓ 100% Paid</span>
-                                </div>
-                              )
-                            }
                             if (deal.invoices && deal.invoices.length > 0) {
-                              const paidDeposit = deal.invoices.some((i) => i.type === 'Deposit' && i.status === 'Paid')
+                              const paidDeposit = deal.invoices.some((i) => i.type === 'Deposit' && i.status.toLowerCase() === 'paid')
                               if (paidDeposit) {
                                 return (
                                   <div className="mt-1.5 flex items-center gap-1 text-[9px] font-mono font-semibold text-[#266df0] bg-[#eff5ff] px-1.5 py-0.5 rounded-[5px] w-fit">
@@ -697,7 +679,7 @@ export function DealKanban({
                               <Clock size={11} className="text-[#266df0] shrink-0" />
                               <span className="truncate font-medium">{deal.next}</span>
                             </div>
-                          ) : deal.stage !== 'Paid' ? (
+                          ) : dealNeedsNextAction(deal) ? (
                             <div className="mt-2 flex items-center gap-1.5 text-[10px] text-[#b54708] bg-[#fff9f0] p-1.5 rounded-[7px] border border-[#fedf89]">
                               <AlertCircle size={11} className="text-[#b54708] shrink-0" />
                               <span className="truncate font-semibold">Needs next action</span>

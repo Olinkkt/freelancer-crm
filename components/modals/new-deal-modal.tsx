@@ -22,7 +22,6 @@ const STAGES: DealStage[] = [
   'Qualified',
   'Proposal',
   'Won',
-  'Paid',
 ]
 
 export function NewDealModal({
@@ -98,10 +97,7 @@ export function NewDealModal({
       Qualified: 'blue',
       Proposal: 'blue',
       Won: 'green',
-      Paid: 'green',
     }
-
-    const isPaid = stage === 'Paid'
 
     if (dealToEdit && onUpdateDeal) {
       onUpdateDeal({
@@ -112,8 +108,8 @@ export function NewDealModal({
         rawAmount: numeric,
         stage,
         probability,
-        next: isPaid ? '' : nextAction.trim(),
-        nextDueDate: isPaid ? undefined : nextDueDate.trim(),
+        next: nextAction.trim(),
+        nextDueDate: nextDueDate ? nextDueDate.trim() : undefined,
         color: colorMap[stage] || dealToEdit.color || 'blue',
         notes: notes.trim(),
       })
@@ -125,8 +121,8 @@ export function NewDealModal({
         rawAmount: numeric,
         stage: mode === 'quick' ? 'Lead' : stage,
         probability: mode === 'quick' ? '20%' : probability,
-        next: isPaid ? '' : (nextAction.trim() || 'Schedule next step'),
-        nextDueDate: isPaid ? undefined : (nextDueDate.trim() || 'This week'),
+        next: nextAction.trim() || 'Schedule next step',
+        nextDueDate: nextDueDate ? nextDueDate.trim() : 'This week',
         color: colorMap[mode === 'quick' ? 'Lead' : stage] || 'blue',
         notes: notes.trim(),
         createdAt: 'Just now',
@@ -302,9 +298,8 @@ export function NewDealModal({
             </div>
           )}
 
-          {/* Mandatory Next Action GTD Prompt (hidden when stage is Paid) */}
-          {stage !== 'Paid' && (
-            <div className="p-3.5 bg-[#f8faff] border border-[#d6e3fc] rounded-[12px] space-y-2">
+          {/* Mandatory Next Action GTD Prompt */}
+          <div className="p-3.5 bg-[#f8faff] border border-[#d6e3fc] rounded-[12px] space-y-2">
               <div className="flex items-center justify-between text-[11px] font-bold text-[#266df0] uppercase tracking-wider">
                 <div className="flex items-center gap-1.5">
                   <AlertCircle size={14} />
@@ -331,7 +326,6 @@ export function NewDealModal({
                 />
               </div>
             </div>
-          )}
 
           {/* Detailed Mode: Operator Notes */}
           {mode === 'detailed' && (

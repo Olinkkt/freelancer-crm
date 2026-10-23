@@ -287,7 +287,7 @@ export function CommandPalette({
         category: 'Deals',
         title: deal.title,
         subtitle:
-          deal.stage === 'Paid' || !deal.next
+          !deal.next
             ? `${deal.company} • ${deal.stage}`
             : `${deal.company} • ${deal.stage} • Next: ${deal.next}`,
         badge: deal.value,

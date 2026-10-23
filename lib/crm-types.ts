@@ -3,14 +3,12 @@ export type DealStage =
   | 'Qualified'
   | 'Proposal'
   | 'Won'
-  | 'Paid'
 
 export const STAGE_DEFAULT_PROBABILITIES: Record<DealStage, string> = {
   Lead: '20%',
   Qualified: '40%',
   Proposal: '70%',
   Won: '100%',
-  Paid: '100%',
 }
 
 export interface DeliverableItem {
@@ -28,7 +26,7 @@ export interface InvoiceMilestone {
   amount: number
   formattedAmount: string
   percentage: number
-  status: 'Draft' | 'Sent' | 'Paid' | 'Overdue'
+  status: string
   dueDate?: string
   paidAt?: string
   paymentLink?: string
@@ -36,6 +34,7 @@ export interface InvoiceMilestone {
 
 export interface Deal {
   id: string
+  projectId?: string | null
   title: string
   company: string
   value: string
@@ -114,6 +113,9 @@ export interface WorkspaceSettings {
   locale: string
   isClaimed: boolean
   calendarFeedToken?: string
+  invoiceNetDays?: number
+  lastWeeklyReviewAt?: string | null
+  shortcutOverrides?: Record<string, string[]>
   updatedAt?: string
 }
 

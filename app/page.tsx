@@ -1,7 +1,15 @@
 'use client'
 
-import React, { useState, useEffect, useCallback, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import React, { useState, useEffect, useCallback, useRef, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
+import { parseViewParam, viewHref, VIEW_LABELS, type ViewId } from '@/lib/navigation'
+import { TodayView } from '@/components/projects/today-view'
+import { ProjectsView } from '@/components/projects/projects-view'
+import { fetchTodayAction, fetchProjectsAction } from '@/app/actions/projects'
+import { isReviewDue } from '@/lib/projects/review'
+import { localToday } from '@/lib/projects/dates'
+import type { ProjectCard } from '@/lib/projects/types'
 import {
   AlertCircle,
   ArrowUpRight,
@@ -114,12 +122,16 @@ function NavItem({
   label,
   active = false,
   badge,
+  hasDot = false,
+  shortcutHint,
   onClick,
 }: {
-  icon: typeof LayoutDashboard
+  icon: any
   label: string
   active?: boolean
   badge?: string
+  hasDot?: boolean
+  shortcutHint?: string
   onClick?: () => void
 }) {
   return (
@@ -128,8 +140,18 @@ function NavItem({
       onClick={onClick}
     >
       <Icon size={17} strokeWidth={1.8} />
-      <span>{label}</span>
+      <span className="flex items-center gap-1.5 flex-1 min-w-0">
+        <span className="truncate">{label}</span>
+        {hasDot && (
+          <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0" />
+        )}
+      </span>
       {badge && <span className="nav-badge">{badge}</span>}
+      {shortcutHint && (
+        <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 opacity-60 ml-auto shrink-0">
+          {shortcutHint}
+        </span>
+      )}
     </button>
   )
 }
@@ -151,7 +173,7 @@ function GlobalShortcuts({
   onNewContact: () => void
   onLogCall: () => void
   onStartProject: () => void
-  onNavigate: (view: string, chord: string) => void
+  onNavigate: (view: ViewId, chord: string) => void
   onAcceptToast: () => void
   onUndoToast: () => void
 }) {
@@ -161,27 +183,66 @@ function GlobalShortcuts({
   useShortcut('contact.new', onNewContact)
   useShortcut('activity.log', onLogCall)
   useShortcut('project.start', onStartProject)
-  useShortcut('nav.dashboard', () => onNavigate('Dashboard', 'G D'))
-  useShortcut('nav.deals', () => onNavigate('Deals', 'G P'))
-  useShortcut('nav.companies', () => onNavigate('Companies', 'G C'))
-  useShortcut('nav.contacts', () => onNavigate('Contacts', 'G U'))
-  useShortcut('nav.activities', () => onNavigate('Activities', 'G A'))
-  useShortcut('nav.calendar', () => onNavigate('Calendar', 'G K'))
-  useShortcut('nav.settings', () => onNavigate('Settings', 'G S'))
+  useShortcut('nav.today', () => onNavigate('today', 'G T'))
+  useShortcut('nav.dashboard', () => onNavigate('dashboard', 'G D'))
+  useShortcut('nav.deals', () => onNavigate('deals', 'G P'))
+  useShortcut('nav.projects', () => onNavigate('projects', 'G J'))
+  useShortcut('nav.companies', () => onNavigate('companies', 'G C'))
+  useShortcut('nav.contacts', () => onNavigate('contacts', 'G U'))
+  useShortcut('nav.activities', () => onNavigate('activities', 'G A'))
+  useShortcut('nav.calendar', () => onNavigate('calendar', 'G K'))
+  useShortcut('nav.review', () => onNavigate('review', 'G W'))
+  useShortcut('nav.settings', () => onNavigate('settings', 'G S'))
   useShortcut('toast.accept', onAcceptToast)
   useShortcut('toast.undo', onUndoToast)
   return null
 }
 
-export default function Page() {
+function MainApp() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+
   // Navigation & View State
-  const [activeView, setActiveView] = useState<string>('Dashboard')
+  const rawView = searchParams.get('view')
+  const activeView: ViewId = parseViewParam(rawView)
   const [activeTab, setActiveTab] = useState<string>('Overview')
 
   // Dynamic Dashboard Date & Greeting
   const [formattedToday, setFormattedToday] = useState<string>('')
   const [greeting, setGreeting] = useState<string>('')
+
+  // Projects & Today Badge
+  const [todayBadgeCount, setTodayBadgeCount] = useState<number>(0)
+  const [isReviewDueStatus, setIsReviewDueStatus] = useState<boolean>(false)
+  const [projectsList, setProjectsList] = useState<ProjectCard[]>([])
+
+  const refreshWorkspaceProjects = useCallback(async () => {
+    try {
+      const [todayRes, projectsRes] = await Promise.all([
+        fetchTodayAction({ today: localToday() }),
+        fetchProjectsAction({ includeArchived: false, today: localToday() }),
+      ])
+      if (todayRes.ok) {
+        setTodayBadgeCount(todayRes.data.badgeCount)
+      }
+      if (projectsRes.ok) {
+        setProjectsList(projectsRes.data)
+      }
+    } catch {
+      // ignore
+    }
+  }, [])
+
+  useEffect(() => {
+    refreshWorkspaceProjects()
+  }, [refreshWorkspaceProjects])
+
+  const navigateToView = useCallback(
+    (view: ViewId, extra?: Record<string, string>) => {
+      router.replace(viewHref(view, extra))
+    },
+    [router]
+  )
 
   useEffect(() => {
     setFormattedToday(getFormattedToday())
@@ -231,7 +292,13 @@ export default function Page() {
   const [settingsModalInitialTab, setSettingsModalInitialTab] = useState<'profile' | 'integrations'>('profile')
   const [gcalStatus, setGcalStatus] = useState<GoogleCalendarStatusResponse | null>(null)
   const [isSyncingGcal, setIsSyncingGcal] = useState(false)
-  const [settingsTab, setSettingsTab] = useState<'profile' | 'shortcuts' | 'export' | 'system'>('profile')
+  const rawSection = searchParams.get('section')
+  const settingsTab = (rawSection && ['profile', 'projects', 'shortcuts', 'export', 'system'].includes(rawSection)
+    ? rawSection
+    : 'profile') as 'profile' | 'projects' | 'shortcuts' | 'export' | 'system'
+  const setSettingsTab = (tab: string) => {
+    router.replace(viewHref('settings', { section: tab }))
+  }
   const [shortcutFilter, setShortcutFilter] = useState('')
   const [isProjectSheetOpen, setIsProjectSheetOpen] = useState(false)
   const [startProjectCompany, setStartProjectCompany] = useState<string | null>(null)
@@ -409,8 +476,17 @@ export default function Page() {
     switch (actionType) {
       case 'navigate':
         if (typeof payload === 'string') {
-          setActiveView(payload)
-          addToast(`Navigated to ${payload}`)
+          const v = parseViewParam(payload)
+          navigateToView(v)
+          addToast(`Navigated to ${VIEW_LABELS[v] || payload}`)
+        }
+        break
+      case 'start_project':
+        handleStartProject()
+        break
+      case 'open_project':
+        if (typeof payload === 'string') {
+          router.push(`/projects/${payload}`)
         }
         break
       case 'new_deal':
@@ -437,15 +513,15 @@ export default function Page() {
         }
         break
       case 'open_company':
-        setActiveView('Companies')
+        navigateToView('companies')
         if (payload?.name) setCompanySearch(payload.name)
         break
       case 'open_contact':
-        setActiveView('Contacts')
+        navigateToView('contacts')
         if (payload?.name) setContactSearch(payload.name)
         break
       case 'toggle_kanban':
-        setActiveView('Deals')
+        navigateToView('deals')
         break
       case 'open_scratchpad':
         setIsPaletteOpen(true)
@@ -719,8 +795,14 @@ export default function Page() {
         : prev
     )
 
+    const prevDeal = deals.find((d) => d.id === dealId)
+    const hadProject = !!prevDeal?.projectId
+    const wasWon = prevDeal?.stage === 'Won'
+
     if (isWon) {
-      addToast('Deal Won!')
+      addToast('Deal Won! Start a project to track milestones and tasks.', 'P')
+    } else if (wasWon && hadProject) {
+      addToast(`Deal moved to ${newStage}. Its project stays linked.`)
     } else {
       addToast(`Moved deal to ${newStage}`)
     }
@@ -892,8 +974,8 @@ export default function Page() {
         }}
         onStartProject={handleStartProject}
         onNavigate={(view, chord) => {
-          setActiveView(view)
-          addToast(`Navigated to ${view}`, chord)
+          navigateToView(view)
+          addToast(`Navigated to ${VIEW_LABELS[view] || view}`, chord)
         }}
         onAcceptToast={handleAcceptToast}
         onUndoToast={handleUndoToast}
@@ -909,51 +991,82 @@ export default function Page() {
         <nav className="nav-group" aria-label="Primary navigation">
           <p className="nav-label">Workspace</p>
           <NavItem
+            icon={Clock}
+            label="Today"
+            badge={todayBadgeCount > 0 ? String(todayBadgeCount) : undefined}
+            shortcutHint="G T"
+            active={activeView === 'today'}
+            onClick={() => navigateToView('today')}
+          />
+          <NavItem
             icon={LayoutDashboard}
             label="Dashboard"
-            active={activeView === 'Dashboard'}
-            onClick={() => setActiveView('Dashboard')}
+            shortcutHint="G D"
+            active={activeView === 'dashboard'}
+            onClick={() => navigateToView('dashboard')}
           />
           <NavItem
             icon={WalletCards}
             label="Deals"
             badge={String(deals.length)}
-            active={activeView === 'Deals'}
-            onClick={() => setActiveView('Deals')}
+            shortcutHint="G P"
+            active={activeView === 'deals'}
+            onClick={() => navigateToView('deals')}
+          />
+          <NavItem
+            icon={FolderKanban}
+            label="Projects"
+            badge={projectsList.length > 0 ? String(projectsList.length) : undefined}
+            shortcutHint="G J"
+            active={activeView === 'projects'}
+            onClick={() => navigateToView('projects')}
           />
           <NavItem
             icon={Building2}
             label="Companies"
             badge={String(companies.length)}
-            active={activeView === 'Companies'}
-            onClick={() => setActiveView('Companies')}
+            shortcutHint="G C"
+            active={activeView === 'companies'}
+            onClick={() => navigateToView('companies')}
           />
           <NavItem
             icon={Users}
             label="Contacts"
             badge={String(contacts.length)}
-            active={activeView === 'Contacts'}
-            onClick={() => setActiveView('Contacts')}
+            shortcutHint="G U"
+            active={activeView === 'contacts'}
+            onClick={() => navigateToView('contacts')}
           />
           <NavItem
             icon={FileText}
             label="Activities"
             badge={String(activities.length)}
-            active={activeView === 'Activities'}
-            onClick={() => setActiveView('Activities')}
+            shortcutHint="G A"
+            active={activeView === 'activities'}
+            onClick={() => navigateToView('activities')}
           />
           <p className="nav-label second">Manage</p>
           <NavItem
             icon={CalendarDays}
             label="Calendar"
-            active={activeView === 'Calendar'}
-            onClick={() => setActiveView('Calendar')}
+            shortcutHint="G K"
+            active={activeView === 'calendar'}
+            onClick={() => navigateToView('calendar')}
+          />
+          <NavItem
+            icon={CheckCircle2}
+            label="Review"
+            hasDot={isReviewDueStatus}
+            shortcutHint="G W"
+            active={activeView === 'review'}
+            onClick={() => navigateToView('review')}
           />
           <NavItem
             icon={Settings2}
             label="Settings"
-            active={activeView === 'Settings'}
-            onClick={() => setActiveView('Settings')}
+            shortcutHint="G S"
+            active={activeView === 'settings'}
+            onClick={() => navigateToView('settings')}
           />
         </nav>
 
@@ -968,35 +1081,66 @@ export default function Page() {
 
       {/* MAIN CONTENT AREA */}
       <main className="main-content">
-        {/* TOPBAR */}
-        <header className="topbar">
-          <div className="breadcrumbs">
-            <span>Workspace</span>
-            <span>/</span>
-            <strong>{activeView}</strong>
-          </div>
+        {activeView === 'today' ? (
+          <TodayView
+            onOpenDeal={(dealId) => {
+              const d = deals.find((deal) => deal.id === dealId)
+              if (d) {
+                setSelectedDeal(d)
+                setIsDealDrawerOpen(true)
+              }
+            }}
+            onStartProject={(dealId) => {
+              setStartProjectDealId(dealId || null)
+              const d = deals.find((deal) => deal.id === dealId)
+              setStartProjectCompany(d?.company || null)
+              setIsProjectSheetOpen(true)
+            }}
+            onNewDeal={() => setIsNewDealOpen(true)}
+            showToast={(msg, type) => addToast(msg, undefined, type === 'error' ? 'warning' : 'success')}
+          />
+        ) : activeView === 'projects' ? (
+          <ProjectsView
+            onStartProject={() => {
+              setStartProjectDealId(null)
+              setStartProjectCompany(null)
+              setIsProjectSheetOpen(true)
+            }}
+            showToast={(msg, type) => addToast(msg, undefined, type === 'error' ? 'warning' : 'success')}
+          />
+        ) : (
+          <>
+            {/* TOPBAR */}
+            <header className="topbar">
+              <div className="breadcrumbs">
+                <Link href={viewHref('today')} className="text-slate-500 hover:text-slate-900 transition-colors">
+                  Workspace
+                </Link>
+                <span>/</span>
+                <strong>{VIEW_LABELS[activeView] || activeView}</strong>
+              </div>
 
-          <div className="top-actions">
-            <button
-              type="button"
-              onClick={() => setIsPaletteOpen(true)}
-              className="topbar-search"
-              title="Search workspace (Ctrl+K)"
-            >
-              <Search size={14} />
-              <span>Search workspace...</span>
-              <span className="search-shortcut">Ctrl+K</span>
-            </button>
+              <div className="top-actions">
+                <button
+                  type="button"
+                  onClick={() => setIsPaletteOpen(true)}
+                  className="topbar-search"
+                  title="Search workspace (Ctrl+K)"
+                >
+                  <Search size={14} />
+                  <span>Search workspace...</span>
+                  <span className="search-shortcut">Ctrl+K</span>
+                </button>
 
-            <button className="avatar" title={currentSettings.operatorName}>
-              {getOperatorInitials(currentSettings.operatorName)}
-            </button>
-          </div>
-        </header>
+                <button className="avatar" title={currentSettings.operatorName}>
+                  {getOperatorInitials(currentSettings.operatorName)}
+                </button>
+              </div>
+            </header>
 
-        {/* VIEW CONTAINER */}
-        <div className="content-wrap">
-          {activeView === 'Deals' ? (
+            {/* VIEW CONTAINER */}
+            <div className="content-wrap">
+              {activeView === 'deals' ? (
             /* DEALS & PIPELINE VIEW (Kanban Board) */
             <>
               <section className="page-heading">
@@ -1060,9 +1204,15 @@ export default function Page() {
                   setSelectedDeal(deal)
                   setIsLogCallOpen(true)
                 }}
+                onStartProject={(dealId) => {
+                  setStartProjectDealId(dealId)
+                  const d = deals.find((deal) => deal.id === dealId)
+                  setStartProjectCompany(d?.company || null)
+                  setIsProjectSheetOpen(true)
+                }}
               />
             </>
-          ) : activeView === 'Calendar' ? (
+          ) : activeView === 'calendar' ? (
             /* CALENDAR VIEW */
             <CalendarView
               deals={deals}
@@ -1072,7 +1222,7 @@ export default function Page() {
                 setIsDealDrawerOpen(true)
               }}
             />
-          ) : activeView === 'Activities' ? (
+          ) : activeView === 'activities' ? (
             /* ACTIVITIES TIMELINE VIEW */
             <>
               <section className="page-heading">
@@ -1355,7 +1505,7 @@ export default function Page() {
                 </div>
               </section>
             </>
-          ) : activeView === 'Contacts' ? (
+          ) : activeView === 'contacts' ? (
             /* CONTACTS VIEW */
             <>
               <section className="page-heading">
@@ -1573,7 +1723,7 @@ export default function Page() {
                 </div>
               </section>
             </>
-          ) : activeView === 'Companies' ? (
+          ) : activeView === 'companies' ? (
             /* COMPANIES VIEW */
             <>
               <section className="page-heading">
@@ -1794,7 +1944,20 @@ export default function Page() {
                 </div>
               </section>
             </>
-          ) : activeView === 'Settings' ? (
+          ) : activeView === 'review' ? (
+            /* REVIEW VIEW */
+            <div className="py-16 text-center space-y-3">
+              <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto">
+                <CheckCircle2 size={24} />
+              </div>
+              <h2 className="text-base font-semibold text-slate-800 dark:text-slate-200">
+                Weekly Review
+              </h2>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                Step through loose ends, project health, money pipeline, and upcoming schedule.
+              </p>
+            </div>
+          ) : activeView === 'settings' ? (
             /* SETTINGS VIEW */
             <>
               <section className="page-heading">
@@ -1815,6 +1978,13 @@ export default function Page() {
                   onClick={() => setSettingsTab('profile')}
                 >
                   General & Profile
+                </button>
+                <button
+                  type="button"
+                  className={settingsTab === 'projects' ? 'tab-active' : ''}
+                  onClick={() => setSettingsTab('projects')}
+                >
+                  Projects
                 </button>
                 <button
                   type="button"
@@ -2397,7 +2567,7 @@ export default function Page() {
                     </div>
                     <button
                       className="text-button"
-                      onClick={() => setActiveView('Calendar')}
+                      onClick={() => navigateToView('calendar')}
                     >
                       View calendar <ArrowUpRight size={14} />
                     </button>
@@ -2483,7 +2653,7 @@ export default function Page() {
                     </div>
                     <button
                       className="text-button"
-                      onClick={() => setActiveView('Deals')}
+                      onClick={() => navigateToView('deals')}
                     >
                       Open Kanban <ArrowUpRight size={14} />
                     </button>
@@ -2494,7 +2664,7 @@ export default function Page() {
                       <div
                         className="pipeline-row cursor-pointer hover:bg-[#fafbfc] rounded px-1 -mx-1"
                         key={item.label}
-                        onClick={() => setActiveView('Deals')}
+                        onClick={() => navigateToView('deals')}
                       >
                         <div className="pipeline-name">
                           <span className={`stage-dot dot-${(index % 5) + 1}`} />
@@ -2763,7 +2933,9 @@ export default function Page() {
             </>
           )}
         </div>
-      </main>
+      </>
+    )}
+  </main>
 
       {/* COMMAND PALETTE (Ctrl+K) */}
       <CommandPalette
@@ -2773,6 +2945,7 @@ export default function Page() {
         deals={deals}
         contacts={contacts}
         companies={companies}
+        projects={projectsList}
         onUpdateDeal={handleUpdateDeal}
         onSyncTodos={handleSyncTodos}
         onAddActivity={(act) => handleLogActivity(act)}
@@ -2783,8 +2956,7 @@ export default function Page() {
         isOpen={isShortcutsOpen}
         onClose={() => setIsShortcutsOpen(false)}
         onOpenSettings={() => {
-          setActiveView('Settings')
-          setSettingsTab('shortcuts')
+          navigateToView('settings', { section: 'shortcuts' })
         }}
       />
 
@@ -2880,6 +3052,13 @@ export default function Page() {
         onAddActivity={(act) => handleLogActivity(act)}
         onOpenLogCallModal={() => setIsLogCallOpen(true)}
         onToast={(msg) => addToast(msg)}
+        onStartProject={(dealId) => {
+          setStartProjectDealId(dealId)
+          const d = deals.find((deal) => deal.id === dealId)
+          setStartProjectCompany(d?.company || null)
+          setIsProjectSheetOpen(true)
+        }}
+        projectCard={projectsList.find((p) => p.project.id === selectedDeal?.projectId)}
         settings={currentSettings}
       />
 
@@ -2906,5 +3085,13 @@ export default function Page() {
       <ToastHUD toasts={toasts} onDismiss={dismissToast} />
     </div>
     </ShortcutProvider>
+  )
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div className="h-screen flex items-center justify-center bg-white dark:bg-slate-900" />}>
+      <MainApp />
+    </Suspense>
   )
 }

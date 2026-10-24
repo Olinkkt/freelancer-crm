@@ -32,6 +32,8 @@ import { formatDealValue, formatMoney } from '@/lib/config'
 import { WorkspaceSettings } from '@/lib/crm-types'
 import { dealNeedsNextAction } from '@/lib/deals/next-action'
 import { useShortcutContext, useShortcut } from '@/components/shortcuts/shortcut-provider'
+import Link from 'next/link'
+import { FolderKanban } from 'lucide-react'
 
 interface DealKanbanProps {
   deals: Deal[]
@@ -41,6 +43,7 @@ interface DealKanbanProps {
   onDeleteDeal?: (dealId: string) => void
   onLogInteraction?: (deal: Deal) => void
   onEditDeal?: (deal: Deal) => void
+  onStartProject?: (dealId: string) => void
   settings?: WorkspaceSettings
 }
 
@@ -59,6 +62,7 @@ export function DealKanban({
   onDeleteDeal,
   onLogInteraction,
   onEditDeal,
+  onStartProject,
   settings,
 }: DealKanbanProps) {
   const router = useRouter()
@@ -516,8 +520,25 @@ export function DealKanban({
                                 <RowActionMenu
                                   triggerLabel={`Options for ${deal.title}`}
                                   items={[
+                                    ...(deal.projectId
+                                      ? [
+                                          {
+                                            label: 'Go to Project',
+                                            icon: FolderKanban,
+                                            onClick: () => router.push(`/projects/${deal.projectId}`),
+                                          },
+                                        ]
+                                      : onStartProject
+                                      ? [
+                                          {
+                                            label: 'Start project',
+                                            icon: FolderKanban,
+                                            onClick: () => onStartProject(deal.id),
+                                          },
+                                        ]
+                                      : []),
                                     {
-                                      label: 'Open project workspace',
+                                      label: 'Open deal workspace',
                                       icon: ExternalLink,
                                       onClick: () => router.push(`/deals/${deal.id}`),
                                     },
@@ -581,42 +602,38 @@ export function DealKanban({
                             </span>
                           </div>
 
-                          {/* Deliverables Mini-Progress */}
-                          {deal.deliverables && deal.deliverables.length > 0 && (
-                            <div className="mt-2 space-y-1">
-                              <div className="flex items-center justify-between text-[10px] text-[#6f7988]">
-                                <span className="font-medium">Deliverables</span>
-                                <span className="font-mono font-semibold text-[#1c1d1f]">
-                                  {deal.deliverables.filter((d) => d.status === 'Done').length}/{deal.deliverables.length}
+                          {/* Won Stage Project Status */}
+                          {deal.stage === 'Won' && (
+                            deal.projectId ? (
+                              <Link
+                                href={`/projects/${deal.projectId}`}
+                                onClick={(e) => e.stopPropagation()}
+                                className="mt-2 flex items-center justify-between text-[11px] text-[#266df0] bg-[#eff5ff] hover:bg-[#e0edff] px-2 py-1 rounded-[6px] transition-colors"
+                              >
+                                <span className="flex items-center gap-1 font-medium">
+                                  <FolderKanban size={12} />
+                                  Project linked
                                 </span>
+                                <ExternalLink size={10} />
+                              </Link>
+                            ) : (
+                              <div className="mt-2 flex items-center justify-between text-[10px] bg-emerald-50 border border-emerald-200/80 px-2 py-1 rounded-[6px]">
+                                <span className="text-emerald-800 font-medium">No project yet</span>
+                                {onStartProject && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      onStartProject(deal.id)
+                                    }}
+                                    className="px-1.5 py-0.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[10px] font-semibold cursor-pointer"
+                                  >
+                                    Start project
+                                  </button>
+                                )}
                               </div>
-                              <div className="w-full bg-[#f0f2f5] h-1 rounded-full overflow-hidden">
-                                <div
-                                  className="bg-[#266df0] h-full transition-all"
-                                  style={{
-                                    width: `${Math.round(
-                                      (deal.deliverables.filter((d) => d.status === 'Done').length / deal.deliverables.length) * 100
-                                    )}%`,
-                                  }}
-                                />
-                              </div>
-                            </div>
+                            )
                           )}
-
-                          {/* Invoicing Status Badge */}
-                          {(() => {
-                            if (deal.invoices && deal.invoices.length > 0) {
-                              const paidDeposit = deal.invoices.some((i) => i.type === 'Deposit' && i.status.toLowerCase() === 'paid')
-                              if (paidDeposit) {
-                                return (
-                                  <div className="mt-1.5 flex items-center gap-1 text-[9px] font-mono font-semibold text-[#266df0] bg-[#eff5ff] px-1.5 py-0.5 rounded-[5px] w-fit">
-                                    <span>50% Deposit Paid</span>
-                                  </div>
-                                )
-                              }
-                            }
-                            return null
-                          })()}
 
                           {/* Mandatory Next Action Pill (GTD) */}
                           {deal.next ? (

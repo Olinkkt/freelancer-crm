@@ -271,6 +271,33 @@ describe('CRM Database Repository', () => {
       assert.equal(wsDeal.projectId, `prj-${deal.id}`)
     })
 
+    it('won-deal-with-project-exempt-from-next-action', async () => {
+      const { dealNeedsNextAction } = await import('@/lib/deals/next-action')
+      const wonDeal = await repo.createDeal({
+        title: 'Won Project Deal',
+        company: 'ExemptCo',
+        value: '10 000 Kč',
+        rawAmount: 10000,
+        stage: 'Won',
+        probability: '100%',
+        color: 'blue',
+        next: '',
+      })
+      assert.equal(dealNeedsNextAction(wonDeal), false)
+
+      const leadDeal = await repo.createDeal({
+        title: 'Lead Deal',
+        company: 'LeadCo',
+        value: '5 000 Kč',
+        rawAmount: 5000,
+        stage: 'Lead',
+        probability: '20%',
+        color: 'blue',
+        next: '',
+      })
+      assert.equal(dealNeedsNextAction(leadDeal), true)
+    })
+
     it('deleteDeal unlinks activities and follow-ups and recalculates metrics', async () => {
       const deal = await repo.createDeal({
         title: 'SEO Audit',

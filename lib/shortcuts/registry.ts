@@ -71,6 +71,13 @@ export const SHORTCUTS: readonly ShortcutDef[] = [
   },
   // Navigate
   {
+    id: 'nav.today',
+    defaults: ['g t'],
+    scope: 'global',
+    label: 'Go to Today',
+    group: 'Navigate',
+  },
+  {
     id: 'nav.dashboard',
     defaults: ['g d'],
     scope: 'global',
@@ -82,6 +89,13 @@ export const SHORTCUTS: readonly ShortcutDef[] = [
     defaults: ['g p'],
     scope: 'global',
     label: 'Go to Deals (pipeline)',
+    group: 'Navigate',
+  },
+  {
+    id: 'nav.projects',
+    defaults: ['g j'],
+    scope: 'global',
+    label: 'Go to Projects',
     group: 'Navigate',
   },
   {
@@ -192,6 +206,20 @@ export const SHORTCUTS: readonly ShortcutDef[] = [
     defaults: [']'],
     scope: 'board',
     label: 'Move card to next stage',
+    group: 'Boards',
+  },
+  {
+    id: 'board.toggleLayout',
+    defaults: ['v'],
+    scope: 'board',
+    label: 'Projects: board ⇄ list',
+    group: 'Boards',
+  },
+  {
+    id: 'board.archive',
+    defaults: ['shift+e'],
+    scope: 'board',
+    label: 'Projects: archive / unarchive',
     group: 'Boards',
   },
   {
@@ -307,6 +335,35 @@ export const SHORTCUTS: readonly ShortcutDef[] = [
     scope: 'list',
     label: 'Show / hide completed',
     group: 'Task lists',
+  },
+  // Today
+  {
+    id: 'today.nudge',
+    defaults: ['shift+n'],
+    scope: 'today',
+    label: 'Nudge client (log activity)',
+    group: 'Today',
+  },
+  {
+    id: 'today.clearWaiting',
+    defaults: ['w'],
+    scope: 'today',
+    label: 'No longer waiting',
+    group: 'Today',
+  },
+  {
+    id: 'today.markPaid',
+    defaults: ['$'],
+    scope: 'today',
+    label: 'Mark invoice paid',
+    group: 'Today',
+  },
+  {
+    id: 'today.markSent',
+    defaults: ['s'],
+    scope: 'today',
+    label: 'Mark invoice sent',
+    group: 'Today',
   },
   // Project
   {

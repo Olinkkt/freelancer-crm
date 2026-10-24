@@ -46,7 +46,11 @@ import {
 } from '@/app/actions/crm'
 import { getAuthStatus } from '@/app/actions/auth'
 import { formatDealValue } from '@/lib/config'
-import { DeliverablesTracker } from '@/components/drawers/deliverables-tracker'
+import { DealProjectCard } from '@/components/projects/deal-project-card'
+import { ProjectSheet } from '@/components/projects/project-sheet'
+import { fetchProjectsAction } from '@/app/actions/projects'
+import { localToday } from '@/lib/projects/dates'
+import type { ProjectCard } from '@/lib/projects/types'
 import { ScratchpadEditor } from '@/components/drawers/scratchpad-editor'
 import { MarkdownFormatter } from '@/components/ui/markdown-formatter'
 import { ToastHUD, ToastHUDItem } from '@/components/ui/toast-hud'
@@ -85,6 +89,8 @@ export default function DealProjectPage() {
   const [isEditingNextAction, setIsEditingNextAction] = useState(false)
   const [nextActionText, setNextActionText] = useState('')
   const [nextActionDate, setNextActionDate] = useState('')
+  const [projectCard, setProjectCard] = useState<ProjectCard | null>(null)
+  const [isProjectSheetOpen, setIsProjectSheetOpen] = useState(false)
 
   // Toast HUD state
   const [toasts, setToasts] = useState<ToastHUDItem[]>([])
@@ -149,6 +155,19 @@ export default function DealProjectPage() {
   useEffect(() => {
     loadDeal()
   }, [loadDeal])
+
+  useEffect(() => {
+    if (deal?.projectId) {
+      fetchProjectsAction({ includeArchived: true, today: localToday() }).then((res) => {
+        if (res.ok) {
+          const match = res.data.find((p: ProjectCard) => p.project.id === deal.projectId)
+          if (match) setProjectCard(match)
+        }
+      })
+    } else {
+      setProjectCard(null)
+    }
+  }, [deal?.projectId])
 
   // Update Deal helper
   const handleUpdateDeal = async (updated: Deal) => {
@@ -487,26 +506,13 @@ export default function DealProjectPage() {
               </button>
             </div>
 
-            {/* TAB CONTENT: 1. Deliverables & Milestones */}
+            {/* TAB CONTENT: 1. Project */}
             {activeTab === 'deliverables' && (
               <div className="bg-white border border-[#e4e7ec] rounded-[14px] p-6 shadow-2xs space-y-6">
-                <DeliverablesTracker
-                  dealTitle={deal.title}
-                  dealValue={deal.value}
-                  rawAmount={deal.rawAmount || parseInt(deal.value.replace(/[^0-9]/g, '')) || 0}
-                  deliverables={deal.deliverables || []}
-                  invoices={deal.invoices || []}
-                  onChangeDeliverables={(updatedDel) => {
-                    handleUpdateDeal({ ...deal, deliverables: updatedDel })
-                  }}
-                  onChangeInvoices={(updatedInv) => {
-                    handleUpdateDeal({ ...deal, invoices: updatedInv })
-                  }}
-                  onAutoAdvanceStage={(stage, reason) => {
-                    handleStageChange(stage)
-                    addToast(reason)
-                  }}
-                  onToast={(msg) => addToast(msg)}
+                <DealProjectCard
+                  deal={deal}
+                  projectCard={projectCard}
+                  onStartProject={() => setIsProjectSheetOpen(true)}
                 />
               </div>
             )}
@@ -824,6 +830,18 @@ export default function DealProjectPage() {
             } catch (err: any) {
               addToast(err?.message || 'Failed to log call', undefined, 'warning')
             }
+          }}
+        />
+      )}
+
+      {isProjectSheetOpen && deal && (
+        <ProjectSheet
+          isOpen={isProjectSheetOpen}
+          initialDealId={deal.id}
+          onClose={() => setIsProjectSheetOpen(false)}
+          onProjectCreated={(projId) => {
+            setIsProjectSheetOpen(false)
+            router.push(`/projects/${projId}`)
           }}
         />
       )}

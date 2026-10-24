@@ -28,8 +28,10 @@ import {
   CheckSquare,
   Save,
   ExternalLink,
+  FolderKanban,
 } from 'lucide-react'
 import { Deal, Contact, Company, Activity } from '@/lib/crm-types'
+import type { ProjectCard } from '@/lib/projects/types'
 import { ScratchpadEditor } from '../drawers/scratchpad-editor'
 import { formatMoney, OPERATOR_CONFIG } from '@/lib/config'
 
@@ -40,6 +42,8 @@ export type PaletteActionType =
   | 'log_call'
   | 'open_deal'
   | 'open_project_workspace'
+  | 'open_project'
+  | 'start_project'
   | 'open_company'
   | 'open_contact'
   | 'toggle_kanban'
@@ -48,7 +52,7 @@ export type PaletteActionType =
 
 export interface PaletteItem {
   id: string
-  category: 'Actions' | 'Notes' | 'Deals' | 'Contacts' | 'Companies' | 'Navigation'
+  category: 'Actions' | 'Notes' | 'Deals' | 'Contacts' | 'Companies' | 'Navigation' | 'Projects'
   title: string
   subtitle?: string
   badge?: string
@@ -66,6 +70,7 @@ interface CommandPaletteProps {
   deals: Deal[]
   contacts: Contact[]
   companies: Company[]
+  projects?: ProjectCard[]
   onUpdateDeal?: (deal: Deal) => void
   onSyncTodos?: (todos: string[], companyName?: string) => void
   onAddActivity?: (activity: Omit<Activity, 'id'>) => void
@@ -78,6 +83,7 @@ export function CommandPalette({
   deals,
   contacts,
   companies,
+  projects = [],
   onUpdateDeal,
   onSyncTodos,
   onAddActivity,
@@ -171,6 +177,15 @@ export function CommandPalette({
         actionType: 'new_deal',
       },
       {
+        id: 'action-start-project',
+        category: 'Actions',
+        title: 'Start project',
+        subtitle: 'Create client project with milestones and template',
+        shortcut: 'P',
+        icon: <FolderKanban size={15} className="text-[#266df0]" />,
+        actionType: 'start_project',
+      },
+      {
         id: 'action-new-contact',
         category: 'Actions',
         title: 'Add new contact',
@@ -209,6 +224,16 @@ export function CommandPalette({
 
       // Navigation
       {
+        id: 'nav-today',
+        category: 'Navigation',
+        title: 'Go to Today',
+        subtitle: 'Overdue tasks, today’s focus & urgent items',
+        shortcut: 'G T',
+        icon: <Clock size={15} className="text-[#266df0]" />,
+        actionType: 'navigate',
+        payload: 'today',
+      },
+      {
         id: 'nav-dashboard',
         category: 'Navigation',
         title: 'Go to Dashboard',
@@ -216,7 +241,7 @@ export function CommandPalette({
         shortcut: 'G D',
         icon: <LayoutDashboard size={15} className="text-[#6f7988]" />,
         actionType: 'navigate',
-        payload: 'Dashboard',
+        payload: 'dashboard',
       },
       {
         id: 'nav-deals',
@@ -226,7 +251,17 @@ export function CommandPalette({
         shortcut: 'G P',
         icon: <WalletCards size={15} className="text-[#266df0]" />,
         actionType: 'navigate',
-        payload: 'Deals',
+        payload: 'deals',
+      },
+      {
+        id: 'nav-projects',
+        category: 'Navigation',
+        title: 'Go to Projects',
+        subtitle: 'Active client projects, board & milestones',
+        shortcut: 'G J',
+        icon: <FolderKanban size={15} className="text-[#266df0]" />,
+        actionType: 'navigate',
+        payload: 'projects',
       },
       {
         id: 'nav-companies',
@@ -236,7 +271,7 @@ export function CommandPalette({
         shortcut: 'G C',
         icon: <Building2 size={15} className="text-[#6f7988]" />,
         actionType: 'navigate',
-        payload: 'Companies',
+        payload: 'companies',
       },
       {
         id: 'nav-contacts',
@@ -246,17 +281,7 @@ export function CommandPalette({
         shortcut: 'G U',
         icon: <Users size={15} className="text-[#6f7988]" />,
         actionType: 'navigate',
-        payload: 'Contacts',
-      },
-      {
-        id: 'nav-calendar',
-        category: 'Navigation',
-        title: 'Go to Calendar',
-        subtitle: 'Weekly schedule, meetings & milestone timeline',
-        shortcut: 'G K',
-        icon: <CalendarDays size={15} className="text-[#266df0]" />,
-        actionType: 'navigate',
-        payload: 'Calendar',
+        payload: 'contacts',
       },
       {
         id: 'nav-activities',
@@ -266,7 +291,27 @@ export function CommandPalette({
         shortcut: 'G A',
         icon: <FileText size={15} className="text-[#6f7988]" />,
         actionType: 'navigate',
-        payload: 'Activities',
+        payload: 'activities',
+      },
+      {
+        id: 'nav-calendar',
+        category: 'Navigation',
+        title: 'Go to Calendar',
+        subtitle: 'Weekly schedule, meetings & milestone timeline',
+        shortcut: 'G K',
+        icon: <CalendarDays size={15} className="text-[#266df0]" />,
+        actionType: 'navigate',
+        payload: 'calendar',
+      },
+      {
+        id: 'nav-review',
+        category: 'Navigation',
+        title: 'Go to Review',
+        subtitle: 'Weekly review wizard & loose ends',
+        shortcut: 'G W',
+        icon: <CheckCircle2 size={15} className="text-[#6f7988]" />,
+        actionType: 'navigate',
+        payload: 'review',
       },
       {
         id: 'nav-settings',
@@ -276,7 +321,7 @@ export function CommandPalette({
         shortcut: 'G S',
         icon: <Settings2 size={15} className="text-[#6f7988]" />,
         actionType: 'navigate',
-        payload: 'Settings',
+        payload: 'settings',
       },
     ]
 
@@ -355,8 +400,22 @@ export function CommandPalette({
       })
     })
 
+    // Add Projects
+    projects.forEach((proj) => {
+      items.push({
+        id: `project-${proj.project.id}`,
+        category: 'Projects',
+        title: proj.project.title,
+        subtitle: `${proj.stage.name} · ${proj.project.company || 'No client'} · ${proj.project.billingType}`,
+        badge: 'Project ↗',
+        icon: <FolderKanban size={15} className="text-[#266df0] shrink-0" />,
+        actionType: 'open_project',
+        payload: proj.project.id,
+      })
+    })
+
     return items
-  }, [deals, companies, contacts])
+  }, [deals, companies, contacts, projects])
 
   // Filter items by query and category
   const filteredItems = useMemo(() => {
@@ -505,7 +564,7 @@ export function CommandPalette({
     } else if (e.key === 'Tab') {
       // Cycle through categories
       e.preventDefault()
-      const categories = ['All', 'Notes', 'Actions', 'Deals', 'Contacts', 'Companies', 'Navigation']
+      const categories = ['All', 'Notes', 'Actions', 'Navigation', 'Deals', 'Projects', 'Companies', 'Contacts']
       const currentIndex = categories.indexOf(selectedCategory)
       const nextIndex = e.shiftKey
         ? (currentIndex - 1 + categories.length) % categories.length
@@ -547,7 +606,7 @@ export function CommandPalette({
   if (!isOpen) return null
 
   // Group items by category for rendering headers
-  const categories = ['Notes', 'Actions', 'Navigation', 'Deals', 'Companies', 'Contacts'] as const
+  const categories = ['Notes', 'Actions', 'Navigation', 'Deals', 'Projects', 'Companies', 'Contacts'] as const
   const activeDeal = deals.find((d) => d.id === targetDealId)
 
   return (

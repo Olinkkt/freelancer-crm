@@ -18,6 +18,9 @@ interface TaskRowProps {
   isSelected: boolean
   isEditing?: boolean
   isReadOnly?: boolean
+  subtitle?: string
+  subtitleHref?: string
+  focusBadgeText?: string
   onSelect: () => void
   onToggleDone: () => void
   onSaveTitle?: (newTitle: string) => void
@@ -32,6 +35,9 @@ export function TaskRow({
   isSelected,
   isEditing = false,
   isReadOnly = false,
+  subtitle,
+  subtitleHref,
+  focusBadgeText,
   onSelect,
   onToggleDone,
   onSaveTitle,
@@ -147,14 +153,26 @@ export function TaskRow({
                 <Mail size={12} />
               </span>
             )}
+
+            {/* Subtitle e.g. "Acme Website · Build" */}
+            {subtitle && (
+              <span className="text-xs text-slate-400 dark:text-slate-500 truncate hidden sm:inline ml-1">
+                {subtitle}
+              </span>
+            )}
           </div>
         )}
       </div>
 
       {/* Right: Badges & Due date */}
       <div className="flex items-center gap-2 shrink-0 ml-2">
-        {/* Star Pin ★ */}
-        {task.focusDate && (
+        {/* Focus badge text or Star Pin */}
+        {focusBadgeText ? (
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50">
+            <Star size={11} className="fill-amber-400 text-amber-500" />
+            <span>{focusBadgeText}</span>
+          </span>
+        ) : task.focusDate ? (
           <button
             type="button"
             onClick={(e) => {
@@ -166,7 +184,7 @@ export function TaskRow({
           >
             <Star size={12} className="fill-amber-400 text-amber-500" />
           </button>
-        )}
+        ) : null}
 
         {/* Due date pill */}
         {task.dueDate && (

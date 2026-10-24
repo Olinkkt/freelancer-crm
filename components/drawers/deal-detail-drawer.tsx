@@ -28,7 +28,8 @@ import {
 } from 'lucide-react'
 import { Deal, DealStage, STAGE_DEFAULT_PROBABILITIES, DeliverableItem, InvoiceMilestone, Activity, WorkspaceSettings } from '@/lib/crm-types'
 import { ScratchpadEditor } from './scratchpad-editor'
-import { DeliverablesTracker } from './deliverables-tracker'
+import { DealProjectCard } from '@/components/projects/deal-project-card'
+import type { ProjectCard } from '@/lib/projects/types'
 import { MarkdownFormatter } from '../ui/markdown-formatter'
 import { formatDealValue, formatMoney, OPERATOR_CONFIG } from '@/lib/config'
 import { generateGoogleCalendarWebLink, resolveEventDates } from '@/lib/google-calendar/web-links'
@@ -48,6 +49,8 @@ interface DealDetailDrawerProps {
   onAddActivity?: (activity: Omit<Activity, 'id'>) => void
   onOpenLogCallModal?: () => void
   onToast?: (message: string) => void
+  onStartProject?: (dealId: string) => void
+  projectCard?: ProjectCard | null
   settings?: WorkspaceSettings
 }
 
@@ -82,6 +85,8 @@ export function DealDetailDrawer({
   onAddActivity,
   onOpenLogCallModal,
   onToast,
+  onStartProject,
+  projectCard,
   settings,
 }: DealDetailDrawerProps) {
   const router = useRouter()
@@ -712,28 +717,21 @@ export function DealDetailDrawer({
                 </div>
               </>
             ) : (
-              /* DELIVERABLES & INVOICES TAB (Section 3.5) */
+              /* LINKED PROJECT TAB */
               <div className="space-y-4">
                 <div>
                   <h2 className="text-[16px] font-bold text-[#1c1d1f] tracking-tight">
                     {currentDeal.title}
                   </h2>
                   <p className="text-[11px] text-[#6f7988]">
-                    Manage project milestones, deliverables, and billing status for {currentDeal.company}.
+                    Manage project milestones, tasks, and billing status for {currentDeal.company}.
                   </p>
                 </div>
 
-                <DeliverablesTracker
-                  dealTitle={currentDeal.title}
-                  dealValue={currentDeal.value}
-                  rawAmount={currentDeal.rawAmount}
-                  deliverables={currentDeal.deliverables || []}
-                  invoices={dealInvoices}
-                  onChangeDeliverables={handleChangeDeliverables}
-                  onChangeInvoices={handleChangeInvoices}
-                  onAutoAdvanceStage={(stage) => handleStageChange(stage)}
-                  onToast={onToast}
-                  settings={settings}
+                <DealProjectCard
+                  deal={currentDeal}
+                  projectCard={projectCard}
+                  onStartProject={onStartProject}
                 />
               </div>
             )}

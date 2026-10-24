@@ -120,8 +120,10 @@ Press <kbd>O</kbd> on any deal or navigate to `/deals/[id]` to open the dedicate
 
 | Shortcut | Action | Where |
 |---|---|---|
+| <kbd>G</kbd> then <kbd>T</kbd> | Go to Today | Global |
 | <kbd>G</kbd> then <kbd>D</kbd> | Go to Dashboard | Global |
 | <kbd>G</kbd> then <kbd>P</kbd> | Go to Deals (pipeline) | Global |
+| <kbd>G</kbd> then <kbd>J</kbd> | Go to Projects | Global |
 | <kbd>G</kbd> then <kbd>C</kbd> | Go to Companies | Global |
 | <kbd>G</kbd> then <kbd>U</kbd> | Go to Contacts | Global |
 | <kbd>G</kbd> then <kbd>A</kbd> | Go to Activities | Global |
@@ -152,6 +154,8 @@ Press <kbd>O</kbd> on any deal or navigate to `/deals/[id]` to open the dedicate
 | <kbd>Enter</kbd> / <kbd>Space</kbd> | Open card | Boards |
 | <kbd>[</kbd> | Move card to previous stage | Boards |
 | <kbd>]</kbd> | Move card to next stage | Boards |
+| <kbd>V</kbd> | Projects: board ⇄ list | Boards |
+| <kbd>Shift</kbd> + <kbd>E</kbd> | Projects: archive / unarchive | Boards |
 | <kbd>/</kbd> | Focus the filter | Boards |
 
 ### Deal drawer
@@ -178,6 +182,15 @@ Press <kbd>O</kbd> on any deal or navigate to `/deals/[id]` to open the dedicate
 | <kbd>Alt</kbd> + <kbd>↓</kbd> / <kbd>Shift</kbd> + <kbd>J</kbd> | Move down | Task lists |
 | <kbd>Backspace</kbd> / <kbd>Delete</kbd> | Delete (undo with Z) | Task lists |
 | <kbd>H</kbd> | Show / hide completed | Task lists |
+
+### Today
+
+| Shortcut | Action | Where |
+|---|---|---|
+| <kbd>Shift</kbd> + <kbd>N</kbd> | Nudge client (log activity) | Today |
+| <kbd>W</kbd> | No longer waiting | Today |
+| <kbd>$</kbd> | Mark invoice paid | Today |
+| <kbd>S</kbd> | Mark invoice sent | Today |
 
 ### Project
 

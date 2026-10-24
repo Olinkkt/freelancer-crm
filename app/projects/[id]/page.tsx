@@ -43,13 +43,14 @@ import { MilestoneModal } from '@/components/projects/milestone-modal'
 import { useProjectMutations } from '@/components/projects/use-project-mutations'
 import { ToastHUD } from '@/components/ui/toast-hud'
 import {
+  ShortcutProvider,
   useShortcutContext,
   useShortcut,
   useShortcuts,
 } from '@/components/shortcuts/shortcut-provider'
 import { useEscapeLayer } from '@/components/shortcuts/escape-layer'
 
-export default function ProjectWorkspacePage() {
+function ProjectWorkspaceInner() {
   const params = useParams()
   const router = useRouter()
   const projectId = Array.isArray(params?.id) ? params.id[0] : (params?.id as string)
@@ -694,5 +695,13 @@ export default function ProjectWorkspacePage() {
         </div>
       </footer>
     </div>
+  )
+}
+
+export default function ProjectWorkspacePage() {
+  return (
+    <ShortcutProvider>
+      <ProjectWorkspaceInner />
+    </ShortcutProvider>
   )
 }

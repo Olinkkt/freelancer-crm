@@ -26,12 +26,21 @@ async function run() {
   }
 
   // Wait for Project Sheet modal/drawer
-  const sheetHeading = page.locator('text=Start Project')
+  const sheetHeading = page.locator('h2:has-text("Start Project")')
   await sheetHeading.waitFor({ state: 'visible', timeout: 5000 })
   console.log('  ✓ Start Project sheet visible')
 
+  // Ensure title and company are provided
+  const titleInput = page.locator('input[placeholder*="Acme Website"]')
+  await titleInput.fill('E2E Test Project')
+  const companyInput = page.locator('input[placeholder*="Select or enter company"]')
+  if (await companyInput.isVisible()) {
+    await companyInput.fill('Acme Corp')
+    await page.keyboard.press('Enter')
+  }
+
   // Submit project sheet form
-  const submitBtn = page.locator('button[type="submit"]:has-text("Start Project")')
+  const submitBtn = page.locator('button:has-text("Create project")')
   await submitBtn.click()
   console.log('  ✓ Submitted Project sheet')
 

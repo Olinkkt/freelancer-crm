@@ -6,6 +6,8 @@ import Link from 'next/link'
 import { parseViewParam, viewHref, VIEW_LABELS, type ViewId } from '@/lib/navigation'
 import { TodayView } from '@/components/projects/today-view'
 import { ProjectsView } from '@/components/projects/projects-view'
+import { WeeklyReview } from '@/components/projects/weekly-review'
+import { ProjectSettings } from '@/components/settings/project-settings'
 import { fetchTodayAction, fetchProjectsAction } from '@/app/actions/projects'
 import { isReviewDue } from '@/lib/projects/review'
 import { localToday } from '@/lib/projects/dates'
@@ -1221,6 +1223,9 @@ function MainApp() {
                 setSelectedDeal(deal)
                 setIsDealDrawerOpen(true)
               }}
+              onOpenProject={(projectId) => {
+                router.push(`/projects/${projectId}`)
+              }}
             />
           ) : activeView === 'activities' ? (
             /* ACTIVITIES TIMELINE VIEW */
@@ -1946,17 +1951,10 @@ function MainApp() {
             </>
           ) : activeView === 'review' ? (
             /* REVIEW VIEW */
-            <div className="py-16 text-center space-y-3">
-              <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto">
-                <CheckCircle2 size={24} />
-              </div>
-              <h2 className="text-base font-semibold text-slate-800 dark:text-slate-200">
-                Weekly Review
-              </h2>
-              <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                Step through loose ends, project health, money pipeline, and upcoming schedule.
-              </p>
-            </div>
+            <WeeklyReview
+              showToast={(msg, type) => addToast(msg, type === 'error' ? 'error' : 'success')}
+              onOpenProject={(id) => router.push(`/projects/${id}`)}
+            />
           ) : activeView === 'settings' ? (
             /* SETTINGS VIEW */
             <>
@@ -2251,6 +2249,11 @@ function MainApp() {
                     </div>
                   </div>
                 </div>
+              )}
+
+              {/* TAB: PROJECTS */}
+              {settingsTab === 'projects' && (
+                <ProjectSettings showToast={(msg, type) => addToast(msg, type === 'error' ? 'error' : 'success')} />
               )}
 
               {/* TAB 2: KEYBOARD SHORTCUTS */}

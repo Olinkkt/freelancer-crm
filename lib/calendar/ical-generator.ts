@@ -49,11 +49,22 @@ export function formatIcsDateOnly(dateStr: string): string {
   return dateStr.replace(/-/g, '').slice(0, 8)
 }
 
+export interface ProjectCalendarItem {
+  type: 'task' | 'milestone' | 'invoice'
+  id: string
+  title: string
+  company: string
+  projectTitle: string
+  dueDate: string
+  details?: string
+}
+
 export interface IcsCalendarOptions {
   calendarName?: string
   calendarDescription?: string
   activities?: Activity[]
   deals?: Deal[]
+  projectItems?: ProjectCalendarItem[]
   now?: Date
 }
 
@@ -66,6 +77,7 @@ export function generateIcsCalendar(options: IcsCalendarOptions = {}): string {
     calendarDescription = 'Milestones, calls, and client meetings from Freelancer CRM',
     activities = [],
     deals = [],
+    projectItems = [],
     now = new Date(),
   } = options
 
@@ -151,6 +163,45 @@ export function generateIcsCalendar(options: IcsCalendarOptions = {}): string {
     lines.push(`DESCRIPTION:${escapeIcsText(descriptionLines.join('\n'))}`)
     lines.push('STATUS:CONFIRMED')
     lines.push(`CATEGORIES:${escapeIcsText(act.type)},Freelancer CRM`)
+    lines.push('END:VEVENT')
+  }
+
+  // 3. Process Project items (Tasks, Milestones, Sent Invoices)
+  for (const item of projectItems) {
+    if (!item.dueDate) continue
+
+    const { start, end } = resolveEventDates(item.dueDate)
+    const uid = `project-${item.type}-${item.id}@freelancercrm.local`
+    const typeLabel =
+      item.type === 'task'
+        ? 'Task'
+        : item.type === 'milestone'
+        ? 'Milestone'
+        : 'Invoice Due'
+
+    const summary = `${typeLabel}: ${item.title} (${item.company})`
+    const descriptionLines: string[] = [
+      `Project: ${item.projectTitle}`,
+      `Company: ${item.company}`,
+      item.details ? item.details : '',
+    ].filter(Boolean)
+
+    lines.push('BEGIN:VEVENT')
+    lines.push(`UID:${uid}`)
+    lines.push(`DTSTAMP:${dtstamp}`)
+
+    if (start.date && end.date) {
+      lines.push(`DTSTART;VALUE=DATE:${formatIcsDateOnly(start.date)}`)
+      lines.push(`DTEND;VALUE=DATE:${formatIcsDateOnly(end.date)}`)
+    } else {
+      lines.push(`DTSTART:${formatIcsUtcDateTime(start.dateTime || now)}`)
+      lines.push(`DTEND:${formatIcsUtcDateTime(end.dateTime || now)}`)
+    }
+
+    lines.push(`SUMMARY:${escapeIcsText(summary)}`)
+    lines.push(`DESCRIPTION:${escapeIcsText(descriptionLines.join('\n'))}`)
+    lines.push('STATUS:CONFIRMED')
+    lines.push(`CATEGORIES:${typeLabel},Project,Freelancer CRM`)
     lines.push('END:VEVENT')
   }
 

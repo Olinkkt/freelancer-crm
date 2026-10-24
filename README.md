@@ -81,6 +81,14 @@ Prevent the feast-or-famine freelance cycle with automated high-leverage trigger
   - 💼 *"Pitch Monthly Retainer in 14 days"*
   - 🔍 *"Quarterly Check-in in 90 days"*
 
+### 5. 📁 Projects, Task Management & Weekly Review
+Turn closed deals into structured delivery workspaces with full financial tracking, milestone progress, and client review feedback loops:
+- **Unified Today View (<kbd>G</kbd> <kbd>T</kbd>)**: Surfaces overdue tasks, items due today, pinned focus tasks, projects waiting on client feedback, and overdue invoices in a single glance.
+- **Projects Board (<kbd>G</kbd> <kbd>J</kbd>)**: Drag-and-drop or keyboard-driven Kanban columns with stage transition invariants, list view toggle (<kbd>V</kbd>), and archive filtering.
+- **Project Workspace (`/projects/[id]`)**: Comprehensive execution environment featuring dual-pane layout with task checklists, natural language quick-add (`Fix footer fri #launch !`), milestone approval workflows, client feedback round tracker (<kbd>R</kbd>), markdown brief synchronization, and invoice status tracking.
+- **GTD Weekly Review (<kbd>G</kbd> <kbd>W</kbd>)**: Guided 4-step wizard reviewing loose ends, project health & next steps, money pipeline, and upcoming weekly schedule.
+- Every shortcut is fully customizable in [Settings › Keyboard Shortcuts](/?view=settings&section=shortcuts).
+
 ---
 
 ## 🖥️ Project Workspace
@@ -128,6 +136,7 @@ Press <kbd>O</kbd> on any deal or navigate to `/deals/[id]` to open the dedicate
 | <kbd>G</kbd> then <kbd>U</kbd> | Go to Contacts | Global |
 | <kbd>G</kbd> then <kbd>A</kbd> | Go to Activities | Global |
 | <kbd>G</kbd> then <kbd>K</kbd> | Go to Calendar | Global |
+| <kbd>G</kbd> then <kbd>W</kbd> | Go to Weekly review | Global |
 | <kbd>G</kbd> then <kbd>S</kbd> | Go to Settings | Global |
 
 ### Forms
@@ -223,6 +232,20 @@ Press <kbd>O</kbd> on any deal or navigate to `/deals/[id]` to open the dedicate
 | <kbd>E</kbd> / <kbd>Enter</kbd> | Edit | Milestones & money |
 | <kbd>Backspace</kbd> | Delete (undo with Z) | Milestones & money |
 
+### Weekly review
+
+| Shortcut | Action | Where |
+|---|---|---|
+| <kbd>]</kbd> | Next step / project | Weekly review |
+| <kbd>[</kbd> | Previous step / project | Weekly review |
+| <kbd>1</kbd> | Mark on track | Weekly review |
+| <kbd>2</kbd> | Mark at risk | Weekly review |
+| <kbd>3</kbd> | Mark blocked | Weekly review |
+| <kbd>W</kbd> | Waiting on client on/off | Weekly review |
+| <kbd>$</kbd> | Mark invoice paid | Weekly review |
+| <kbd>Shift</kbd> + <kbd>N</kbd> | Nudge client | Weekly review |
+| <kbd>Shift</kbd> + <kbd>Enter</kbd> | Finish review | Weekly review |
+
 ### Settings
 
 | Shortcut | Action | Where |
@@ -232,6 +255,18 @@ Press <kbd>O</kbd> on any deal or navigate to `/deals/[id]` to open the dedicate
 | <kbd>Enter</kbd> | Rebind | Settings › Keyboard Shortcuts |
 | <kbd>Backspace</kbd> | Reset to default | Settings › Keyboard Shortcuts |
 | <kbd>Shift</kbd> + <kbd>R</kbd> | Reset all to defaults | Settings › Keyboard Shortcuts |
+| <kbd>J</kbd> / <kbd>↓</kbd> | Next stage | Settings › Projects › Stages |
+| <kbd>K</kbd> / <kbd>↑</kbd> | Previous stage | Settings › Projects › Stages |
+| <kbd>A</kbd> | Add stage | Settings › Projects › Stages |
+| <kbd>Enter</kbd> | Rename | Settings › Projects › Stages |
+| <kbd>Alt</kbd> + <kbd>↑</kbd> | Move up (within category) | Settings › Projects › Stages |
+| <kbd>Alt</kbd> + <kbd>↓</kbd> | Move down (within category) | Settings › Projects › Stages |
+| <kbd>Backspace</kbd> | Delete | Settings › Projects › Stages |
+| <kbd>J</kbd> / <kbd>↓</kbd> | Next template | Settings › Projects › Templates |
+| <kbd>K</kbd> / <kbd>↑</kbd> | Previous template | Settings › Projects › Templates |
+| <kbd>A</kbd> | New template | Settings › Projects › Templates |
+| <kbd>Enter</kbd> | Edit (built-in: duplicate) | Settings › Projects › Templates |
+| <kbd>Backspace</kbd> | Delete | Settings › Projects › Templates |
 
 All shortcuts can be changed in **Settings › Keyboard Shortcuts**.
 

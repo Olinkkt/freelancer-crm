@@ -37,6 +37,13 @@ import {
   fetchProjectsAction,
   fetchProjectAction,
   fetchTodayAction,
+  fetchProjectConfigAction,
+  upsertStageAction,
+  reorderStagesAction,
+  deleteStageAction,
+  upsertTemplateAction,
+  duplicateTemplateAction,
+  deleteTemplateAction,
 } from '@/app/actions/projects'
 
 test('Project Server Actions & Invariants (§9.4)', async (t) => {
@@ -404,5 +411,106 @@ Project Scope:
       assert.equal(fbRes.data.tasks.length, 2)
       assert.equal(fbRes.data.round, 1)
     }
+  })
+
+  await t.test('stage-rename-and-reorder', async () => {
+    const configRes = await fetchProjectConfigAction()
+    assert.equal(configRes.ok, true)
+    if (!configRes.ok) return
+
+    const stages = configRes.data.stages
+    assert.ok(stages.length >= 5)
+
+    const stageToRename = stages[0]
+    const originalName = stageToRename.name
+    const originalIds = stages.map((s) => s.id)
+
+    try {
+      // 1. Rename first planned stage
+      const renamed = await upsertStageAction({
+        id: stageToRename.id,
+        name: `${originalName} Custom`,
+        category: stageToRename.category,
+        color: stageToRename.color,
+      })
+      assert.equal(renamed.ok, true)
+      if (renamed.ok) {
+        assert.equal(renamed.data.name, `${originalName} Custom`)
+      }
+
+      // 2. Reorder stages (reverse first two stages in same category)
+      const reversedIds = [...originalIds]
+      const temp = reversedIds[0]
+      reversedIds[0] = reversedIds[1]
+      reversedIds[1] = temp
+
+      const reorderRes = await reorderStagesAction({ orderedIds: reversedIds })
+      assert.equal(reorderRes.ok, true)
+
+      const updatedConfig = await fetchProjectConfigAction()
+      assert.equal(updatedConfig.ok, true)
+      if (updatedConfig.ok) {
+        const updatedStages = updatedConfig.data.stages
+        assert.equal(updatedStages[0].id, reversedIds[0])
+        assert.equal(updatedStages[1].id, reversedIds[1])
+      }
+    } finally {
+      // Cleanup: restore original stage name and order
+      await upsertStageAction({
+        id: stageToRename.id,
+        name: originalName,
+        category: stageToRename.category,
+        color: stageToRename.color,
+      })
+      await reorderStagesAction({ orderedIds: originalIds })
+    }
+  })
+
+  await t.test('template-duplicate-and-edit', async () => {
+    // 1. Built-in template direct edit fails with BUILTIN_TEMPLATE_READONLY
+    const editBuiltinRes = await upsertTemplateAction({
+      id: 'tpl-blank',
+      name: 'Attempted Builtin Edit',
+      billingType: 'fixed',
+      paymentSchedule: 'none',
+      durationDays: 14,
+      revisionsIncluded: null,
+      milestones: [],
+      tasks: [],
+    })
+    assert.equal(editBuiltinRes.ok, false)
+    if (!editBuiltinRes.ok) {
+      assert.equal(editBuiltinRes.error.code, 'BUILTIN_TEMPLATE_READONLY')
+    }
+
+    // 2. Duplicate built-in template
+    const dupRes = await duplicateTemplateAction({ id: 'tpl-website' })
+    assert.equal(dupRes.ok, true)
+    if (!dupRes.ok) return
+    const dupTpl = dupRes.data
+    assert.equal(dupTpl.isBuiltin, false)
+    assert.notEqual(dupTpl.id, 'tpl-website')
+    assert.ok(dupTpl.name.includes('(copy)'))
+
+    // 3. Edit duplicated template
+    const editDupRes = await upsertTemplateAction({
+      id: dupTpl.id,
+      name: 'Custom Web Build Template',
+      billingType: dupTpl.billingType,
+      paymentSchedule: dupTpl.paymentSchedule,
+      durationDays: 45,
+      revisionsIncluded: 3,
+      milestones: dupTpl.milestones,
+      tasks: dupTpl.tasks,
+    })
+    assert.equal(editDupRes.ok, true)
+    if (editDupRes.ok) {
+      assert.equal(editDupRes.data.name, 'Custom Web Build Template')
+      assert.equal(editDupRes.data.durationDays, 45)
+    }
+
+    // 4. Delete duplicated template
+    const delRes = await deleteTemplateAction({ id: dupTpl.id })
+    assert.equal(delRes.ok, true)
   })
 })

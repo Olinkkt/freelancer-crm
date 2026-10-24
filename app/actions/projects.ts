@@ -3,6 +3,7 @@
 import { z } from 'zod'
 import { runAction, type ActionResult } from '@/lib/projects/action-result'
 import * as pRepo from '@/lib/db/projects-repository'
+import { db } from '@/lib/db/client'
 import {
   suggestOnMilestoneDelivered,
   suggestOnMilestoneApproved,
@@ -584,6 +585,105 @@ export async function completeWeeklyReviewAction(input: {
       return { data: res }
     },
     'Failed to complete weekly review'
+  )
+}
+
+export interface CalendarProjectItem {
+  id: string
+  type: 'task' | 'milestone' | 'invoice'
+  title: string
+  company: string
+  projectId: string
+  dueDate: string
+  color: 'blue' | 'violet' | 'amber' | 'emerald'
+}
+
+export async function fetchCalendarProjectItemsAction(): Promise<
+  ActionResult<CalendarProjectItem[]>
+> {
+  const schema = z.object({}).optional()
+  return runAction(
+    schema as any,
+    {},
+    async () => {
+      const items: CalendarProjectItem[] = []
+      const [tasksRows, milestonesRows, invoicesRows, projectsRows] = await Promise.all([
+        db
+          .selectFrom('project_tasks')
+          .selectAll()
+          .where('completed_at', 'is', null)
+          .where('due_date', 'is not', null)
+          .execute(),
+        db
+          .selectFrom('project_milestones')
+          .selectAll()
+          .where('due_date', 'is not', null)
+          .where('status', '!=', 'approved')
+          .execute(),
+        db
+          .selectFrom('invoices')
+          .selectAll()
+          .where('due_date', 'is not', null)
+          .where('status', '=', 'sent')
+          .execute(),
+        db.selectFrom('projects').select(['id', 'title', 'company', 'archived_at']).execute(),
+      ])
+
+      const projectMap = new Map<string, { id: string; title: string; company: string }>()
+      for (const p of projectsRows) {
+        if (!p.archived_at) {
+          projectMap.set(p.id, { id: p.id, title: p.title, company: p.company })
+        }
+      }
+
+      for (const t of tasksRows) {
+        const p = projectMap.get(t.project_id)
+        if (p && t.due_date) {
+          items.push({
+            id: `task-${t.id}`,
+            type: 'task',
+            title: t.title,
+            company: p.company,
+            projectId: p.id,
+            dueDate: t.due_date,
+            color: 'blue',
+          })
+        }
+      }
+
+      for (const m of milestonesRows) {
+        const p = projectMap.get(m.project_id)
+        if (p && m.due_date) {
+          items.push({
+            id: `milestone-${m.id}`,
+            type: 'milestone',
+            title: m.title,
+            company: p.company,
+            projectId: p.id,
+            dueDate: m.due_date,
+            color: 'violet',
+          })
+        }
+      }
+
+      for (const inv of invoicesRows) {
+        const p = projectMap.get(inv.project_id)
+        if (p && inv.due_date) {
+          items.push({
+            id: `invoice-${inv.id}`,
+            type: 'invoice',
+            title: inv.label || 'Invoice',
+            company: p.company,
+            projectId: p.id,
+            dueDate: inv.due_date,
+            color: 'emerald',
+          })
+        }
+      }
+
+      return { data: items }
+    },
+    'Failed to fetch calendar project items'
   )
 }
 

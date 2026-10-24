@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Search,
   CirclePlus,
@@ -28,11 +29,16 @@ import {
 } from '@/lib/date-utils'
 import { OPERATOR_CONFIG, getOperatorInitials } from '@/lib/config'
 import { dealNeedsNextAction } from '@/lib/deals/next-action'
+import {
+  fetchCalendarProjectItemsAction,
+  type CalendarProjectItem,
+} from '@/app/actions/projects'
 
 interface CalendarViewProps {
   deals?: Deal[]
   followUps?: FollowUpItem[]
   onOpenDeal?: (deal: Deal) => void
+  onOpenProject?: (projectId: string) => void
 }
 
 const HOUR_HEIGHT = 80 // height per hour row in pixels
@@ -166,7 +172,23 @@ function mapGoogleEventToCalendarEvent(
   }
 }
 
-export function CalendarView({ deals = [], followUps = [], onOpenDeal }: CalendarViewProps) {
+export function CalendarView({
+  deals = [],
+  followUps = [],
+  onOpenDeal,
+  onOpenProject,
+}: CalendarViewProps) {
+  const router = useRouter()
+  const [projectItems, setProjectItems] = useState<CalendarProjectItem[]>([])
+
+  useEffect(() => {
+    fetchCalendarProjectItemsAction().then((res) => {
+      if (res.ok) {
+        setProjectItems(res.data)
+      }
+    })
+  }, [])
+
   // Dynamic week offset (0 = current week, -1 = previous, +1 = next)
   const [weekOffset, setWeekOffset] = useState<number>(0)
   const [days, setDays] = useState<DayColumn[]>(() => getWorkweekDays(0))
@@ -1076,6 +1098,54 @@ export function CalendarView({ deals = [], followUps = [], onOpenDeal }: Calenda
                       </strong>
                       <span>{day.dayName}</span>
                     </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* All-Day Project Chips Row (§11.7) */}
+            <div className="grid grid-cols-[68px_repeat(5,minmax(0,1fr))] bg-[#fafbfc]/90 border-b border-[#edf0f3] text-[11px]">
+              <div className="border-r border-[#edf0f3] p-1.5 flex items-center justify-end text-[10px] text-slate-400 font-semibold select-none pr-2">
+                All-day
+              </div>
+              {days.map((day) => {
+                const dayDateStr = getDateString(day.fullDate)
+                const dayProjectItems = projectItems.filter((item) => item.dueDate === dayDateStr)
+
+                return (
+                  <div
+                    key={day.dayName}
+                    className="p-1.5 border-r border-[#edf0f3] last:border-r-0 min-h-[32px] flex flex-col gap-1"
+                  >
+                    {dayProjectItems.map((item) => {
+                      const badgeColors =
+                        item.type === 'task'
+                          ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800'
+                          : item.type === 'milestone'
+                          ? 'bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/60 dark:text-violet-300 dark:border-violet-800'
+                          : 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800'
+
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => {
+                            if (onOpenProject) {
+                              onOpenProject(item.projectId)
+                            } else {
+                              router.push(`/projects/${item.projectId}`)
+                            }
+                          }}
+                          title={`${item.type.toUpperCase()}: ${item.title} (${item.company})`}
+                          className={`w-full text-left px-2 py-0.5 rounded text-[10px] font-medium border truncate cursor-pointer transition-opacity hover:opacity-80 flex items-center gap-1 ${badgeColors}`}
+                        >
+                          <span className="capitalize font-semibold opacity-75 shrink-0">
+                            {item.type}:
+                          </span>
+                          <span className="truncate">{item.title}</span>
+                        </button>
+                      )
+                    })}
                   </div>
                 )
               })}

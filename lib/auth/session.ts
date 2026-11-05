@@ -117,6 +117,29 @@ export function verifyPassword(providedPassword: string): boolean {
   }
 }
 
+/** True when the workspace has a passcode or AUTH_SECRET, so requests must authenticate */
+export async function isAuthGateEnabled(): Promise<boolean> {
+  return Boolean(await getEffectiveAuthSecret())
+}
+
+/**
+ * Browser operator session only (the signed cookie). Unlike checkIsAuthenticated,
+ * this never accepts the raw passcode or AUTH_SECRET as a credential.
+ */
+export async function hasOperatorSession(req: Request): Promise<boolean> {
+  const effectiveSecret = await getEffectiveAuthSecret()
+  if (!effectiveSecret) return true
+  const cookieHeader = req.headers.get('cookie')
+  if (!cookieHeader) return false
+  const parsed = Object.fromEntries(
+    cookieHeader.split(';').map((c) => {
+      const [k, ...v] = c.trim().split('=')
+      return [k, v.join('=')]
+    })
+  )
+  return verifySessionToken(parsed[COOKIE_NAME], effectiveSecret)
+}
+
 export async function checkIsAuthenticated(req?: Request): Promise<boolean> {
   const effectiveSecret = await getEffectiveAuthSecret()
   if (!effectiveSecret) return true

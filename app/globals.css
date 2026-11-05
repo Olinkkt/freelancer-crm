@@ -1840,8 +1840,7 @@ button {
   outline: none;
 }
 .board-add-form textarea:focus {
-  border-color: var(--color-cobalt-core);
-  box-shadow: 0 0 0 3px var(--color-ice-wash);
+  border-color: var(--color-cloud-200);
 }
 .board-add-actions {
   display: flex;

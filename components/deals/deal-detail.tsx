@@ -28,10 +28,9 @@ interface DealDetailProps {
 function waitingSinceLabel(iso: string, locale?: string): string {
   const since = new Date(iso)
   if (Number.isNaN(since.getTime())) return ''
-  const days = Math.floor((Date.now() - since.getTime()) / 86_400_000)
   const date = since.toLocaleDateString(locale || undefined, { day: 'numeric', month: 'short' })
-  if (days <= 0) return `Since ${date}`
-  return `Since ${date} · ${days === 1 ? '1 day' : `${days} days`}`
+  const time = since.toLocaleTimeString(locale || undefined, { hour: '2-digit', minute: '2-digit' })
+  return `Since ${date} · ${time}`
 }
 
 /** One deal: CRM info on top, PM progress (stage track + checklist) below. */

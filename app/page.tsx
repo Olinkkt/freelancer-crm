@@ -40,7 +40,6 @@ import { NewDealModal } from '@/components/modals/new-deal-modal'
 import { NewContactModal } from '@/components/modals/new-contact-modal'
 import { ContactPreviewModal } from '@/components/modals/contact-preview-modal'
 import { EditFollowUpModal } from '@/components/modals/edit-follow-up-modal'
-import { useModKey } from '@/lib/use-mod-key'
 import { getShortcutSections } from '@/lib/shortcuts'
 import { EditSettingsModal } from '@/components/modals/edit-settings-modal'
 import { DealList } from '@/components/deals/deal-list'
@@ -135,7 +134,6 @@ export default function Page() {
   const [editingFollowUp, setEditingFollowUp] = useState<FollowUpItem | null>(null)
   const [isEditSettingsOpen, setIsEditSettingsOpen] = useState(false)
   const [settingsModalInitialTab, setSettingsModalInitialTab] = useState<'profile' | 'calendar'>('profile')
-  const modKey = useModKey()
   const [settingsTab, setSettingsTab] = useState<'profile' | 'shortcuts' | 'export'>('profile')
   const [shortcutFilter, setShortcutFilter] = useState('')
 
@@ -232,15 +230,6 @@ export default function Page() {
         target.tagName === 'TEXTAREA' ||
         target.isContentEditable
 
-      const key = e.key.toLowerCase()
-
-      // Ctrl+K / Cmd+K: toggle command palette anywhere (overrides the browser's search-bar focus)
-      if ((e.ctrlKey || e.metaKey) && key === 'k') {
-        e.preventDefault()
-        setIsPaletteOpen((prev) => !prev)
-        return
-      }
-
       // If user is inside an input, do not trigger single-letter shortcuts
       if (isInput) return
 
@@ -266,6 +255,8 @@ export default function Page() {
 
       // If a blocking modal is open, don't trigger global background hotkeys
       if (isBlockingModalOpen) return
+
+      const key = e.key.toLowerCase()
 
       // / : Open command palette
       if (e.key === '/' && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
@@ -709,11 +700,11 @@ export default function Page() {
               type="button"
               onClick={() => setIsPaletteOpen(true)}
               className="topbar-search"
-              title={`Search workspace (${modKey}+K)`}
+              title="Search workspace (/)"
             >
               <Search size={14} />
               <span>Search workspace...</span>
-              <span className="search-shortcut">{modKey}+K</span>
+              <span className="search-shortcut">/</span>
             </button>
 
             <button className="avatar" title={currentSettings.operatorName}>
@@ -1235,7 +1226,7 @@ export default function Page() {
                   </div>
 
                   {/* SHORTCUT GROUPS */}
-                  {getShortcutSections(modKey)
+                  {getShortcutSections()
                     .map((group) => ({
                       ...group,
                       items: group.items.filter((item) =>
@@ -1446,7 +1437,7 @@ export default function Page() {
         </div>
       </main>
 
-      {/* COMMAND PALETTE (Ctrl+K or /) */}
+      {/* COMMAND PALETTE (/) */}
       <CommandPalette
         isOpen={isPaletteOpen}
         onClose={() => setIsPaletteOpen(false)}

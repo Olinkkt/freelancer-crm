@@ -103,6 +103,7 @@ function mapDealRow(r: any): Deal {
     deliverables: safeParseJson<DeliverableItem[]>(r.deliverables, []),
     invoices: safeParseJson<InvoiceMilestone[]>(r.invoices, []),
     createdAt: r.created_at,
+    updatedAt: r.updated_at ?? undefined,
   }
 }
 

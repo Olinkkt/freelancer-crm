@@ -123,6 +123,8 @@ export interface Deal {
   contactEmail?: string
   notes?: string
   createdAt?: string
+  /** ISO timestamp of the last change (read-only) */
+  updatedAt?: string
   startDate?: string
   endDate?: string
   deliverables?: DeliverableItem[]

@@ -841,7 +841,7 @@ export default function Page() {
                 <div>
                   <span className="metric-label">Open deals</span>
                   <strong>{openDealsCount}</strong>
-                  <small className="font-mono">
+                  <small>
                     {formatMoney(totalPipelineAmount, currentSettings)} in pipeline
                   </small>
                 </div>

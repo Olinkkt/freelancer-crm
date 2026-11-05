@@ -964,6 +964,24 @@ button {
   font-weight: 600;
 }
 
+/* Subtle fade when the stage filter changes (body is re-keyed per filter) */
+.deals-list-body {
+  animation: deals-body-in 180ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+@keyframes deals-body-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .deals-list-body {
+    animation: none;
+  }
+}
+
 .deals-list-row {
   min-height: 52px;
   border-top: 1px solid #f0f1f3;

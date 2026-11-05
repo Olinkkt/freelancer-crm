@@ -160,7 +160,7 @@ export function DealList({
                 : `No deals in ${stageFilter}.`}
           </div>
         ) : (
-          <div>
+          <div key={stageFilter} className="deals-list-body">
           {visibleDeals.map((deal) => (
             <div
               key={deal.id}

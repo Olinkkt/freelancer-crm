@@ -82,7 +82,7 @@ export function TaskModal({ card, onClose, onChange }: TaskModalProps) {
           </div>
 
           <div className="task-desc-head">
-            <span>Description</span>
+            <span>Description:</span>
           </div>
 
           {editing ? (

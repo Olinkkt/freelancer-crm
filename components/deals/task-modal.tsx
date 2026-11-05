@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { AlignLeft, Check } from 'lucide-react'
+import { AlignLeft, Check, X } from 'lucide-react'
 import { BoardColumnId, DeliverableItem, cardColumn } from '@/lib/crm-types'
 
 interface TaskModalProps {
@@ -59,6 +59,18 @@ export function TaskModal({ card, onClose, onChange, onMove }: TaskModalProps) {
   return (
     <div className="notes-modal-backdrop task-backdrop" onClick={onClose}>
       <div className="notes-modal-panel task-modal" role="dialog" aria-label={card.title} onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 py-3.5 border-b border-[#edf0f3] bg-[#fafbfc]">
+          <h2 className="text-[15px] font-semibold text-[#1c1d1f] tracking-tight">Edit task</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="w-7 h-7 rounded-[10px] flex items-center justify-center text-[#9fa1a7] hover:text-[#1c1d1f] hover:bg-[#edf0f3] transition-colors"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
         <div className="task-modal-body">
           <div className="task-title-row">
             <button

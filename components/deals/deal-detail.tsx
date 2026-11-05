@@ -51,7 +51,7 @@ export function DealDetail({
       <section className="page-heading">
         <div className="min-w-0">
           <button type="button" className="text-button mb-2" onClick={onBack}>
-            <ArrowLeft size={14} /> Back <kbd className="ml-1 font-mono text-[10px] text-[#8f99a8]">Esc</kbd>
+            <ArrowLeft size={14} /> Back
           </button>
           <h1 className="truncate" title={deal.title}>
             {deal.title}

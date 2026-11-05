@@ -2054,3 +2054,16 @@ button {
 .task-desc-view a { cursor: pointer; }
 
 .task-save-hint { margin-left: auto; font-size: 11px; color: var(--color-slate-700); }
+
+/* Empty filter result: same height as a single deal row */
+.deals-list-empty {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-top: 1px solid #f0f1f3;
+  padding: 0 12px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--color-slate-700);
+}

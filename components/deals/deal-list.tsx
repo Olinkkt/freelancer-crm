@@ -133,7 +133,7 @@ export function DealList({
             </button>
           </div>
         ) : visibleDeals.length === 0 ? (
-          <div className="py-8 text-center text-[#8f99a8] text-[12px]">
+          <div className="deals-list-empty">
             {query.trim() || stageFilter === 'All'
               ? 'No deals match this filter.'
               : stageFilter === 'PM'

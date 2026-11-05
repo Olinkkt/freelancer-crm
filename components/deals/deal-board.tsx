@@ -124,24 +124,44 @@ export function DealBoard({ items, onChange }: DealBoardProps) {
                   e.preventDefault()
                   addCard(col.id)
                 }}
+                onBlur={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget as Node) && !draft.trim()) setAddingIn(null)
+                }}
               >
-                <input
+                <textarea
                   autoFocus
+                  rows={2}
                   value={draft}
-                  placeholder="Card title"
+                  placeholder="Enter a title for this card"
                   maxLength={200}
                   onChange={(e) => setDraft(e.target.value)}
-                  onBlur={() => {
-                    if (!draft.trim()) setAddingIn(null)
-                  }}
                   onKeyDown={(e) => {
-                    if (e.key === 'Escape') {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault()
+                      addCard(col.id)
+                    } else if (e.key === 'Escape') {
                       e.stopPropagation()
                       setDraft('')
                       setAddingIn(null)
                     }
                   }}
                 />
+                <div className="board-add-actions">
+                  <button type="submit" className="board-add-submit">
+                    Add card
+                  </button>
+                  <button
+                    type="button"
+                    className="board-add-cancel"
+                    aria-label="Cancel"
+                    onClick={() => {
+                      setDraft('')
+                      setAddingIn(null)
+                    }}
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
               </form>
             ) : (
               <button

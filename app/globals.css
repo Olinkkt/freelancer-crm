@@ -1825,15 +1825,56 @@ button {
   background: var(--color-paper);
   color: var(--color-ink-black);
 }
-.board-add-form input {
+.board-add-form textarea {
+  display: block;
   width: 100%;
   margin-top: 6px;
-  padding: 8px 10px;
-  border: 1px solid var(--color-cobalt-core);
-  border-radius: 7px;
+  padding: 9px 10px;
+  border: 1px solid var(--color-mist-50);
+  border-radius: 8px;
+  background: var(--color-paper);
+  font: inherit;
   font-size: 13px;
+  line-height: 1.35;
+  resize: none;
   outline: none;
-  background: #fff;
+}
+.board-add-form textarea:focus {
+  border-color: var(--color-cobalt-core);
+  box-shadow: 0 0 0 3px var(--color-ice-wash);
+}
+.board-add-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+.board-add-submit {
+  border: 0;
+  border-radius: 8px;
+  padding: 7px 12px;
+  background: var(--color-cobalt-core);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.board-add-submit:hover {
+  background: var(--color-cobalt-bright);
+}
+.board-add-cancel {
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  padding: 6px;
+  background: transparent;
+  color: var(--color-slate-600);
+  cursor: pointer;
+}
+.board-add-cancel:hover {
+  background: var(--color-paper);
+  color: var(--color-ink-black);
 }
 @media (max-width: 900px) {
   .board { grid-template-columns: repeat(4, 240px); }

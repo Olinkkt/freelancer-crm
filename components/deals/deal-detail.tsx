@@ -1,12 +1,10 @@
 'use client'
 
 import React, { useEffect, useRef, useState } from 'react'
-import { ArrowLeft, ArrowRight, Check, ChevronDown, Clock, Edit3, FileText, Plus, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, ChevronDown, Clock, Edit3, FileText, Plus } from 'lucide-react'
 import {
-  ChecklistSection,
   Deal,
   DealStage,
-  DeliverableItem,
   DEAL_STAGE_HINTS,
   OPEN_DEAL_STAGES,
   PM_STAGES,
@@ -24,29 +22,7 @@ interface DealDetailProps {
   onEdit: (deal: Deal) => void
   onOpenNotes: (deal: Deal) => void
   onMoveStage: (dealId: string, stage: DealStage) => void
-  onChecklistChange: (dealId: string, items: DeliverableItem[]) => void
   onDelete: (dealId: string) => void
-}
-
-const SECTIONS: { key: ChecklistSection; title: string; hint: string; placeholder: string }[] = [
-  {
-    key: 'podklady',
-    title: 'Client materials',
-    hint: 'What the client owes you: texts, photos, logins, brand assets',
-    placeholder: 'e.g. Logo in SVG',
-  },
-  {
-    key: 'deliverables',
-    title: 'Deliverables',
-    hint: 'What you ship',
-    placeholder: 'e.g. Homepage',
-  },
-]
-
-const sectionOf = (item: DeliverableItem): ChecklistSection => item.section ?? 'deliverables'
-
-function newItemId() {
-  return `chk-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
 }
 
 /** One deal: CRM info on top, PM progress (stage track + checklist) below. */
@@ -57,14 +33,10 @@ export function DealDetail({
   onEdit,
   onOpenNotes,
   onMoveStage,
-  onChecklistChange,
   onDelete,
 }: DealDetailProps) {
-  const items = deal.deliverables ?? []
   const next = nextDealStage(deal.stage)
   const inPm = isPmStage(deal.stage)
-
-  const setItems = (nextItems: DeliverableItem[]) => onChecklistChange(deal.id, nextItems)
 
   return (
     <>
@@ -144,8 +116,10 @@ export function DealDetail({
           <button type="button" className="text-button mt-3" onClick={() => onEdit(deal)}>
             <Edit3 size={13} /> Change
           </button>
+        </section>
 
-          <div className="mt-6" />
+        {/* Notes */}
+        <section className="panel">
           <p className="section-kicker">Notes</p>
           {deal.notes?.trim() ? (
             <p className="mt-1 text-[12px] text-[#505967] whitespace-pre-wrap line-clamp-6">{deal.notes.trim()}</p>
@@ -155,26 +129,6 @@ export function DealDetail({
           <button type="button" className="text-button mt-3" onClick={() => onOpenNotes(deal)}>
             <FileText size={13} /> Open notes
           </button>
-        </section>
-
-        {/* Checklist: podklady + deliverables */}
-        <section className="panel">
-          {SECTIONS.map((section) => (
-            <ChecklistGroup
-              key={section.key}
-              title={section.title}
-              hint={section.hint}
-              placeholder={section.placeholder}
-              items={items.filter((i) => sectionOf(i) === section.key)}
-              onToggle={(id) =>
-                setItems(
-                  items.map((i) => (i.id === id ? { ...i, status: i.status === 'Done' ? 'Pending' : 'Done' } : i))
-                )
-              }
-              onRemove={(id) => setItems(items.filter((i) => i.id !== id))}
-              onAdd={(title) => setItems([...items, { id: newItemId(), title, status: 'Pending', section: section.key }])}
-            />
-          ))}
         </section>
       </div>
     </>
@@ -240,99 +194,6 @@ function CrmStagePicker({ stage, onPick }: { stage: DealStage; onPick: (stage: D
           ))}
         </div>
       )}
-    </div>
-  )
-}
-
-function ChecklistGroup({
-  title,
-  hint,
-  placeholder,
-  items,
-  onToggle,
-  onRemove,
-  onAdd,
-}: {
-  title: string
-  hint: string
-  placeholder: string
-  items: DeliverableItem[]
-  onToggle: (id: string) => void
-  onRemove: (id: string) => void
-  onAdd: (title: string) => void
-}) {
-  const [draft, setDraft] = useState('')
-  const done = items.filter((i) => i.status === 'Done').length
-
-  const submit = () => {
-    const t = draft.trim()
-    if (!t) return
-    onAdd(t)
-    setDraft('')
-  }
-
-  return (
-    <div className="mb-6 last:mb-0">
-      <div className="flex items-baseline justify-between">
-        <h2 className="text-[15px] font-semibold text-[#1c1d1f]">{title}</h2>
-        <span className="font-mono text-[11px] text-[#8f99a8]">
-          {done}/{items.length}
-        </span>
-      </div>
-      <p className="text-[11px] text-[#8f99a8]">{hint}</p>
-
-      <ul className="mt-2">
-        {items.map((item) => {
-          const isDone = item.status === 'Done'
-          return (
-            <li key={item.id} className={`followup-row ${isDone ? 'done' : ''}`}>
-              <button
-                type="button"
-                className="check-button"
-                aria-label={`${isDone ? 'Untick' : 'Tick'} ${item.title}`}
-                onClick={() => onToggle(item.id)}
-              >
-                {isDone && <Check size={13} />}
-              </button>
-              <span className="flex-1 min-w-0 truncate text-[13px] text-[#1c1d1f]" title={item.title}>
-                {item.title}
-              </span>
-              <button
-                type="button"
-                className="text-[#8f99a8] hover:text-[#d92d20] cursor-pointer p-1"
-                aria-label={`Remove ${item.title}`}
-                onClick={() => onRemove(item.id)}
-              >
-                <X size={13} />
-              </button>
-            </li>
-          )
-        })}
-      </ul>
-
-      <form
-        className="mt-2 flex items-center gap-2"
-        onSubmit={(e) => {
-          e.preventDefault()
-          submit()
-        }}
-      >
-        <Plus size={14} className="text-[#8f99a8] shrink-0" />
-        <input
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape') {
-              setDraft('')
-              ;(e.target as HTMLInputElement).blur()
-            }
-          }}
-          placeholder={placeholder}
-          aria-label={`Add to ${title}`}
-          maxLength={200}
-          className="flex-1 h-8 bg-transparent text-[13px] text-[#1c1d1f] placeholder:text-[#b0b5bc] focus:outline-none"
-        />
-      </form>
     </div>
   )
 }

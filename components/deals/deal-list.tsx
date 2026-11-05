@@ -71,11 +71,14 @@ export function DealList({
           <Search size={15} />
           <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search deals" />
         </label>
-        <button type="button" className="primary-button" onClick={onAddDealClick}>
-          <CirclePlus size={16} />
-          <span>New deal</span>
-          <kbd className="ml-1 px-1 bg-[#3a3e45] text-white rounded text-[10px] font-mono">N</kbd>
-        </button>
+        {/* With no deals, the empty state's "Add first deal" is the only add button */}
+        {deals.length > 0 && (
+          <button type="button" className="primary-button" onClick={onAddDealClick}>
+            <CirclePlus size={16} />
+            <span>New deal</span>
+            <kbd className="ml-1 px-1 bg-[#3a3e45] text-white rounded text-[10px] font-mono">N</kbd>
+          </button>
+        )}
       </div>
 
       <div className="tabs deals-stage-filter" role="tablist" aria-label="Filter by stage">

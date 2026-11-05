@@ -412,11 +412,13 @@ export function CommandPalette({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh] px-4 bg-[#10141c]/30 backdrop-blur-xs transition-all"
+      className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh] px-4 "
       onClick={onClose}
     >
+      {/* Blur lives on its own layer so the animating panel does not re-blur every frame */}
+      <div className="absolute inset-0 bg-[#10141c]/30 backdrop-blur-xs" aria-hidden />
       <div
-        className="w-full max-w-2xl bg-white rounded-[12px] shadow-xl border border-[#e4e7ec] overflow-hidden flex flex-col max-h-[78vh] animate-in fade-in zoom-in-95 duration-150"
+        className="relative w-full max-w-2xl bg-white rounded-[12px] shadow-xl border border-[#e4e7ec] overflow-hidden flex flex-col max-h-[78vh] animate-in fade-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
       >

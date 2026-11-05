@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useRef, useState } from 'react'
+import { useState } from 'react'
 import { AlignLeft, Check, Plus, X } from 'lucide-react'
 import { TaskModal } from '@/components/deals/task-modal'
 import { BOARD_COLUMNS, BoardColumnId, DeliverableItem, cardColumn } from '@/lib/crm-types'

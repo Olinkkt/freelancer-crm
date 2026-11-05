@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect } from 'react'
+import { useEffect } from 'react'
 import { useModKey } from '@/lib/use-mod-key'
 import { X, Keyboard, Zap, Navigation, LayoutGrid, Sparkles } from 'lucide-react'
 

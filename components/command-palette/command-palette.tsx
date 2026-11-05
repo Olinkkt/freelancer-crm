@@ -5,30 +5,19 @@ import {
   Search,
   PlusCircle,
   UserPlus,
-  PhoneCall,
   LayoutDashboard,
   WalletCards,
   Users,
   Settings2,
   FileText,
-  ArrowRight,
   ArrowLeft,
-  Sparkles,
-  Command,
   CornerDownLeft,
   X,
   Keyboard,
-  Clock,
-  CheckCircle2,
-  ListTodo,
-  Calculator,
-  CheckSquare,
-  Save,
 } from 'lucide-react'
 import { Deal, Contact } from '@/lib/crm-types'
 import { fuzzyScoreFields } from '@/lib/fuzzy'
 import { ScratchpadEditor } from '../drawers/scratchpad-editor'
-import { formatMoney, OPERATOR_CONFIG } from '@/lib/config'
 
 export type PaletteActionType =
   | 'navigate'

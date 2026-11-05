@@ -1,6 +1,6 @@
 'use client'
 
-import React, { memo, useEffect, useRef, useState } from 'react'
+import { memo, useEffect, useRef, useState } from 'react'
 import { FileText, X } from 'lucide-react'
 import type { Deal } from '@/lib/crm-types'
 import { ScratchpadEditor } from '@/components/drawers/scratchpad-editor'

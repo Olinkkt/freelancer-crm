@@ -1,6 +1,5 @@
 'use client'
 
-import React from 'react'
 import { Check, Clock, AlertCircle, Inbox, Edit3, Trash2 } from 'lucide-react'
 import { RowActionMenu } from '@/components/ui/row-action-menu'
 import { Deal, FollowUpItem, isPmStage } from '@/lib/crm-types'

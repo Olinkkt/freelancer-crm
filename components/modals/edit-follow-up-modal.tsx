@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { X, CheckSquare, Building2, Clock, Calendar } from 'lucide-react'
+import { X, CheckSquare } from 'lucide-react'
 import { FollowUpItem } from '@/lib/crm-types'
 
 interface EditFollowUpModalProps {

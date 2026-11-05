@@ -1,7 +1,7 @@
 'use client'
 
 import { formatDue, isOverdue } from '@/lib/due-date'
-import React, { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Search, CirclePlus, ExternalLink, Edit3, Trash2, Clock, WalletCards, FileText, ArrowRight, Check } from 'lucide-react'
 import { Deal, DealStage, DEAL_STAGES, DEAL_STAGE_HINTS, OPEN_DEAL_STAGES, PM_STAGES, isPmStage, nextDealStage, WorkspaceSettings } from '@/lib/crm-types'
 import { RowActionMenu } from '@/components/ui/row-action-menu'

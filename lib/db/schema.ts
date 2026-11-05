@@ -1,5 +1,3 @@
-import { Generated } from 'kysely'
-
 export interface ContactTable {
   id: string
   name: string

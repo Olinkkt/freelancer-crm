@@ -1,17 +1,15 @@
 'use client'
 
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   ArrowUpRight,
   CirclePlus,
-  FileText,
   LayoutDashboard,
   Search,
   Settings2,
   Users,
   WalletCards,
   UserPlus,
-  Keyboard,
   Download,
   Trash2,
   Mail,
@@ -19,7 +17,6 @@ import {
   Upload,
   Calendar,
   ChevronRight,
-  RefreshCw,
 } from 'lucide-react'
 import {
   exportDealsCSV,
@@ -71,7 +68,6 @@ import {
 import {
   getAuthStatus,
   logoutOperator,
-  updateWorkspaceSettingsAction,
 } from '@/app/actions/auth'
 
 

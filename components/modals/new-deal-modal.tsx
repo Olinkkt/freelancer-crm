@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { X, CirclePlus, ArrowUpRight, Calendar, AlertCircle } from 'lucide-react'
+import { X, CirclePlus, AlertCircle } from 'lucide-react'
 import { Contact, Deal, DealStage, DEAL_STAGE_HINTS, WorkspaceSettings, isPmStage } from '@/lib/crm-types'
 import { StageOptions } from '@/components/deals/stage-options'
 import { formatMoney, OPERATOR_CONFIG } from '@/lib/config'

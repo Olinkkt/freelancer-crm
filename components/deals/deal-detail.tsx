@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ArrowLeft, ArrowRight, Check, ChevronDown, Clock, Edit3, FileText, Plus } from 'lucide-react'
 import {
   Deal,

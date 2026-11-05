@@ -225,7 +225,7 @@ export function NewDealModal({
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
                 placeholder={formatMoney(25000, settings)}
-                className="w-full h-10 px-3 border border-[#e4e7ec] rounded-[10px] text-[13px] font-mono tabular-nums text-[#1c1d1f] placeholder:text-[#9fa1a7] focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
+                className="w-full h-10 px-3 border border-[#e4e7ec] rounded-[10px] text-[13px] tabular-nums text-[#1c1d1f] placeholder:text-[#9fa1a7] focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
               />
             </div>
           </div>

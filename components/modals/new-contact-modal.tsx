@@ -86,7 +86,7 @@ export function NewContactModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#10141c]/30 backdrop-blur-xs transition-all"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#10141c]/30"
       onClick={onClose}
     >
       <div

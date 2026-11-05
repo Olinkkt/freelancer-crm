@@ -212,7 +212,7 @@ export function EditSettingsModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#10141c]/40 backdrop-blur-xs transition-all"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#10141c]/40"
       onClick={onClose}
     >
       <div

@@ -40,6 +40,7 @@ export function NewDealModal({
   const [stage, setStage] = useState<DealStage>('Lead')
   const [nextAction, setNextAction] = useState('')
   const [nextDueDate, setNextDueDate] = useState(getDateString(addDays(new Date(), 1)))
+  const [waiting, setWaiting] = useState(false)
   const [notes, setNotes] = useState('')
   const [error, setError] = useState<string | null>(null)
   const titleInputRef = useRef<HTMLInputElement>(null)
@@ -54,6 +55,7 @@ export function NewDealModal({
         setStage(dealToEdit.stage || 'Lead')
         setNextAction(dealToEdit.next || '')
         setNextDueDate(normalizeDueDate(dealToEdit.nextDueDate) || getDateString(addDays(new Date(), 1)))
+        setWaiting(!!dealToEdit.waiting)
         setNotes(dealToEdit.notes || '')
       } else {
         setTitle('')
@@ -62,6 +64,7 @@ export function NewDealModal({
         setStage('Lead')
         setNextAction(nextActionPresets('Lead')[0])
         setNextDueDate(getDateString(addDays(new Date(), 1)))
+        setWaiting(false)
         setNotes('')
       }
       setTimeout(() => {
@@ -109,8 +112,9 @@ export function NewDealModal({
         value: formattedVal || '—',
         rawAmount: numeric,
         stage,
-        next: nextAction.trim(),
+        next: nextAction.trim() || (waiting ? 'Waiting on client' : ''),
         nextDueDate: nextDueDate || undefined,
+        waiting,
         color: stageColor || dealToEdit.color || 'blue',
         notes: notes.trim(),
       })
@@ -121,8 +125,9 @@ export function NewDealModal({
         value: formattedVal || '—',
         rawAmount: numeric,
         stage,
-        next: nextAction.trim() || 'Schedule next step',
+        next: nextAction.trim() || (waiting ? 'Waiting on client' : 'Schedule next step'),
         nextDueDate: nextDueDate || getDateString(addDays(new Date(), 1)),
+        waiting,
         color: stageColor || 'blue',
         notes: notes.trim(),
         createdAt: 'Just now',
@@ -143,7 +148,7 @@ export function NewDealModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#10141c]/30 backdrop-blur-xs transition-all"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#10141c]/30"
       onClick={onClose}
     >
       <div
@@ -255,9 +260,16 @@ export function NewDealModal({
             <div className="flex items-center justify-between text-[11px] font-bold text-[#505967] uppercase tracking-wider">
               <div className="flex items-center gap-1.5">
                 <AlertCircle size={14} />
-                <span>Next Action</span>
+                <span>{waiting ? 'Waiting on client' : 'Next Action'}</span>
               </div>
+              <label className="flex items-center gap-1.5 normal-case tracking-normal font-medium text-[#505967] cursor-pointer">
+                <input type="checkbox" checked={waiting} onChange={(e) => setWaiting(e.target.checked)} />
+                Waiting on client
+              </label>
             </div>
+            {waiting && (
+              <p className="text-[11px] text-[#8f99a8]">Nothing to do right now. Pick the day you'd chase them.</p>
+            )}
             <NextActionFields
               stage={stage}
               action={nextAction}

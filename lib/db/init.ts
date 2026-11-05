@@ -2,7 +2,7 @@ import { sql } from 'kysely'
 import { normalizeDueDate } from '@/lib/due-date'
 import { db } from './client'
 
-const SCHEMA_VERSION = 8
+const SCHEMA_VERSION = 9
 
 const globalForInit = globalThis as unknown as {
   dbInitPromise?: Promise<void>
@@ -57,7 +57,6 @@ export async function ensureDbInitialized(force = false): Promise<void> {
         value TEXT NOT NULL DEFAULT '0',
         raw_amount INTEGER NOT NULL DEFAULT 0,
         stage TEXT NOT NULL DEFAULT 'Lead',
-        probability TEXT NOT NULL DEFAULT '30%',
         next TEXT NOT NULL DEFAULT '',
         next_due_date TEXT,
         color TEXT NOT NULL DEFAULT 'blue',
@@ -79,6 +78,11 @@ export async function ensureDbInitialized(force = false): Promise<void> {
 
     // Migration (v8): next-action due dates are stored as YYYY-MM-DD instead of free text
     await migrateDueDatesToIso()
+
+    // Migration (v9): win probability removed from deals
+    if (await columnExists('deals', 'probability')) {
+      await sql`ALTER TABLE deals DROP COLUMN probability;`.execute(db)
+    }
 
     // 3. Activities
     await sql`

@@ -36,7 +36,7 @@ import {
 import { getFormattedToday, getDynamicGreeting, getDateString } from '@/lib/date-utils'
 import { addDays } from '@/lib/due-date'
 import { OPERATOR_CONFIG, formatMoney, formatDealValue, getOperatorInitials } from '@/lib/config'
-import { Deal, Contact, Activity, FollowUpItem, DealStage, OPEN_DEAL_STAGES, STAGE_DEFAULT_PROBABILITIES } from '@/lib/crm-types'
+import { Deal, Contact, Activity, FollowUpItem, DealStage, OPEN_DEAL_STAGES } from '@/lib/crm-types'
 import { useModKey } from '@/lib/use-mod-key'
 import {
   INITIAL_CONTACTS,
@@ -546,17 +546,12 @@ export default function Page() {
       }
     }
 
-    const nextProb = isClosed
-      ? '100%'
-      : STAGE_DEFAULT_PROBABILITIES[newStage] || '20%'
-
     setDeals((prev) =>
       prev.map((d) => {
         if (d.id === dealId) {
           return {
             ...d,
             stage: newStage,
-            probability: nextProb,
             color: isClosed ? 'green' : 'blue',
             deliverables: isPaid && dealDeliverables ? dealDeliverables : d.deliverables,
             invoices: d.invoices,
@@ -1438,7 +1433,7 @@ export default function Page() {
                       {[
                         {
                           title: 'Deals Pipeline',
-                          desc: 'Stages, deal values, probability, next actions, contacts, deliverables',
+                          desc: 'Stages, deal values, next actions, contacts, deliverables',
                           count: deals.length,
                           action: () => {
                             exportDealsCSV(deals, currentSettings.currency)
@@ -1884,7 +1879,6 @@ export default function Page() {
                     <span>Deal</span>
                     <span>Stage</span>
                     <span>Value</span>
-                    <span>Probability</span>
                     <span>Next action</span>
                     <span />
                   </div>
@@ -1923,10 +1917,7 @@ export default function Page() {
                           if (!matches) return false
                         }
                         if (activeTab === 'Closing soon') {
-                          return (
-                            deal.stage === 'Proposal' ||
-                            parseInt(deal.probability) >= 70
-                          )
+                          return deal.stage === 'Proposal'
                         }
                         if (activeTab === 'Recently added') {
                           return deal.stage === 'Lead'
@@ -1957,7 +1948,6 @@ export default function Page() {
                             )}
                           </div>
                           <strong className="font-mono tabular-nums">{formatDealValue(deal.value, currentSettings)}</strong>
-                          <span className="probability font-mono">{deal.probability}</span>
                           <span className="next-action flex items-center gap-1">
                             {deal.stage === 'Paid' ? (
                               <span className="text-[#8f99a8]">—</span>

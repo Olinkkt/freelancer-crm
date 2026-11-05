@@ -234,7 +234,6 @@ describe('CSV Generation & Data Export', () => {
         contactName: 'Vortex Labs',
         value: '45,000 Kč',
         stage: 'Lead In' as any,
-        probability: '25%',
         next: 'Send brief draft',
       },
     ]

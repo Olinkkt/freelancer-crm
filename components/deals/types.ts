@@ -13,7 +13,6 @@ export interface Deal {
   contactName: string
   value: string
   stage: DealStage
-  probability: string
   color: DealColor
   nextAction: string | null
   nextDueDate: string | null

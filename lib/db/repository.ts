@@ -9,7 +9,6 @@ import {
   Activity,
   FollowUpItem,
   DealStage,
-  STAGE_DEFAULT_PROBABILITIES,
   WorkspaceData,
   DeliverableItem,
   InvoiceMilestone,
@@ -84,9 +83,6 @@ async function resolveDealClient(
 
 export function mapDealRow(r: any): Deal {
   const stage = (r.stage as DealStage) || 'Lead'
-  const probability = (r.probability === '20%' && stage !== 'Lead')
-    ? (STAGE_DEFAULT_PROBABILITIES[stage] || r.probability)
-    : (r.probability || STAGE_DEFAULT_PROBABILITIES[stage] || '20%')
 
   return {
     id: r.id,
@@ -94,7 +90,6 @@ export function mapDealRow(r: any): Deal {
     value: r.value,
     rawAmount: Number(r.raw_amount) || 0,
     stage,
-    probability,
     next: r.next,
     nextDueDate: r.next_due_date ?? undefined,
     color: (r.color as Deal['color']) || 'blue',
@@ -226,7 +221,6 @@ export async function createDeal(dealData: Omit<Deal, 'id'>): Promise<Deal> {
       value: dealData.value || defaultValue,
       raw_amount: rawAmount,
       stage: dealData.stage,
-      probability: dealData.probability || '30%',
       next: nextAction,
       next_due_date: nextDueDate,
       color: dealData.color || 'blue',
@@ -307,7 +301,6 @@ export async function updateDeal(deal: Deal): Promise<Deal | null> {
       value: deal.value,
       raw_amount: rawAmount,
       stage: deal.stage,
-      probability: deal.probability,
       next: nextAction,
       next_due_date: nextDueDate,
       color: deal.color,
@@ -410,7 +403,6 @@ export async function deleteDeal(id: string): Promise<boolean> {
   return true
 }
 
-export { STAGE_DEFAULT_PROBABILITIES }
 
 export async function moveDealStage(dealId: string, stage: DealStage): Promise<Deal | null> {
   await ensureDbInitialized()
@@ -425,7 +417,6 @@ export async function moveDealStage(dealId: string, stage: DealStage): Promise<D
 
   const isClosedWon = stage === 'Won' || stage === 'Paid'
   const isPaid = stage === 'Paid'
-  const newProbability = STAGE_DEFAULT_PROBABILITIES[stage] || (isClosedWon ? '100%' : existing.probability)
   const now = new Date().toISOString()
   const dealColor = (existing.color as Deal['color']) || 'blue'
   const nextAction = isPaid ? '' : existing.next
@@ -449,7 +440,6 @@ export async function moveDealStage(dealId: string, stage: DealStage): Promise<D
     .updateTable('deals')
     .set({
       stage,
-      probability: newProbability,
       color: dealColor,
       next: nextAction,
       next_due_date: nextDueDate,
@@ -466,7 +456,6 @@ export async function moveDealStage(dealId: string, stage: DealStage): Promise<D
     value: existing.value,
     rawAmount: Number(existing.raw_amount) || 0,
     stage,
-    probability: newProbability,
     next: nextAction,
     nextDueDate: isPaid ? undefined : (existing.next_due_date ?? undefined),
     color: dealColor,
@@ -692,7 +681,6 @@ export async function logActivity(
         value: existingDealRow.value,
         rawAmount: Number(existingDealRow.raw_amount) || 0,
         stage: existingDealRow.stage as DealStage,
-        probability: existingDealRow.probability,
         next: newNext,
         nextDueDate: newNextDueDate ?? undefined,
         color: (existingDealRow.color as Deal['color']) || 'blue',
@@ -1142,7 +1130,6 @@ export async function restoreWorkspaceData(snapshot: {
             value: d.value,
             raw_amount: d.rawAmount ?? 0,
             stage: d.stage,
-            probability: d.probability,
             next: d.next,
             next_due_date: d.nextDueDate ?? null,
             color: d.color ?? 'blue',

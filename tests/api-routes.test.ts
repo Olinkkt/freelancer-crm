@@ -107,7 +107,6 @@ describe('API Route Handlers', () => {
         value: '75 000 Kč',
         rawAmount: 75000,
         stage: 'Lead',
-        probability: '30%',
         color: 'blue',
       })
       const postRes = await postDeal(postReq)
@@ -194,7 +193,6 @@ describe('API Route Handlers', () => {
         value: '$1,000',
         rawAmount: 1000,
         stage: 'Lead',
-        probability: '20%',
         next: '',
         color: 'blue',
       })

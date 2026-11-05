@@ -54,7 +54,6 @@ export function exportDealsCSV(deals: Deal[], currency: string = 'USD'): void {
     { key: 'value' as const, label: 'Value (Display)' },
     { key: 'rawAmount' as const, label: `Raw Amount (${currency.toUpperCase()})` },
     { key: 'stage' as const, label: 'Stage' },
-    { key: 'probability' as const, label: 'Probability' },
     { key: 'next' as const, label: 'Next Action' },
     { key: 'nextDueDate' as const, label: 'Next Due Date' },
     { key: 'startDate' as const, label: 'Start Date' },

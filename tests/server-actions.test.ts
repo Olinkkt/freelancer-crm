@@ -76,7 +76,6 @@ describe('Server Actions Integration', () => {
             value: '1000 Kč',
             rawAmount: 1000,
             stage: 'Lead',
-            probability: '10%',
             next: 'Call',
             color: 'blue',
           }),
@@ -109,7 +108,6 @@ describe('Server Actions Integration', () => {
         value: '120 000 Kč',
         rawAmount: 120000,
         stage: 'Lead',
-        probability: '40%',
         next: 'Demo call',
         color: 'blue',
       })
@@ -124,7 +122,6 @@ describe('Server Actions Integration', () => {
       const moved = await moveDealStageAction(deal.id, 'Won')
       assert.ok(moved)
       assert.equal(moved.stage, 'Won')
-      assert.equal(moved.probability, '100%')
 
       // 4. Update deal action
       const updated = await updateDealAction({

@@ -96,7 +96,6 @@ describe('Calendar Subscription Feed (iCal / RFC 5545)', () => {
         value: '$15,000',
         rawAmount: 15000,
         stage: 'Proposal',
-        probability: '70%',
         next: 'Client design review',
         nextDueDate: '2026-10-30',
         color: 'blue',

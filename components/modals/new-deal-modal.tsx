@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useModKey } from '@/lib/use-mod-key'
 import { X, CirclePlus, ArrowUpRight, Calendar, AlertCircle } from 'lucide-react'
-import { Contact, Deal, DealStage, DEAL_STAGES, STAGE_DEFAULT_PROBABILITIES, WorkspaceSettings } from '@/lib/crm-types'
+import { Contact, Deal, DealStage, DEAL_STAGES, WorkspaceSettings } from '@/lib/crm-types'
 import { formatMoney, OPERATOR_CONFIG } from '@/lib/config'
 import { Combobox } from '@/components/ui/combobox'
 import { NextActionFields } from '@/components/deals/next-action-fields'
@@ -117,7 +117,6 @@ export function NewDealModal({
         value: formattedVal || '—',
         rawAmount: numeric,
         stage,
-        probability: STAGE_DEFAULT_PROBABILITIES[stage],
         next: isPaid ? '' : nextAction.trim(),
         nextDueDate: isPaid ? undefined : nextDueDate || undefined,
         color: colorMap[stage] || dealToEdit.color || 'blue',
@@ -130,7 +129,6 @@ export function NewDealModal({
         value: formattedVal || '—',
         rawAmount: numeric,
         stage,
-        probability: STAGE_DEFAULT_PROBABILITIES[stage],
         next: isPaid ? '' : (nextAction.trim() || 'Schedule next step'),
         nextDueDate: isPaid ? undefined : nextDueDate || getDateString(addDays(new Date(), 1)),
         color: colorMap[stage] || 'blue',

@@ -45,7 +45,6 @@ describe('CRM Database Repository', () => {
         value: '150 000 Kč',
         rawAmount: 150000,
         stage: 'Lead',
-        probability: '40%',
         next: 'Send contract draft',
         nextDueDate: '2026-10-01',
         color: 'amber',
@@ -97,7 +96,6 @@ describe('CRM Database Repository', () => {
         value: '10 000 Kč',
         rawAmount: 10000,
         stage: 'Lead',
-        probability: '20%',
         next: '',
         color: 'blue',
       })
@@ -120,7 +118,6 @@ describe('CRM Database Repository', () => {
             value: '0',
             rawAmount: 0,
             stage: 'Lead',
-            probability: '20%',
             next: '',
             color: 'blue',
           }),
@@ -135,7 +132,6 @@ describe('CRM Database Repository', () => {
         value: '80 000 Kč',
         rawAmount: 80000,
         stage: 'Proposal',
-        probability: '75%',
         next: 'Sign proposal',
         color: 'violet',
       })
@@ -143,12 +139,10 @@ describe('CRM Database Repository', () => {
       const moved = await repo.moveDealStage(deal.id, 'Won')
       assert.ok(moved)
       assert.equal(moved.stage, 'Won')
-      assert.equal(moved.probability, '100%')
       assert.equal(moved.color, 'violet') // Should not be overwritten with 'blue'
 
       const data = await repo.getWorkspaceData()
       assert.equal(data.deals[0].stage, 'Won')
-      assert.equal(data.deals[0].probability, '100%')
       assert.equal(data.deals[0].color, 'violet')
     })
 
@@ -159,7 +153,6 @@ describe('CRM Database Repository', () => {
         value: '60 000 Kč',
         rawAmount: 60000,
         stage: 'Won',
-        probability: '100%',
         next: 'Deliver milestones',
         color: 'green',
         invoices: [
@@ -179,7 +172,6 @@ describe('CRM Database Repository', () => {
       const paid = await repo.moveDealStage(deal.id, 'Paid')
       assert.ok(paid)
       assert.equal(paid.stage, 'Paid')
-      assert.equal(paid.probability, '100%')
       assert.equal(paid.next, '')
       assert.equal(paid.nextDueDate, undefined)
       assert.equal(paid.invoices?.[0]?.status, 'Sent')
@@ -192,7 +184,6 @@ describe('CRM Database Repository', () => {
         value: '20 000 Kč',
         rawAmount: 20000,
         stage: 'Lead',
-        probability: '30%',
         next: 'Review site',
         color: 'green',
       })
@@ -244,7 +235,6 @@ describe('CRM Database Repository', () => {
         value: '180 000 Kč',
         rawAmount: 180000,
         stage: 'Qualified',
-        probability: '40%',
         next: 'Send technical proposal',
         color: 'blue',
       })
@@ -341,7 +331,6 @@ describe('CRM Database Repository', () => {
         value: '30 000 Kč',
         rawAmount: 30000,
         stage: 'Lead',
-        probability: '30%',
         next: 'Old action',
         color: 'blue',
       })

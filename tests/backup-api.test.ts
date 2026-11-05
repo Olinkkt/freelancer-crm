@@ -54,7 +54,6 @@ test('Backup & Restore API (/api/backup)', async (t) => {
           value: '45 000 Kč',
           rawAmount: 45000,
           stage: 'Won',
-          probability: '100%',
           next: 'Begin kickoff',
           color: 'blue',
           deliverables: [

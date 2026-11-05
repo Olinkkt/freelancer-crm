@@ -19,7 +19,6 @@ export interface DealTable {
   value: string
   raw_amount: number
   stage: string
-  probability: string
   next: string
   next_due_date: string | null
   color: string

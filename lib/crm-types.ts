@@ -11,14 +11,6 @@ export const DEAL_STAGES: DealStage[] = ['Lead', 'Qualified', 'Proposal', 'Won',
 /** Stages a deal is still being won in (Won/Paid are closed) */
 export const OPEN_DEAL_STAGES: DealStage[] = DEAL_STAGES.filter((s) => s !== 'Won' && s !== 'Paid')
 
-export const STAGE_DEFAULT_PROBABILITIES: Record<DealStage, string> = {
-  Lead: '20%',
-  Qualified: '40%',
-  Proposal: '70%',
-  Won: '100%',
-  Paid: '100%',
-}
-
 export interface DeliverableItem {
   id: string
   title: string
@@ -46,7 +38,6 @@ export interface Deal {
   value: string
   rawAmount: number
   stage: DealStage
-  probability: string
   next: string
   nextDueDate?: string
   color: 'blue' | 'violet' | 'amber' | 'green'

@@ -25,6 +25,15 @@ interface DealDetailProps {
   onDelete: (dealId: string) => void
 }
 
+function waitingSinceLabel(iso: string, locale?: string): string {
+  const since = new Date(iso)
+  if (Number.isNaN(since.getTime())) return ''
+  const days = Math.floor((Date.now() - since.getTime()) / 86_400_000)
+  const date = since.toLocaleDateString(locale || undefined, { day: 'numeric', month: 'short' })
+  if (days <= 0) return 'Waiting since today'
+  return `Waiting since ${date} · ${days === 1 ? '1 day' : `${days} days`}`
+}
+
 /** One deal: CRM info on top, PM progress (stage track + checklist) below. */
 export function DealDetail({
   deal,
@@ -112,6 +121,11 @@ export function DealDetail({
             </>
           ) : (
             <p className="mt-1 text-[12px] text-[#b54708]">No next action. Every deal needs one.</p>
+          )}
+          {deal.waiting && deal.waitingSince && (
+            <p className="mt-1 flex items-center gap-1 text-[12px] text-[#8f99a8]">
+              <Clock size={12} /> {waitingSinceLabel(deal.waitingSince, settings?.locale)}
+            </p>
           )}
           <button type="button" className="text-button mt-auto pt-3 self-start" onClick={() => onEdit(deal)}>
             <Edit3 size={13} /> Change

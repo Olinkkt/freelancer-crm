@@ -92,6 +92,7 @@ export function mapDealRow(r: any): Deal {
     next: r.next,
     nextDueDate: r.next_due_date ?? undefined,
     waiting: Number(r.waiting) === 1,
+    waitingSince: r.waiting_since ?? undefined,
     color: (r.color as Deal['color']) || 'blue',
     contactId: r.contact_id ?? undefined,
     contactName: r.contact_name ?? '',
@@ -208,6 +209,7 @@ export async function createDeal(dealData: Omit<Deal, 'id'>): Promise<Deal> {
       next: nextAction,
       next_due_date: nextDueDate,
       waiting: dealData.waiting ? 1 : 0,
+      waiting_since: dealData.waiting ? now : null,
       color: dealData.color || 'blue',
       contact_id: client.id,
       contact_name: contactName,
@@ -233,6 +235,7 @@ export async function createDeal(dealData: Omit<Deal, 'id'>): Promise<Deal> {
     next: nextAction,
     nextDueDate: dealData.nextDueDate,
     waiting: !!dealData.waiting,
+    waitingSince: dealData.waiting ? now : undefined,
     createdAt: now,
     deliverables: dealData.deliverables || [],
     invoices: dealData.invoices || [],
@@ -258,7 +261,7 @@ export async function updateDeal(deal: Deal): Promise<Deal | null> {
 
   const oldDeal = await db
     .selectFrom('deals')
-    .select(['id', 'contact_id', 'contact_name', 'contact_email'])
+    .select(['id', 'contact_id', 'contact_name', 'contact_email', 'waiting', 'waiting_since'])
     .where('id', '=', deal.id)
     .executeTakeFirst()
 
@@ -279,6 +282,13 @@ export async function updateDeal(deal: Deal): Promise<Deal | null> {
       : { contactId: oldDeal.contact_id, contactName: oldDeal.contact_name, contactEmail: oldDeal.contact_email }
   )
 
+  // Keep the original start while still waiting; reset when waiting begins or ends
+  const waitingSince = deal.waiting
+    ? Number(oldDeal.waiting) === 1 && oldDeal.waiting_since
+      ? oldDeal.waiting_since
+      : now
+    : null
+
   await db
     .updateTable('deals')
     .set({
@@ -289,6 +299,7 @@ export async function updateDeal(deal: Deal): Promise<Deal | null> {
       next: nextAction,
       next_due_date: nextDueDate,
       waiting: deal.waiting ? 1 : 0,
+      waiting_since: waitingSince,
       color: deal.color,
       contact_id: client.id,
       contact_name: client.name,
@@ -311,6 +322,7 @@ export async function updateDeal(deal: Deal): Promise<Deal | null> {
     next: nextAction,
     nextDueDate: deal.nextDueDate,
     waiting: !!deal.waiting,
+    waitingSince: waitingSince ?? undefined,
   }
 }
 
@@ -399,6 +411,7 @@ export async function moveDealStage(dealId: string, stage: DealStage): Promise<D
     next: existing.next,
     nextDueDate: existing.next_due_date ?? undefined,
     waiting: Number(existing.waiting) === 1,
+    waitingSince: existing.waiting_since ?? undefined,
     color: dealColor,
     contactId: existing.contact_id ?? undefined,
     contactName: existing.contact_name ?? '',
@@ -917,6 +930,7 @@ export async function restoreWorkspaceData(snapshot: {
             next: d.next,
             next_due_date: d.nextDueDate ?? null,
             waiting: d.waiting ? 1 : 0,
+            waiting_since: d.waiting ? (d.waitingSince ?? now) : null,
             color: d.color ?? 'blue',
             contact_id: client.id,
             contact_name: client.name,

@@ -269,6 +269,28 @@ describe('CRM Database Repository', () => {
       assert.ok(!data.deals.some((d) => (d.stage as string) === 'Paid'))
     })
 
+    it('tracks waitingSince: set on start, kept while waiting, cleared on stop', async () => {
+      const deal = await repo.createDeal({
+        title: 'Retainer',
+        contactName: 'Waiting Co',
+        value: '10 000 Kč',
+        rawAmount: 10000,
+        stage: 'Proposal',
+        next: 'Waiting on client',
+        waiting: true,
+        color: 'blue',
+      })
+      assert.ok(deal.waitingSince)
+
+      const kept = await repo.updateDeal({ ...deal, title: 'Retainer v2' })
+      assert.equal(kept?.waitingSince, deal.waitingSince)
+
+      const stopped = await repo.updateDeal({ ...deal, waiting: false, next: 'Send invoice' })
+      assert.equal(stopped?.waitingSince, undefined)
+      const data = await repo.getWorkspaceData()
+      assert.equal(data.deals.find((d) => d.id === deal.id)?.waitingSince, undefined)
+    })
+
     it('deleteDeal unlinks follow-ups', async () => {
       const deal = await repo.createDeal({
         title: 'SEO Audit',

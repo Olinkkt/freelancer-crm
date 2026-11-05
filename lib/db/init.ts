@@ -2,7 +2,7 @@ import { sql } from 'kysely'
 import { normalizeDueDate } from '@/lib/due-date'
 import { db } from './client'
 
-const SCHEMA_VERSION = 14
+const SCHEMA_VERSION = 15
 
 const globalForInit = globalThis as unknown as {
   dbInitPromise?: Promise<void>
@@ -78,6 +78,10 @@ export async function ensureDbInitialized(force = false): Promise<void> {
 
     // v13: deals can be "waiting on client" (chase date instead of a to-do)
     await addColumnIfMissing('deals', 'waiting', 'INTEGER NOT NULL DEFAULT 0')
+
+    // v15: when the deal started waiting (shown as "Waiting since ...")
+    await addColumnIfMissing('deals', 'waiting_since', 'TEXT')
+    await sql`UPDATE deals SET waiting_since = updated_at WHERE waiting = 1 AND waiting_since IS NULL;`.execute(db)
 
     // Migration (v8): next-action due dates are stored as YYYY-MM-DD instead of free text
     await migrateDueDatesToIso()

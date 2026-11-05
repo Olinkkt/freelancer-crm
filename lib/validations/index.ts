@@ -46,6 +46,7 @@ export const DealBackupSchema = z.object({
   next: z.string().default(''),
   nextDueDate: z.string().nullable().optional(),
   waiting: z.boolean().optional(),
+  waitingSince: z.string().nullable().optional(),
   color: z.string().optional(),
   contactId: z.string().nullable().optional(),
   contactName: z.string().min(1),

@@ -96,6 +96,8 @@ export interface Deal {
   nextDueDate?: string
   /** Ball is in the client's court: next action is a chase date, not a to-do */
   waiting?: boolean
+  /** ISO timestamp of when the deal started waiting on the client */
+  waitingSince?: string
   color: 'blue' | 'violet' | 'amber' | 'green'
   /** The client (person) this deal belongs to */
   contactId?: string

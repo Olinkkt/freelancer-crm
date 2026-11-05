@@ -60,7 +60,7 @@ function NotesModalImpl({ deal, onClose, onSave }: NotesModalProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deal?.id])
 
-  // Window-level so Esc / Ctrl+S work when focus isn't inside the panel (preview mode).
+  // Window-level so Esc works when focus isn't inside the panel (preview mode).
   const closeRef = useRef(close)
   closeRef.current = close
   const hasDeal = !!deal
@@ -70,9 +70,6 @@ function NotesModalImpl({ deal, onClose, onSave }: NotesModalProps) {
       if (e.key === 'Escape') {
         e.preventDefault()
         closeRef.current()
-      } else if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
-        e.preventDefault()
-        flush()
       }
     }
     window.addEventListener('keydown', onKey)

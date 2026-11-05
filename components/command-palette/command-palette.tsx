@@ -347,17 +347,14 @@ export function CommandPalette({
         e.preventDefault()
         flushNotes()
         setSubpage('main')
-      } else if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
-        e.preventDefault()
-        flushNotes()
       }
       return
     }
 
-    if (e.key === 'ArrowDown' || (e.ctrlKey && e.key === 'n')) {
+    if (e.key === 'ArrowDown') {
       e.preventDefault()
       setSelectedIndex((prev) => (filteredItems.length > 0 ? (prev + 1) % filteredItems.length : 0))
-    } else if (e.key === 'ArrowUp' || (e.ctrlKey && e.key === 'p')) {
+    } else if (e.key === 'ArrowUp') {
       e.preventDefault()
       setSelectedIndex((prev) =>
         filteredItems.length > 0 ? (prev - 1 + filteredItems.length) % filteredItems.length : 0
@@ -475,9 +472,6 @@ export function CommandPalette({
               <div className="flex items-center gap-3 text-[#8f99a8]">
                 <span>
                   <kbd className="px-1 py-0.2 font-mono bg-white border border-[#e4e7ec] rounded">Esc</kbd> Back to commands
-                </span>
-                <span>
-                  <kbd className="px-1 py-0.2 font-mono bg-white border border-[#e4e7ec] rounded">Ctrl+S</kbd> Save now
                 </span>
               </div>
 

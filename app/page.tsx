@@ -25,7 +25,6 @@ import {
 import { getFormattedToday, getDynamicGreeting } from '@/lib/date-utils'
 import { OPERATOR_CONFIG, formatMoney, getOperatorInitials } from '@/lib/config'
 import { Deal, DeliverableItem, Contact, FollowUpItem, DealStage, OPEN_DEAL_STAGES, isPmStage } from '@/lib/crm-types'
-import { useModKey } from '@/lib/use-mod-key'
 import {
   INITIAL_CONTACTS,
   INITIAL_DEALS,
@@ -97,7 +96,6 @@ function NavItem({
 }
 
 export default function Page() {
-  const modKey = useModKey()
   // Navigation & View State
   const [activeView, setActiveView] = useState<string>('Home')
   /** Deal shown in the 'Deal' view, and the view Back returns to */
@@ -232,13 +230,6 @@ export default function Page() {
         target.tagName === 'TEXTAREA' ||
         target.isContentEditable
 
-      // Ctrl+K or Cmd+K: Toggle Command Palette anywhere
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault()
-        setIsPaletteOpen((prev) => !prev)
-        return
-      }
-
       // If user is inside an input, do not trigger single-letter shortcuts
       if (isInput) return
 
@@ -266,6 +257,13 @@ export default function Page() {
       if (isBlockingModalOpen) return
 
       const key = e.key.toLowerCase()
+
+      // / : Open command palette
+      if (e.key === '/' && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault()
+        setIsPaletteOpen(true)
+        return
+      }
 
       // ? or Shift+/ : Show Shortcuts
       if (e.key === '?' || (e.shiftKey && e.key === '/')) {
@@ -302,7 +300,7 @@ export default function Page() {
         }
       }
 
-      if (key === 'g' && !e.metaKey && !e.ctrlKey) {
+      if (key === 'g') {
         pendingChordRef.current = 'g'
         if (chordTimeoutRef.current) clearTimeout(chordTimeoutRef.current)
         chordTimeoutRef.current = setTimeout(() => {
@@ -312,14 +310,14 @@ export default function Page() {
       }
 
       // Single-key Operator Hotkeys (Linear / Superhuman speed)
-      if (key === 'n' && !e.metaKey && !e.ctrlKey) {
+      if (key === 'n') {
         e.preventDefault()
         setIsNewDealOpen(true)
         addToast('Quick Capture Deal', 'N')
         return
       }
 
-      if (key === 'c' && !e.metaKey && !e.ctrlKey) {
+      if (key === 'c') {
         e.preventDefault()
         setIsNewContactOpen(true)
         addToast('Quick Capture Client', 'C')
@@ -702,11 +700,11 @@ export default function Page() {
               type="button"
               onClick={() => setIsPaletteOpen(true)}
               className="topbar-search"
-              title={`Search workspace (${modKey}+K)`}
+              title="Search workspace (/)"
             >
               <Search size={14} />
               <span>Search workspace...</span>
-              <span className="search-shortcut">{modKey}+K</span>
+              <span className="search-shortcut">/</span>
             </button>
 
             <button className="avatar" title={currentSettings.operatorName}>
@@ -1228,7 +1226,7 @@ export default function Page() {
                   </div>
 
                   {/* SHORTCUT GROUPS */}
-                  {getShortcutSections(modKey)
+                  {getShortcutSections()
                     .map((group) => ({
                       ...group,
                       items: group.items.filter((item) =>
@@ -1439,7 +1437,7 @@ export default function Page() {
         </div>
       </main>
 
-      {/* COMMAND PALETTE (Ctrl+K) */}
+      {/* COMMAND PALETTE (/) */}
       <CommandPalette
         isOpen={isPaletteOpen}
         onClose={() => setIsPaletteOpen(false)}

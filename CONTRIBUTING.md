@@ -11,7 +11,7 @@ We are building the fastest, keyboard-driven, local-first CRM specifically desig
 Before proposing or building new features, please keep our core tenets in mind:
 
 1. **Solo-Tenancy Only ("No Team Bloat")**: We intentionally do NOT support multiple sales reps, approval hierarchies, or role permissions. Freelancers wear all the hats.
-2. **Keyboard-First Velocity**: Every core action must have a single-key or chord shortcut (e.g. `N`, `L`, `O`, `G P`, `Cmd/Ctrl+K`).
+2. **Keyboard-First Velocity**: Every core action must have a single-key or chord shortcut (e.g. `N`, `L`, `O`, `G D`, `/`).
 3. **Local-First & Lightweight**: The app must run self-hosted with SQLite out-of-the-box in under 150MB of RAM.
 4. **Mandatory GTD Next Action**: A deal without a scheduled next action is broken. We don't remove this constraint.
 

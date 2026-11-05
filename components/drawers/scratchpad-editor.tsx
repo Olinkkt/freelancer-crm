@@ -18,7 +18,7 @@ export function toggleTaskLine(source: string, line: number): string {
   return lines.join('\n')
 }
 
-/** Markdown notes: Preview / Edit tabs. Ctrl+E flips between them. */
+/** Markdown notes: Preview / Edit tabs. */
 export function ScratchpadEditor({ notes = '', onChangeNotes }: ScratchpadEditorProps) {
   const [mode, setMode] = useState<'write' | 'preview'>(notes.trim() ? 'preview' : 'write')
   const areaRef = useRef<HTMLTextAreaElement>(null)
@@ -30,12 +30,6 @@ export function ScratchpadEditor({ notes = '', onChangeNotes }: ScratchpadEditor
   return (
     <div
       className="flex flex-col flex-1 min-h-0"
-      onKeyDown={(e) => {
-        if (e.key === 'e' && (e.ctrlKey || e.metaKey)) {
-          e.preventDefault()
-          setMode((m) => (m === 'write' ? 'preview' : 'write'))
-        }
-      }}
     >
       <div className="flex items-center gap-1 mb-2 text-[11px]" role="tablist">
         {(['preview', 'write'] as const).map((m) => (

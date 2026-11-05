@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { X, Keyboard } from 'lucide-react'
+import { useModKey } from '@/lib/use-mod-key'
 import { getShortcutSections } from '@/lib/shortcuts'
 
 interface ShortcutsModalProps {
@@ -22,7 +23,8 @@ export function ShortcutsModal({ isOpen, onClose }: ShortcutsModalProps) {
 
   if (!isOpen) return null
 
-  const shortcutSections = getShortcutSections()
+  const modKey = useModKey()
+  const shortcutSections = getShortcutSections(modKey)
 
   return (
     <div

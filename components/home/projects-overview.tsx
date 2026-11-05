@@ -146,19 +146,11 @@ export function ProjectsOverview({ rows, onOpenDeal, onAddDeal }: ProjectsOvervi
                 </span>
               </div>
 
-              <div className="project-tasks" title={`${row.tasksDone} of ${row.tasksTotal} tasks done`}>
-                {row.tasksTotal ? (
-                  <>
-                    <div className="project-tasks-bar">
-                      <b style={{ width: `${pct}%` }} />
-                    </div>
-                    <span className="font-mono">
-                      {row.tasksDone}/{row.tasksTotal}
-                    </span>
-                  </>
-                ) : (
-                  <span className="project-none">No tasks</span>
-                )}
+              <div className="project-stage" title={`${row.tasksDone} of ${row.tasksTotal} tasks done`}>
+                <div className="project-tasks-bar">
+                  <b style={{ width: `${pct}%` }} />
+                </div>
+                <span>{row.tasksTotal ? `${row.tasksDone}/${row.tasksTotal} tasks` : 'No tasks'}</span>
               </div>
 
               <div className="project-value font-mono">{deal.value}</div>

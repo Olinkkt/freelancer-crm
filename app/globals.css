@@ -1428,11 +1428,12 @@ button {
 /* Home: Active projects overview */
 .projects-panel {
   margin-top: 0;
+  overflow: hidden;
 }
 
 .project-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 110px 100px 84px auto;
+  grid-template-columns: minmax(0, 1fr) 104px 104px 72px 120px;
   align-items: center;
   gap: 16px;
   padding: 8px 0;
@@ -1544,7 +1545,6 @@ button {
 }
 
 .project-tasks-bar {
-  flex: 1;
   height: 4px;
   border-radius: 2px;
   background: var(--color-mist-50);

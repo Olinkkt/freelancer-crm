@@ -1,24 +1,9 @@
 import { z } from 'zod'
 
-export const CompanyBackupSchema = z.object({
-  id: z.string().min(1),
-  name: z.string().min(1),
-  type: z.string().optional(),
-  contact: z.string().optional(),
-  email: z.string().optional(),
-  deals: z.number().optional(),
-  dealsCount: z.number().optional(),
-  value: z.string().optional(),
-  pipelineVal: z.string().optional(),
-  status: z.string().optional(),
-  color: z.string().optional(),
-})
-
 export const ContactBackupSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   company: z.string(),
-  companyId: z.string().nullable().optional(),
   role: z.string().nullable().optional(),
   email: z.string().optional(),
   phone: z.string().nullable().optional(),
@@ -31,7 +16,6 @@ export const DealBackupSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
   company: z.string().min(1),
-  companyId: z.string().nullable().optional(),
   value: z.string().default('0'),
   rawAmount: z.number().nonnegative().optional(),
   stage: z.string(),
@@ -87,7 +71,6 @@ export const BackupPayloadSchema = z
   .object({
     version: z.string().optional(),
     exportedAt: z.string().optional(),
-    companies: z.array(CompanyBackupSchema).optional(),
     contacts: z.array(ContactBackupSchema).optional(),
     deals: z.array(DealBackupSchema).optional(),
     activities: z.array(ActivityBackupSchema).optional(),
@@ -97,7 +80,6 @@ export const BackupPayloadSchema = z
   .refine(
     (data) => {
       const totalItems =
-        (data.companies?.length ?? 0) +
         (data.contacts?.length ?? 0) +
         (data.deals?.length ?? 0) +
         (data.activities?.length ?? 0) +
@@ -116,7 +98,6 @@ export type ValidatedBackupPayload = z.infer<typeof BackupPayloadSchema>
 export const DealCreateInputSchema = z.object({
   title: z.string().trim().min(1, 'Title is required').max(100, 'Title cannot exceed 100 characters'),
   company: z.string().trim().min(1, 'Company is required').max(100, 'Company name cannot exceed 100 characters'),
-  companyId: z.string().nullable().optional(),
   value: z
     .union([z.string(), z.number()])
     .refine(
@@ -150,21 +131,9 @@ export const DealUpdateInputSchema = DealCreateInputSchema.partial().extend({
   id: z.string().min(1, 'Deal ID is required'),
 })
 
-export const CompanyCreateInputSchema = z.object({
-  name: z.string().trim().min(1, 'Company name is required').max(100, 'Company name cannot exceed 100 characters'),
-  type: z.string().optional(),
-  contact: z.string().optional(),
-  email: z.string().email().or(z.literal('')).optional(),
-  deals: z.number().optional(),
-  value: z.string().optional(),
-  status: z.string().optional(),
-  color: z.string().optional(),
-})
-
 export const ContactCreateInputSchema = z.object({
   name: z.string().trim().min(1, 'Contact name is required').max(100, 'Name cannot exceed 100 characters'),
   company: z.string().trim().min(1, 'Company is required').max(100, 'Company name cannot exceed 100 characters'),
-  companyId: z.string().nullable().optional(),
   role: z.string().max(100).nullable().optional(),
   email: z.string().email().or(z.literal('')).optional(),
   phone: z.string().max(50).nullable().optional(),

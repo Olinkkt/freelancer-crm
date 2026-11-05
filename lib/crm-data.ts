@@ -1,6 +1,4 @@
-import { Deal, Contact, Company, Activity, FollowUpItem } from './crm-types'
-
-export const INITIAL_COMPANIES: Company[] = []
+import { Deal, Contact, Activity, FollowUpItem } from './crm-types'
 
 export const INITIAL_CONTACTS: Contact[] = []
 

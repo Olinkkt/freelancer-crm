@@ -1,7 +1,7 @@
 import { sql } from 'kysely'
 import { db } from './client'
 
-const SCHEMA_VERSION = 4
+const SCHEMA_VERSION = 5
 
 const globalForInit = globalThis as unknown as {
   dbInitPromise?: Promise<void>
@@ -14,7 +14,7 @@ export async function ensureDbInitialized(force = false): Promise<void> {
   }
 
   const initPromise = (async () => {
-    // 0. Enable WAL mode and busy timeout for SQLite/LibSQL to prevent database lock contention
+    // -1. Enable WAL mode and busy timeout for SQLite/LibSQL to prevent database lock contention
     try {
       await sql`PRAGMA journal_mode = WAL;`.execute(db)
       await sql`PRAGMA busy_timeout = 5000;`.execute(db)
@@ -22,31 +22,23 @@ export async function ensureDbInitialized(force = false): Promise<void> {
       // Ignore for PostgreSQL or environments where PRAGMA is unsupported
     }
 
-    // 1. Companies
-    await sql`
-      CREATE TABLE IF NOT EXISTS companies (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        type TEXT NOT NULL DEFAULT 'Client',
-        contact TEXT NOT NULL DEFAULT '',
-        email TEXT NOT NULL DEFAULT '',
-        deals INTEGER NOT NULL DEFAULT 0,
-        value TEXT NOT NULL DEFAULT '0',
-        status TEXT NOT NULL DEFAULT 'Active',
-        color TEXT NOT NULL DEFAULT 'blue',
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL
-      );
-    `.execute(db)
+    // Migration (v5): companies table removed. Company is a plain name on deals/contacts.
+    await sql`DROP TABLE IF EXISTS companies;`.execute(db)
+    for (const table of ['contacts', 'deals']) {
+      try {
+        await sql`ALTER TABLE ${sql.table(table)} DROP COLUMN company_id;`.execute(db)
+      } catch {
+        // Column already dropped or never existed
+      }
+    }
 
-    // 2. Contacts
+    // 1. Contacts
     await sql`
       CREATE TABLE IF NOT EXISTS contacts (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         role TEXT NOT NULL DEFAULT '',
         company TEXT NOT NULL,
-        company_id TEXT,
         email TEXT NOT NULL DEFAULT '',
         phone TEXT,
         deals INTEGER NOT NULL DEFAULT 0,
@@ -57,13 +49,12 @@ export async function ensureDbInitialized(force = false): Promise<void> {
       );
     `.execute(db)
 
-    // 3. Deals
+    // 2. Deals
     await sql`
       CREATE TABLE IF NOT EXISTS deals (
         id TEXT PRIMARY KEY,
         title TEXT NOT NULL,
         company TEXT NOT NULL,
-        company_id TEXT,
         value TEXT NOT NULL DEFAULT '0',
         raw_amount INTEGER NOT NULL DEFAULT 0,
         stage TEXT NOT NULL DEFAULT 'Lead',
@@ -83,7 +74,7 @@ export async function ensureDbInitialized(force = false): Promise<void> {
       );
     `.execute(db)
 
-    // 4. Activities
+    // 3. Activities
     await sql`
       CREATE TABLE IF NOT EXISTS activities (
         id TEXT PRIMARY KEY,
@@ -100,7 +91,7 @@ export async function ensureDbInitialized(force = false): Promise<void> {
       );
     `.execute(db)
 
-    // 5. Follow-ups
+    // 4. Follow-ups
     await sql`
       CREATE TABLE IF NOT EXISTS follow_ups (
         id TEXT PRIMARY KEY,
@@ -115,7 +106,7 @@ export async function ensureDbInitialized(force = false): Promise<void> {
       );
     `.execute(db)
 
-    // 6. Workspace Settings & First-Run Setup
+    // 5. Workspace Settings & First-Run Setup
     await sql`
       CREATE TABLE IF NOT EXISTS workspace_settings (
         id TEXT PRIMARY KEY,
@@ -140,7 +131,7 @@ export async function ensureDbInitialized(force = false): Promise<void> {
       // Column already exists
     }
 
-    // 7. Google Calendar Integration
+    // 6. Google Calendar Integration
     await sql`
       CREATE TABLE IF NOT EXISTS google_calendar_integrations (
         id TEXT PRIMARY KEY,
@@ -156,7 +147,7 @@ export async function ensureDbInitialized(force = false): Promise<void> {
       );
     `.execute(db)
 
-    // 8. Google Calendar Events Mapping
+    // 7. Google Calendar Events Mapping
     await sql`
       CREATE TABLE IF NOT EXISTS google_calendar_events (
         id TEXT PRIMARY KEY,

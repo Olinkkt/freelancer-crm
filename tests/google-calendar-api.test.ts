@@ -43,7 +43,6 @@ describe('Google Calendar API Endpoints & Server Actions', () => {
     await db.deleteFrom('google_calendar_integrations').execute()
     await db.deleteFrom('activities').execute()
     await db.deleteFrom('deals').execute()
-    await db.deleteFrom('companies').execute()
   })
 
   beforeEach(async () => {
@@ -56,7 +55,6 @@ describe('Google Calendar API Endpoints & Server Actions', () => {
     await db.deleteFrom('google_calendar_integrations').execute()
     await db.deleteFrom('activities').execute()
     await db.deleteFrom('deals').execute()
-    await db.deleteFrom('companies').execute()
   })
 
   afterEach(() => {

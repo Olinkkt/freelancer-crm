@@ -14,7 +14,6 @@ import {
   updateDealAction,
   deleteDealAction,
   moveDealStageAction,
-  createCompanyAction,
   createContactAction,
   logActivityAction,
   toggleFollowUpAction,
@@ -33,7 +32,6 @@ describe('Server Actions Integration', () => {
     await db.deleteFrom('follow_ups').execute()
     await db.deleteFrom('deals').execute()
     await db.deleteFrom('contacts').execute()
-    await db.deleteFrom('companies').execute()
   })
 
   beforeEach(async () => {
@@ -41,7 +39,6 @@ describe('Server Actions Integration', () => {
     await db.deleteFrom('follow_ups').execute()
     await db.deleteFrom('deals').execute()
     await db.deleteFrom('contacts').execute()
-    await db.deleteFrom('companies').execute()
   })
 
   afterEach(() => {
@@ -85,21 +82,6 @@ describe('Server Actions Integration', () => {
           }),
         /Unauthorized: Please authenticate to access workspace/
       )
-
-      await assert.rejects(
-        () =>
-          createCompanyAction({
-            name: 'EvilCorp',
-            type: 'Client',
-            contact: 'None',
-            email: 'none@evil.com',
-            deals: 0,
-            value: '0 Kč',
-            status: 'Active',
-            color: 'blue',
-          }),
-        /Unauthorized: Please authenticate to access workspace/
-      )
     })
   })
 
@@ -137,7 +119,6 @@ describe('Server Actions Integration', () => {
       // 2. Fetch workspace action
       const workspace = await fetchWorkspaceData()
       assert.equal(workspace.deals.length, 1)
-      assert.equal(workspace.companies.length, 1)
 
       // 3. Move stage action
       const moved = await moveDealStageAction(deal.id, 'Won')

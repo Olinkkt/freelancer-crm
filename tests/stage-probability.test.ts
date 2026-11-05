@@ -14,7 +14,6 @@ describe('Deal Win Probability Consistency Across Stages (#28)', () => {
     await db.deleteFrom('follow_ups').execute()
     await db.deleteFrom('deals').execute()
     await db.deleteFrom('contacts').execute()
-    await db.deleteFrom('companies').execute()
   })
 
   beforeEach(async () => {
@@ -22,7 +21,6 @@ describe('Deal Win Probability Consistency Across Stages (#28)', () => {
     await db.deleteFrom('follow_ups').execute()
     await db.deleteFrom('deals').execute()
     await db.deleteFrom('contacts').execute()
-    await db.deleteFrom('companies').execute()
   })
 
   it('updates deal probability to stage defaults when stage changes', async () => {

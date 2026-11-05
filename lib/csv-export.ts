@@ -1,4 +1,4 @@
-import { Deal, Company, Contact, Activity, FollowUpItem } from '@/lib/crm-types'
+import { Deal, Contact, Activity, FollowUpItem } from '@/lib/crm-types'
 
 /**
  * Escapes a cell value and encloses in quotes if necessary
@@ -65,26 +65,6 @@ export function exportDealsCSV(deals: Deal[], currency: string = 'USD'): void {
   const csv = generateCSV(deals, headers)
   const dateStr = new Date().toISOString().split('T')[0]
   triggerDownload(csv, `freelancer-crm-deals-${dateStr}.csv`)
-}
-
-/**
- * Export Companies as CSV
- */
-export function exportCompaniesCSV(companies: Company[]): void {
-  const headers = [
-    { key: 'id' as const, label: 'Company ID' },
-    { key: 'name' as const, label: 'Company Name' },
-    { key: 'type' as const, label: 'Type' },
-    { key: 'contact' as const, label: 'Primary Contact' },
-    { key: 'email' as const, label: 'Email' },
-    { key: 'deals' as const, label: 'Active Deals Count' },
-    { key: 'value' as const, label: 'Total Value' },
-    { key: 'status' as const, label: 'Status' },
-    { key: 'color' as const, label: 'Color Tag' },
-  ]
-  const csv = generateCSV(companies, headers)
-  const dateStr = new Date().toISOString().split('T')[0]
-  triggerDownload(csv, `freelancer-crm-companies-${dateStr}.csv`)
 }
 
 /**

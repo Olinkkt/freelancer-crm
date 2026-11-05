@@ -26,7 +26,6 @@ describe('Calendar Subscription Feed (iCal / RFC 5545)', () => {
     await db.deleteFrom('activities').execute()
     await db.deleteFrom('follow_ups').execute()
     await db.deleteFrom('deals').execute()
-    await db.deleteFrom('companies').execute()
     await db.deleteFrom('workspace_settings').execute()
 
     // Seed workspace
@@ -48,7 +47,6 @@ describe('Calendar Subscription Feed (iCal / RFC 5545)', () => {
     await db.deleteFrom('activities').execute()
     await db.deleteFrom('follow_ups').execute()
     await db.deleteFrom('deals').execute()
-    await db.deleteFrom('companies').execute()
     await db.deleteFrom('workspace_settings').execute()
   })
 

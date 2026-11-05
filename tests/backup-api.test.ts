@@ -36,7 +36,7 @@ test('Backup & Restore API (/api/backup)', async (t) => {
     const data = await res.json()
     assert.equal(data.version, '1.0')
     assert.ok(Array.isArray(data.deals))
-    assert.ok(Array.isArray(data.companies))
+    assert.equal(data.companies, undefined)
     assert.ok(Array.isArray(data.contacts))
     assert.ok(Array.isArray(data.activities))
     assert.ok(Array.isArray(data.followUps))
@@ -62,6 +62,7 @@ test('Backup & Restore API (/api/backup)', async (t) => {
           ],
         },
       ],
+      // Legacy key from pre-v5 backups: must be accepted and ignored
       companies: [
         {
           id: 'comp-backup-1',

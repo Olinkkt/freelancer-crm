@@ -5,7 +5,6 @@ import * as repo from '@/lib/db/repository'
 import {
   Deal,
   Contact,
-  Company,
   Activity,
   FollowUpItem,
   DealStage,
@@ -134,55 +133,7 @@ export async function deleteContactAction(id: string): Promise<boolean> {
   }
 }
 
-export async function setPrimaryContactAction(
-  companyName: string,
-  contactId: string
-): Promise<Company | null> {
-  await assertAuth()
-  try {
-    return await repo.setPrimaryContact(companyName, contactId)
-  } catch (err: any) {
-    throw new Error(sanitizeErrorMessage(err, 'Failed to set primary contact'))
-  }
-}
-
-// 4. Companies actions
-export async function createCompanyAction(companyData: Omit<Company, 'id'>): Promise<Company> {
-  await assertAuth()
-  try {
-    return await repo.createCompany(companyData)
-  } catch (err: any) {
-    throw new Error(sanitizeErrorMessage(err, 'Failed to create company'))
-  }
-}
-
-export async function updateCompanyAction(company: Company): Promise<Company> {
-  await assertAuth()
-  try {
-    const updated = await repo.updateCompany(company)
-    if (!updated) {
-      throw new Error('Company not found')
-    }
-    return updated
-  } catch (err: any) {
-    throw new Error(sanitizeErrorMessage(err, 'Failed to update company'))
-  }
-}
-
-export async function deleteCompanyAction(id: string): Promise<boolean> {
-  await assertAuth()
-  try {
-    const success = await repo.deleteCompany(id)
-    if (!success) {
-      throw new Error('Company not found')
-    }
-    return success
-  } catch (err: any) {
-    throw new Error(sanitizeErrorMessage(err, 'Failed to delete company'))
-  }
-}
-
-// 5. Activities & Follow-ups actions
+// 4. Activities & Follow-ups actions
 export async function logActivityAction(
   activityData: Omit<Activity, 'id'>,
   followUpData?: Omit<FollowUpItem, 'id'>,

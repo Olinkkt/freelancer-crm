@@ -1,25 +1,10 @@
 import { Generated } from 'kysely'
 
-export interface CompanyTable {
-  id: string
-  name: string
-  type: string
-  contact: string
-  email: string
-  deals: number
-  value: string
-  status: 'Active' | 'Prospect' | 'Inactive'
-  color: 'blue' | 'violet' | 'amber' | 'green'
-  created_at: string
-  updated_at: string
-}
-
 export interface ContactTable {
   id: string
   name: string
   role: string | null
   company: string
-  company_id: string | null
   email: string
   phone: string | null
   deals: number
@@ -33,7 +18,6 @@ export interface DealTable {
   id: string
   title: string
   company: string
-  company_id: string | null
   value: string
   raw_amount: number
   stage: string
@@ -115,7 +99,6 @@ export interface GoogleCalendarEventTable {
 }
 
 export interface Database {
-  companies: CompanyTable
   contacts: ContactTable
   deals: DealTable
   activities: ActivityTable

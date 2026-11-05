@@ -67,18 +67,6 @@ export interface Contact {
   color: 'blue' | 'violet' | 'amber' | 'green'
 }
 
-export interface Company {
-  id: string
-  name: string
-  type: string
-  contact: string
-  email: string
-  deals: number
-  value: string
-  status: 'Active' | 'Prospect' | 'Inactive'
-  color: 'blue' | 'violet' | 'amber' | 'green'
-}
-
 export interface Activity {
   id: string
   dealId?: string
@@ -119,7 +107,6 @@ export interface WorkspaceSettings {
 
 export interface WorkspaceData {
   deals: Deal[]
-  companies: Company[]
   contacts: Contact[]
   activities: Activity[]
   followUps: FollowUpItem[]

@@ -2,7 +2,8 @@
 
 import { useEffect } from 'react'
 import { useModKey } from '@/lib/use-mod-key'
-import { X, Keyboard, Zap, Navigation, LayoutGrid, Sparkles } from 'lucide-react'
+import { X, Keyboard } from 'lucide-react'
+import { getShortcutSections } from '@/lib/shortcuts'
 
 interface ShortcutsModalProps {
   isOpen: boolean
@@ -23,44 +24,7 @@ export function ShortcutsModal({ isOpen, onClose }: ShortcutsModalProps) {
 
   if (!isOpen) return null
 
-  const shortcutSections = [
-    {
-      title: 'Global & Command Palette',
-      icon: <Zap size={15} className="text-[#266df0]" />,
-      items: [
-        { keys: [modKey, 'K'], label: 'Open Command Palette' },
-        { keys: ['?'], label: 'Show this keyboard cheatsheet' },
-        { keys: ['Esc'], label: 'Dismiss modal or palette, or go back from a deal' },
-      ],
-    },
-    {
-      title: 'Instant Quick Actions (Operator Hotkeys)',
-      icon: <Sparkles size={15} className="text-[#6f7988]" />,
-      items: [
-        { keys: ['N'], label: 'Quick-add new deal' },
-        { keys: ['C'], label: 'Quick-add new client' },
-        { keys: [modKey, '↵'], label: 'Submit form in quick capture' },
-      ],
-    },
-    {
-      title: 'Deals List',
-      icon: <LayoutGrid size={15} className="text-[#6f7988]" />,
-      items: [
-        { keys: ['Tab'], label: 'Focus the next deal' },
-        { keys: ['↵'], label: 'Open the focused deal' },
-      ],
-    },
-    {
-      title: 'Rapid View Navigation',
-      icon: <Navigation size={15} className="text-[#6f7988]" />,
-      items: [
-        { keys: ['G', 'D'], label: 'Go to Home' },
-        { keys: ['G', 'P'], label: 'Go to Deals' },
-        { keys: ['G', 'U'], label: 'Go to Clients' },
-        { keys: ['G', 'S'], label: 'Go to Settings' },
-      ],
-    },
-  ]
+  const shortcutSections = getShortcutSections(modKey)
 
   return (
     <div
@@ -99,7 +63,6 @@ export function ShortcutsModal({ isOpen, onClose }: ShortcutsModalProps) {
           {shortcutSections.map((section) => (
             <div key={section.title} className="space-y-3">
               <div className="flex items-center gap-2 pb-1 border-b border-[#f0f1f3]">
-                {section.icon}
                 <h3 className="text-[11px] font-bold uppercase tracking-wider text-[#6f7988]">
                   {section.title}
                 </h3>

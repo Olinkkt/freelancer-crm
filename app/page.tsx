@@ -41,6 +41,7 @@ import { NewDealModal } from '@/components/modals/new-deal-modal'
 import { NewContactModal } from '@/components/modals/new-contact-modal'
 import { ContactPreviewModal } from '@/components/modals/contact-preview-modal'
 import { EditFollowUpModal } from '@/components/modals/edit-follow-up-modal'
+import { getShortcutSections } from '@/lib/shortcuts'
 import { EditSettingsModal } from '@/components/modals/edit-settings-modal'
 import { DealList } from '@/components/deals/deal-list'
 import { DealDetail } from '@/components/deals/deal-detail'
@@ -273,25 +274,25 @@ export default function Page() {
         return
       }
 
-      // Handle G chords: 'g' then 'd', 'p', 'u', 'k', 's'
+      // Handle G chords: 'g' then 'h', 'd', 'c', 's'
       if (pendingChordRef.current === 'g') {
         if (chordTimeoutRef.current) clearTimeout(chordTimeoutRef.current)
         pendingChordRef.current = null
 
-        if (key === 'd') {
+        if (key === 'h') {
           e.preventDefault()
           setActiveView('Home')
-          addToast('Navigated to Home', 'G D')
+          addToast('Navigated to Home', 'G H')
           return
-        } else if (key === 'p') {
+        } else if (key === 'd') {
           e.preventDefault()
           setActiveView('Deals')
-          addToast('Navigated to Deals', 'G P')
+          addToast('Navigated to Deals', 'G D')
           return
-        } else if (key === 'u') {
+        } else if (key === 'c') {
           e.preventDefault()
           setActiveView('Clients')
-          addToast('Navigated to Clients', 'G U')
+          addToast('Navigated to Clients', 'G C')
           return
         } else if (key === 's') {
           e.preventDefault()
@@ -1227,54 +1228,26 @@ export default function Page() {
                   </div>
 
                   {/* SHORTCUT GROUPS */}
-                  {[
-                    {
-                      category: 'Global',
-                      items: [
-                        { label: 'Command palette', keys: [modKey, 'K'], note: 'Search deals, clients, views' },
-                        { label: 'New deal', keys: ['N'], note: 'Quick capture' },
-                        { label: 'New client', keys: ['C'], note: 'Add a client' },
-                        { label: 'Shortcut cheat-sheet', keys: ['?'], note: 'Show all shortcuts' },
-                      ],
-                    },
-                    {
-                      category: 'Deals',
-                      items: [
-                        { label: 'Move between deals', keys: ['Tab'], note: 'Focus the next deal row' },
-                        { label: 'Edit deal', keys: ['↵'], note: 'Edit the focused deal' },
-                      ],
-                    },
-                    {
-                      category: 'Go to',
-                      items: [
-                        { label: 'Jump to Home', keys: ['G', 'D'], note: 'Daily overview' },
-                        { label: 'Jump to Deals', keys: ['G', 'P'], note: 'All deals by stage' },
-                        { label: 'Jump to Clients', keys: ['G', 'U'], note: 'The people you work with' },
-                        { label: 'Jump to Settings', keys: ['G', 'S'], note: 'Preferences' },
-                      ],
-                    },
-                  ]
+                  {getShortcutSections(modKey)
                     .map((group) => ({
                       ...group,
                       items: group.items.filter((item) =>
                         !shortcutFilter.trim() ||
                         item.label.toLowerCase().includes(shortcutFilter.toLowerCase()) ||
-                        item.keys.some((k) => k.toLowerCase().includes(shortcutFilter.toLowerCase())) ||
-                        item.note.toLowerCase().includes(shortcutFilter.toLowerCase())
+                        item.keys.some((k) => k.toLowerCase().includes(shortcutFilter.toLowerCase()))
                       ),
                     }))
                     .filter((group) => group.items.length > 0)
                     .map((group, gIdx) => (
                       <div key={gIdx} className="bg-white border border-[#e4e7ec] rounded-xl overflow-hidden shadow-[rgba(28,40,64,0.04)_0px_2px_4px_-1px]">
                         <div className="px-4 py-2.5 bg-[#fafbfc] border-b border-[#e4e7ec]">
-                          <span className="text-[12px] font-semibold text-[#1c1d1f]">{group.category}</span>
+                          <span className="text-[12px] font-semibold text-[#1c1d1f]">{group.title}</span>
                         </div>
                         <div className="divide-y divide-[#f0f1f3]">
                           {group.items.map((item, idx) => (
                             <div key={idx} className="flex items-center justify-between px-4 py-3 hover:bg-[#fafbfc] transition-colors">
                               <div className="min-w-0 pr-4">
                                 <span className="text-[13px] font-medium text-[#1c1d1f] block truncate">{item.label}</span>
-                                <span className="text-[11px] text-[#6f7988] block truncate">{item.note}</span>
                               </div>
                               <div className="flex items-center gap-1 shrink-0">
                                 {item.keys.map((k, kIdx) => (

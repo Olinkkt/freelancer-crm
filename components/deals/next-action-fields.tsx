@@ -48,7 +48,7 @@ export function NextActionFields({
           onChange={(e) => onActionChange(e.target.value)}
           placeholder="What's the next step?"
           aria-label="Next action"
-          className="w-full bg-transparent border-0 border-b border-transparent hover:border-[#d6e3fc] focus:border-[#266df0] px-0 py-1 text-[15px] font-medium text-[#1c1d1f] placeholder:text-[#9fa1a7] placeholder:font-normal focus:outline-none focus:ring-0 transition-colors"
+          className="w-full bg-transparent border-0 border-b border-transparent hover:border-[#e4e7ec] focus:border-[#1c1d1f] px-0 py-1 text-[15px] font-medium text-[#1c1d1f] placeholder:text-[#9fa1a7] placeholder:font-normal focus:outline-none focus:ring-0 transition-colors"
         />
         {presets.length > 0 && (
           <div className="flex flex-wrap gap-x-3 gap-y-1 pt-1.5 text-[11px]">
@@ -58,7 +58,7 @@ export function NextActionFields({
                 type="button"
                 onClick={() => onActionChange(p)}
                 className={`cursor-pointer transition-colors ${
-                  action === p ? 'text-[#266df0] font-semibold' : 'text-[#8f99a8] hover:text-[#266df0]'
+                  action === p ? 'text-[#1c1d1f] font-semibold' : 'text-[#8f99a8] hover:text-[#1c1d1f]'
                 }`}
               >
                 {p}
@@ -68,7 +68,7 @@ export function NextActionFields({
         )}
       </div>
 
-      <div className="relative inline-flex items-center gap-0.5 p-0.5 rounded-[9px] bg-[#e9effb] text-[11px] font-medium">
+      <div className="relative inline-flex items-center gap-0.5 p-0.5 rounded-[9px] bg-[#f0f2f5] text-[11px] font-medium">
         {datePresets.map((p) => (
           <button
             key={p.label}
@@ -76,7 +76,7 @@ export function NextActionFields({
             onClick={() => onDueDateChange(p.value)}
             className={`px-2.5 py-1 rounded-[7px] cursor-pointer transition-all ${
               dueDate === p.value
-                ? 'bg-white text-[#266df0] font-semibold shadow-xs'
+                ? 'bg-white text-[#1c1d1f] font-semibold shadow-xs'
                 : 'text-[#6f7988] hover:text-[#1c1d1f]'
             }`}
           >
@@ -89,7 +89,7 @@ export function NextActionFields({
           aria-label="Pick a date"
           className={`flex items-center gap-1 px-2.5 py-1 rounded-[7px] cursor-pointer transition-all ${
             isCustomDate
-              ? 'bg-white text-[#266df0] font-semibold shadow-xs'
+              ? 'bg-white text-[#1c1d1f] font-semibold shadow-xs'
               : 'text-[#6f7988] hover:text-[#1c1d1f]'
           }`}
         >

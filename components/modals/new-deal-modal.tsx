@@ -265,8 +265,8 @@ export function NewDealModal({
 
           {/* Mandatory Next Action GTD Prompt (hidden when stage is Paid) */}
           {stage !== 'Paid' && (
-            <div className="p-3.5 bg-[#f8faff] border border-[#d6e3fc] rounded-[12px] space-y-2">
-              <div className="flex items-center justify-between text-[11px] font-bold text-[#266df0] uppercase tracking-wider">
+            <div className="p-3.5 bg-[#fafbfc] border border-[#e4e7ec] rounded-[12px] space-y-2">
+              <div className="flex items-center justify-between text-[11px] font-bold text-[#505967] uppercase tracking-wider">
                 <div className="flex items-center gap-1.5">
                   <AlertCircle size={14} />
                   <span>Next Action</span>

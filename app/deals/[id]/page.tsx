@@ -690,7 +690,7 @@ export default function DealProjectPage() {
             {/* 1. MANDATORY NEXT ACTION (GTD RULE) */}
             <div className="bg-white border border-[#d6e3fc] rounded-[14px] p-5 shadow-2xs space-y-3">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#266df0] uppercase tracking-wider">
+                <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#505967] uppercase tracking-wider">
                   <AlertCircle size={14} />
                   <span>Next Action</span>
                 </div>
@@ -698,7 +698,7 @@ export default function DealProjectPage() {
                   <button
                     type="button"
                     onClick={() => setIsEditingNextAction(true)}
-                    className="text-[11px] text-[#266df0] hover:underline font-medium cursor-pointer"
+                    className="text-[11px] text-[#505967] hover:text-[#1c1d1f] hover:underline font-medium cursor-pointer"
                   >
                     Edit
                   </button>
@@ -733,12 +733,12 @@ export default function DealProjectPage() {
                   </div>
                 </div>
               ) : (
-                <div className="p-3 bg-[#f8faff] border border-[#e2ecfd] rounded-[10px] space-y-1">
+                <div className="p-3 bg-[#fafbfc] border border-[#e4e7ec] rounded-[10px] space-y-1">
                   <p className="text-[13px] font-semibold text-[#1c1d1f]">
                     {deal.next || 'No next action scheduled'}
                   </p>
                   <div className="flex items-center gap-1.5 text-[11px] text-[#6f7988]">
-                    <Clock size={12} className={isOverdue(deal.nextDueDate) ? 'text-[#d92d20]' : 'text-[#266df0]'} />
+                    <Clock size={12} className={isOverdue(deal.nextDueDate) ? 'text-[#d92d20]' : 'text-[#8f99a8]'} />
                     <span className={isOverdue(deal.nextDueDate) ? 'text-[#d92d20] font-semibold' : ''}>
                       {formatDue(deal.nextDueDate) || 'Pending schedule'}
                     </span>
@@ -748,7 +748,7 @@ export default function DealProjectPage() {
                       href={generateDealNextActionLink(deal)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 pt-1 text-[11px] font-semibold text-[#266df0] hover:underline"
+                      className="inline-flex items-center gap-1 pt-1 text-[11px] font-semibold text-[#505967] hover:text-[#1c1d1f] hover:underline"
                     >
                       <CalendarPlus size={12} />
                       <span>Add to Google Calendar</span>

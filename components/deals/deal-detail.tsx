@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useRef, useState } from 'react'
-import { ArrowLeft, ArrowRight, Check, ChevronDown, Clock, Edit3, FileText, Plus, Trash2, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, ChevronDown, Clock, Edit3, FileText, Plus, X } from 'lucide-react'
 import {
   ChecklistSection,
   Deal,
@@ -81,12 +81,6 @@ export function DealDetail({
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <button type="button" className="text-button" onClick={() => onOpenNotes(deal)}>
-            <FileText size={14} /> Notes
-          </button>
-          <button type="button" className="text-button" onClick={() => onEdit(deal)}>
-            <Edit3 size={14} /> Edit
-          </button>
           {next && (
             <button
               type="button"
@@ -182,18 +176,6 @@ export function DealDetail({
             />
           ))}
         </section>
-      </div>
-
-      <div className="mt-6 flex justify-end">
-        <button
-          type="button"
-          className="text-button text-[#d92d20]"
-          onClick={() => {
-            if (window.confirm(`Delete "${deal.title}"? This can't be undone.`)) onDelete(deal.id)
-          }}
-        >
-          <Trash2 size={13} /> Delete deal
-        </button>
       </div>
     </>
   )

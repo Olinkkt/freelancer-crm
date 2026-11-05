@@ -4,7 +4,6 @@ import { formatDue, isOverdue } from '@/lib/due-date'
 import React, { useMemo, useState } from 'react'
 import { Search, CirclePlus, ExternalLink, Edit3, Trash2, Clock, WalletCards, FileText, ArrowRight, Check } from 'lucide-react'
 import { Deal, DealStage, DEAL_STAGES, DEAL_STAGE_HINTS, OPEN_DEAL_STAGES, PM_STAGES, isPmStage, nextDealStage, WorkspaceSettings } from '@/lib/crm-types'
-import { StageOptions } from '@/components/deals/stage-options'
 import { RowActionMenu } from '@/components/ui/row-action-menu'
 import { formatDealValue } from '@/lib/config'
 
@@ -33,7 +32,7 @@ const stageRank = (stage: DealStage) => {
   return i === -1 ? DEAL_STAGES.length : i
 }
 
-/** Deals as a single list. Stage is a field you filter by and change per row. */
+/** Deals as a single list. Stage is a field you filter by; change it from the row menu. */
 export function DealList({
   deals,
   onOpenDeal,
@@ -176,16 +175,7 @@ export function DealList({
                 </div>
               </div>
 
-              <div onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
-                <select
-                  aria-label={`Stage for ${deal.title}`}
-                  value={deal.stage}
-                  onChange={(e) => onMoveDealStage(deal.id, e.target.value as DealStage)}
-                  className="stage-select"
-                >
-                  <StageOptions />
-                </select>
-              </div>
+              <span className="font-medium text-[#1c1d1f]">{deal.stage}</span>
 
               <strong className="tabular-nums">{formatDealValue(deal.value, settings)}</strong>
 

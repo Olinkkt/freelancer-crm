@@ -17,10 +17,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Single-operator, local-first CRM: Next.js App Router, React 19, Kysely, SQLite via libsql (or Postgres when `DATABASE_URL` is `postgres://…`).
 
-- **One-page client app.** `app/page.tsx` is one large client component. Home, Clients, Deals and Settings are switched by `activeView` state, not routes. It loads the whole workspace once (`fetchWorkspaceData`), updates state optimistically, then replaces it with what the server action returns. Modals, the ⌘K palette (`components/command-palette/`) and global keyboard shortcuts all live there too.
+- **One-page client app.** `app/page.tsx` is the only page and one large client component. Home, Clients, Deals, Deal (the project workspace of one deal) and Settings are switched by `activeView` state, not routes. It loads the whole workspace once (`fetchWorkspaceData`), updates state optimistically, then replaces it with what the server action returns. Modals, the ⌘K palette (`components/command-palette/`) and global keyboard shortcuts all live there too.
 - **Data flow:** UI → server actions in `app/actions/crm.ts` (each one calls `assertAuth()`) → `lib/db/repository.ts`. REST routes in `app/api/*` (deals, contacts, follow-ups, backup, calendar feed, health) call the same repository and validate input with zod schemas from `lib/validations/index.ts`.
 - **Schema and migrations:** there are no migration files. `lib/db/init.ts` `ensureDbInitialized()` creates tables and runs idempotent in-place migrations on every cold start, gated by `SCHEMA_VERSION`. To change the schema, add a step there and bump `SCHEMA_VERSION`. Kysely table types are in `lib/db/schema.ts`. JSON columns (`deliverables`, `invoices`) are parsed with `safeParseJson`.
-- **Domain types:** `lib/crm-types.ts`. `DEAL_STAGES` is the single source for stage type, validation, filters and pickers.
+- **Domain types:** `lib/crm-types.ts`. `DEAL_STAGES` is the single source for stage type, validation, filters and pickers. Per-deal task board (`BOARD_COLUMNS`, `cardColumn`), checklist sections and `invoices` live on the same file.
+- **Home:** `components/home/` holds `today-list.tsx` (`buildToday`: due / waiting / needs you) and `projects-overview.tsx` (`buildProjects`: active PM-stage projects, urgent first, with a shared-axis timeline). Both builders are pure and tested without a DOM.
 - **Auth:** the gate is on if `AUTH_SECRET` is set **or** `workspace_settings.passcode_hash` is set in the DB. `lib/auth/session.ts` `checkIsAuthenticated(req?)` handles both the cookie session and API requests. First run claims the workspace through the setup wizard.
 - **Calendar:** it is a one-way `.ics` feed only (`lib/calendar/ical-generator.ts`, served at `/api/calendar/feed/[token]`). There is no Google OAuth.
 - **Money:** amounts are stored as `raw_amount` plus a preformatted `value` string. Format with `formatMoney` / `formatDealValue` from `lib/config.ts`, using workspace settings for currency and locale (default Kč / cs-CZ).
@@ -29,10 +30,10 @@ Single-operator, local-first CRM: Next.js App Router, React 19, Kysely, SQLite v
 ## Product rules (settled — don't reopen)
 
 - Clients are people. There are no companies, teams or roles (solo-tenancy only).
-- Deal stages are **Lead · Qualified · Proposal · Won**. Won means contract signed, i.e. handoff to project work. There is no Paid and no Lost stage. Payment and project tracking belong to a later PM stage.
-- Deals are a list or table with stage filters. Don't bring back Kanban.
-- Every deal is expected to have a next action and due date (GTD rule from `CONTRIBUTING.md`). A deal can instead be **waiting on client** (`deal.waiting`): no next action or date is shown, there's no warning, and it sits in Today's waiting group until you clear it.
-- Deal notes are `deal.notes`, edited in `components/modals/notes-modal.tsx` (also reachable from the ⌘K scratchpad). Open it on a specific deal through `notesDealId` / "Notes" in the row menu or "Open notes" on the deal detail. A deal is just its next action plus one markdown note (`NotesModal`, autosaves). There are no activities: the table was dropped in schema v14 and there is no feed or log. Old backups that still carry an `activities` key import fine, the key is ignored.
+- One pipeline, `DEAL_STAGES`: CRM side **Lead · Qualified · Proposal**, then **Closed** (contract signed = CRM→PM handoff), then PM side **Deposit · Materials · Build · Handoff · Revisions · Completed**. `OPEN_DEAL_STAGES`, `PM_STAGES`, `ACTIVE_PROJECT_STAGES` and `isPmStage` slice it. There is no Paid, Won or Lost stage (legacy stages are mapped on backup restore).
+- Deals are a list or table with stage filters. Don't bring back Kanban for the pipeline. The Trello-style board exists only for tasks inside one deal.
+- Every deal is expected to have a next action and due date (GTD rule from `CONTRIBUTING.md`). A deal can instead be **waiting on client** (`deal.waiting`, with `waitingSince`): no next action or date is shown, there's no warning, and it sits in Today's waiting group until you clear it. Client materials (`section: 'podklady'`) are what the client owes you; they are not project tasks.
+- Deal notes are `deal.notes`, edited in `components/modals/notes-modal.tsx` (also reachable from the ⌘K scratchpad). Open it on a specific deal through `notesDealId` / "Notes" in the row menu or "Open notes" on the deal detail. There are no activities: the table was dropped in schema v14 and there is no feed or log. Old backups that still carry an `activities` key import fine, the key is ignored.
 - Keyboard-first: core actions get a shortcut. The shortcut list is in `components/modals/shortcuts-modal.tsx`.
 
 ## Gotchas

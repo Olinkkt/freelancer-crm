@@ -1,5 +1,7 @@
 'use client'
 
+import { useShortcuts } from '@/lib/use-shortcuts'
+import { matches } from '@/lib/shortcuts'
 import { useEffect, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -18,10 +20,11 @@ export function toggleTaskLine(source: string, line: number): string {
   return lines.join('\n')
 }
 
-/** Markdown notes: Preview / Edit tabs. Ctrl+E flips between them. */
+/** Markdown notes: Preview / Edit tabs. */
 export function ScratchpadEditor({ notes = '', onChangeNotes }: ScratchpadEditorProps) {
   const [mode, setMode] = useState<'write' | 'preview'>(notes.trim() ? 'preview' : 'write')
   const areaRef = useRef<HTMLTextAreaElement>(null)
+  const shortcuts = useShortcuts()
 
   useEffect(() => {
     if (mode === 'write') areaRef.current?.focus()
@@ -31,7 +34,7 @@ export function ScratchpadEditor({ notes = '', onChangeNotes }: ScratchpadEditor
     <div
       className="flex flex-col flex-1 min-h-0"
       onKeyDown={(e) => {
-        if (e.key === 'e' && (e.ctrlKey || e.metaKey)) {
+        if (matches(e, shortcuts.togglePreview)) {
           e.preventDefault()
           setMode((m) => (m === 'write' ? 'preview' : 'write'))
         }

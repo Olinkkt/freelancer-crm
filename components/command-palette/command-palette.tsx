@@ -1,5 +1,8 @@
 'use client'
 
+import { useShortcuts } from '@/lib/use-shortcuts'
+import { useModKey } from '@/lib/use-mod-key'
+import { matches, bindingLabel } from '@/lib/shortcuts'
 import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react'
 import {
   Search,
@@ -64,6 +67,8 @@ export function CommandPalette({
   onUpdateDeal,
   notesDealId,
 }: CommandPaletteProps) {
+  const shortcuts = useShortcuts()
+  const modKey = useModKey()
   const [query, setQuery] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [selectedCategory, setSelectedCategory] = useState<string>('All')
@@ -347,17 +352,17 @@ export function CommandPalette({
         e.preventDefault()
         flushNotes()
         setSubpage('main')
-      } else if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
+      } else if (matches(e, shortcuts.save)) {
         e.preventDefault()
         flushNotes()
       }
       return
     }
 
-    if (e.key === 'ArrowDown' || (e.ctrlKey && e.key.toLowerCase() === 'd')) {
+    if (e.key === 'ArrowDown' || matches(e, shortcuts.paletteNext)) {
       e.preventDefault()
       setSelectedIndex((prev) => (filteredItems.length > 0 ? (prev + 1) % filteredItems.length : 0))
-    } else if (e.key === 'ArrowUp' || (e.ctrlKey && e.key.toLowerCase() === 'u')) {
+    } else if (e.key === 'ArrowUp' || matches(e, shortcuts.palettePrev)) {
       e.preventDefault()
       setSelectedIndex((prev) =>
         filteredItems.length > 0 ? (prev - 1 + filteredItems.length) % filteredItems.length : 0
@@ -477,7 +482,7 @@ export function CommandPalette({
                   <kbd className="px-1 py-0.2 font-mono bg-white border border-[#e4e7ec] rounded">Esc</kbd> Back to commands
                 </span>
                 <span>
-                  <kbd className="px-1 py-0.2 font-mono bg-white border border-[#e4e7ec] rounded">Ctrl+S</kbd> Save now
+                  <kbd className="px-1 py-0.2 font-mono bg-white border border-[#e4e7ec] rounded">{bindingLabel(shortcuts.save, modKey)}</kbd> Save now
                 </span>
               </div>
 

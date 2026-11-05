@@ -91,6 +91,8 @@ Press <kbd>O</kbd> on any deal or navigate to `/deals/[id]` to open the dedicate
 
 ## ⌨️ Keyboard Velocity Cheat Sheet
 
+Defaults shown. Rebind any of them in Settings → Shortcuts.
+
 | Shortcut | Action | Context |
 | :--- | :--- | :--- |
 | <kbd>N</kbd> | New Deal modal | Global |

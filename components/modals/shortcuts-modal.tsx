@@ -3,7 +3,8 @@
 import { useEffect } from 'react'
 import { useModKey } from '@/lib/use-mod-key'
 import { X, Keyboard } from 'lucide-react'
-import { getShortcutSections } from '@/lib/shortcuts'
+import { useShortcuts } from '@/lib/use-shortcuts'
+import { getShortcutGroups } from '@/lib/shortcuts'
 
 interface ShortcutsModalProps {
   isOpen: boolean
@@ -12,6 +13,7 @@ interface ShortcutsModalProps {
 
 export function ShortcutsModal({ isOpen, onClose }: ShortcutsModalProps) {
   const modKey = useModKey()
+  const bindings = useShortcuts()
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
@@ -24,7 +26,7 @@ export function ShortcutsModal({ isOpen, onClose }: ShortcutsModalProps) {
 
   if (!isOpen) return null
 
-  const shortcutSections = getShortcutSections(modKey)
+  const shortcutSections = getShortcutGroups(bindings, modKey)
 
   return (
     <div

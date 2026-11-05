@@ -1,5 +1,7 @@
 'use client'
 
+import { useShortcuts } from '@/lib/use-shortcuts'
+import { matches } from '@/lib/shortcuts'
 import React, { useState, useEffect, useRef } from 'react'
 import { X, UserPlus } from 'lucide-react'
 import { Contact } from '@/lib/crm-types'
@@ -19,6 +21,7 @@ export function NewContactModal({
   contactToEdit,
   onUpdateContact,
 }: NewContactModalProps) {
+  const shortcuts = useShortcuts()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -76,7 +79,7 @@ export function NewContactModal({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
       onClose()
-    } else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+    } else if (matches(e, shortcuts.submit)) {
       e.preventDefault()
       handleSubmit()
     }

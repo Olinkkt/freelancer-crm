@@ -1,5 +1,8 @@
 'use client'
 
+import { useShortcuts } from '@/lib/use-shortcuts'
+import { useModKey } from '@/lib/use-mod-key'
+import { matches, bindingLabel } from '@/lib/shortcuts'
 import { useEffect, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -15,6 +18,8 @@ interface TaskModalProps {
 
 /** Card details: column, title and a markdown description. */
 export function TaskModal({ card, onClose, onChange }: TaskModalProps) {
+  const shortcuts = useShortcuts()
+  const modKey = useModKey()
   const [title, setTitle] = useState('')
   const [editing, setEditing] = useState(false)
   const [desc, setDesc] = useState('')
@@ -95,7 +100,7 @@ export function TaskModal({ card, onClose, onChange }: TaskModalProps) {
                 placeholder="Add a more detailed description… (Markdown supported)"
                 onChange={(e) => setDesc(e.target.value)}
                 onKeyDown={(e) => {
-                  if ((e.key === 's' || e.key === 'Enter') && (e.ctrlKey || e.metaKey)) {
+                  if (matches(e, shortcuts.save) || matches(e, shortcuts.submit)) {
                     e.preventDefault()
                     saveDesc()
                   }
@@ -105,7 +110,7 @@ export function TaskModal({ card, onClose, onChange }: TaskModalProps) {
                 <button type="button" className="board-add-submit" onClick={saveDesc}>
                   Save
                 </button>
-                <span className="task-save-hint">Ctrl+Enter</span>
+                <span className="task-save-hint">{bindingLabel(shortcuts.submit, modKey)}</span>
                 <button
                   type="button"
                   className="task-edit-btn"

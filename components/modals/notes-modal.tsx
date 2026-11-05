@@ -1,5 +1,7 @@
 'use client'
 
+import { useShortcuts } from '@/lib/use-shortcuts'
+import { matches } from '@/lib/shortcuts'
 import { memo, useEffect, useRef, useState } from 'react'
 import { FileText, X } from 'lucide-react'
 import type { Deal } from '@/lib/crm-types'
@@ -60,7 +62,10 @@ function NotesModalImpl({ deal, onClose, onSave }: NotesModalProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deal?.id])
 
-  // Window-level so Esc / Ctrl+S work when focus isn't inside the panel (preview mode).
+  // Window-level so Esc / the save shortcut work when focus isn't inside the panel (preview mode).
+  const shortcuts = useShortcuts()
+  const shortcutsRef = useRef(shortcuts)
+  shortcutsRef.current = shortcuts
   const closeRef = useRef(close)
   closeRef.current = close
   const hasDeal = !!deal
@@ -70,7 +75,7 @@ function NotesModalImpl({ deal, onClose, onSave }: NotesModalProps) {
       if (e.key === 'Escape') {
         e.preventDefault()
         closeRef.current()
-      } else if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
+      } else if (matches(e, shortcutsRef.current.save)) {
         e.preventDefault()
         flush()
       }

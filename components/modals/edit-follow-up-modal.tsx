@@ -1,5 +1,7 @@
 'use client'
 
+import { useShortcuts } from '@/lib/use-shortcuts'
+import { matches } from '@/lib/shortcuts'
 import React, { useState, useEffect, useRef } from 'react'
 import { X, CheckSquare } from 'lucide-react'
 import { FollowUpItem } from '@/lib/crm-types'
@@ -17,6 +19,7 @@ export function EditFollowUpModal({
   followUp,
   onUpdateFollowUp,
 }: EditFollowUpModalProps) {
+  const shortcuts = useShortcuts()
   const [action, setAction] = useState('')
   const [company, setCompany] = useState('')
   const [day, setDay] = useState('Today')
@@ -55,7 +58,7 @@ export function EditFollowUpModal({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
       onClose()
-    } else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+    } else if (matches(e, shortcuts.submit)) {
       e.preventDefault()
       handleSubmit()
     }

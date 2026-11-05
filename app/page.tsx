@@ -41,7 +41,9 @@ import { NewDealModal } from '@/components/modals/new-deal-modal'
 import { NewContactModal } from '@/components/modals/new-contact-modal'
 import { ContactPreviewModal } from '@/components/modals/contact-preview-modal'
 import { EditFollowUpModal } from '@/components/modals/edit-follow-up-modal'
-import { getShortcutSections } from '@/lib/shortcuts'
+import { useShortcuts } from '@/lib/use-shortcuts'
+import { ShortcutId, bindingLabel, eventToStep, hasModifier } from '@/lib/shortcuts'
+import { ShortcutsSettings } from '@/components/settings/shortcuts-settings'
 import { EditSettingsModal } from '@/components/modals/edit-settings-modal'
 import { DealList } from '@/components/deals/deal-list'
 import { DealDetail } from '@/components/deals/deal-detail'
@@ -98,6 +100,7 @@ function NavItem({
 
 export default function Page() {
   const modKey = useModKey()
+  const shortcuts = useShortcuts()
   // Navigation & View State
   const [activeView, setActiveView] = useState<string>('Home')
   /** Deal shown in the 'Deal' view, and the view Back returns to */
@@ -137,7 +140,6 @@ export default function Page() {
   const [isEditSettingsOpen, setIsEditSettingsOpen] = useState(false)
   const [settingsModalInitialTab, setSettingsModalInitialTab] = useState<'profile' | 'calendar'>('profile')
   const [settingsTab, setSettingsTab] = useState<'profile' | 'shortcuts' | 'export'>('profile')
-  const [shortcutFilter, setShortcutFilter] = useState('')
 
   // Floating Toasts / HUD
   const [toasts, setToasts] = useState<ToastHUDItem[]>([])
@@ -232,15 +234,18 @@ export default function Page() {
         target.tagName === 'TEXTAREA' ||
         target.isContentEditable
 
-      // Ctrl+K or Cmd+K: Toggle Command Palette anywhere
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+      const step = eventToStep(e)
+      if (!step) return
+
+      // Palette toggle works anywhere, even inside fields
+      if (step === shortcuts.palette) {
         e.preventDefault()
         setIsPaletteOpen((prev) => !prev)
         return
       }
 
-      // If user is inside an input, do not trigger single-letter shortcuts
-      if (isInput) return
+      // Inside a field, only shortcuts with Ctrl/⌘/Alt may fire
+      if (isInput && !hasModifier(step)) return
 
       // If any modal/drawer is open, handle ESC to close
       const isBlockingModalOpen =
@@ -265,65 +270,56 @@ export default function Page() {
       // If a blocking modal is open, don't trigger global background hotkeys
       if (isBlockingModalOpen) return
 
-      const key = e.key.toLowerCase()
-
-      // ? or Shift+/ : Show Shortcuts
-      if (e.key === '?' || (e.shiftKey && e.key === '/')) {
-        e.preventDefault()
-        setIsShortcutsOpen(true)
-        return
+      const actions: Partial<Record<ShortcutId, () => void>> = {
+        help: () => setIsShortcutsOpen(true),
+        newDeal: () => {
+          setIsNewDealOpen(true)
+          addToast('Quick Capture Deal', bindingLabel(shortcuts.newDeal, modKey))
+        },
+        newClient: () => {
+          setIsNewContactOpen(true)
+          addToast('Quick Capture Client', bindingLabel(shortcuts.newClient, modKey))
+        },
+        goHome: () => goTo('Home', 'goHome'),
+        goDeals: () => goTo('Deals', 'goDeals'),
+        goClients: () => goTo('Clients', 'goClients'),
+        goSettings: () => goTo('Settings', 'goSettings'),
       }
+      const goTo = (view: string, id: ShortcutId) => {
+        setActiveView(view)
+        addToast(`Navigated to ${view}`, bindingLabel(shortcuts[id], modKey))
+      }
+      const ids = Object.keys(actions) as ShortcutId[]
 
-      // Handle G chords: 'g' then 'h', 'd', 'c', 's'
-      if (pendingChordRef.current === 'g') {
+      // Second key of a chord
+      const first = pendingChordRef.current
+      if (first) {
         if (chordTimeoutRef.current) clearTimeout(chordTimeoutRef.current)
         pendingChordRef.current = null
-
-        if (key === 'h') {
+        const hit = ids.find((id) => shortcuts[id] === `${first} ${step}`)
+        if (hit) {
           e.preventDefault()
-          setActiveView('Home')
-          addToast('Navigated to Home', 'G H')
-          return
-        } else if (key === 'd') {
-          e.preventDefault()
-          setActiveView('Deals')
-          addToast('Navigated to Deals', 'G D')
-          return
-        } else if (key === 'c') {
-          e.preventDefault()
-          setActiveView('Clients')
-          addToast('Navigated to Clients', 'G C')
-          return
-        } else if (key === 's') {
-          e.preventDefault()
-          setActiveView('Settings')
-          addToast('Navigated to Settings', 'G S')
+          actions[hit]?.()
           return
         }
       }
 
-      if (key === 'g' && !e.metaKey && !e.ctrlKey) {
-        pendingChordRef.current = 'g'
+      // Single-key shortcut
+      const single = ids.find((id) => shortcuts[id] === step)
+      if (single) {
+        e.preventDefault()
+        actions[single]?.()
+        return
+      }
+
+      // First key of a chord
+      if (ids.some((id) => shortcuts[id].startsWith(`${step} `))) {
+        e.preventDefault()
+        pendingChordRef.current = step
         if (chordTimeoutRef.current) clearTimeout(chordTimeoutRef.current)
         chordTimeoutRef.current = setTimeout(() => {
           pendingChordRef.current = null
         }, 1200)
-        return
-      }
-
-      // Single-key Operator Hotkeys (Linear / Superhuman speed)
-      if (key === 'n' && !e.metaKey && !e.ctrlKey) {
-        e.preventDefault()
-        setIsNewDealOpen(true)
-        addToast('Quick Capture Deal', 'N')
-        return
-      }
-
-      if (key === 'c' && !e.metaKey && !e.ctrlKey) {
-        e.preventDefault()
-        setIsNewContactOpen(true)
-        addToast('Quick Capture Client', 'C')
-        return
       }
     }
 
@@ -341,6 +337,8 @@ export default function Page() {
     addToast,
     activeView,
     dealReturnView,
+    shortcuts,
+    modKey,
   ])
 
   // Clicking a deal opens its in-app subpage; Back / Esc returns to where you were
@@ -702,11 +700,11 @@ export default function Page() {
               type="button"
               onClick={() => setIsPaletteOpen(true)}
               className="topbar-search"
-              title={`Search workspace (${modKey}+K)`}
+              title={`Search workspace (${bindingLabel(shortcuts.palette, modKey)})`}
             >
               <Search size={14} />
               <span>Search workspace...</span>
-              <span className="search-shortcut">{modKey}+K</span>
+              <span className="search-shortcut">{bindingLabel(shortcuts.palette, modKey)}</span>
             </button>
 
             <button className="avatar" title={currentSettings.operatorName}>
@@ -1208,64 +1206,7 @@ export default function Page() {
               )}
 
               {/* TAB 2: KEYBOARD SHORTCUTS */}
-              {settingsTab === 'shortcuts' && (
-                <div className="space-y-6 max-w-4xl">
-                  {/* SEARCH & VELOCITY BANNER */}
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pb-4 border-b border-[#e4e7ec]">
-                    <div>
-                      <h3 className="text-[16px] font-semibold text-[#1c1d1f] tracking-tight">Shortcuts</h3>
-                    </div>
-                    <div className="relative min-w-[240px]">
-                      <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9fa1a7]" />
-                      <input
-                        type="text"
-                        value={shortcutFilter}
-                        onChange={(e) => setShortcutFilter(e.target.value)}
-                        placeholder="Search shortcuts..."
-                        className="w-full pl-8 pr-3 py-1.5 text-[12px] bg-white border border-[#e4e7ec] rounded-[10px] focus:outline-none focus:border-[#266df0] focus:ring-1 focus:ring-[#266df0] placeholder:text-[#9fa1a7]"
-                      />
-                    </div>
-                  </div>
-
-                  {/* SHORTCUT GROUPS */}
-                  {getShortcutSections(modKey)
-                    .map((group) => ({
-                      ...group,
-                      items: group.items.filter((item) =>
-                        !shortcutFilter.trim() ||
-                        item.label.toLowerCase().includes(shortcutFilter.toLowerCase()) ||
-                        item.keys.some((k) => k.toLowerCase().includes(shortcutFilter.toLowerCase()))
-                      ),
-                    }))
-                    .filter((group) => group.items.length > 0)
-                    .map((group, gIdx) => (
-                      <div key={gIdx} className="bg-white border border-[#e4e7ec] rounded-xl overflow-hidden shadow-[rgba(28,40,64,0.04)_0px_2px_4px_-1px]">
-                        <div className="px-4 py-2.5 bg-[#fafbfc] border-b border-[#e4e7ec]">
-                          <span className="text-[12px] font-semibold text-[#1c1d1f]">{group.title}</span>
-                        </div>
-                        <div className="divide-y divide-[#f0f1f3]">
-                          {group.items.map((item, idx) => (
-                            <div key={idx} className="flex items-center justify-between px-4 py-3 hover:bg-[#fafbfc] transition-colors">
-                              <div className="min-w-0 pr-4">
-                                <span className="text-[13px] font-medium text-[#1c1d1f] block truncate">{item.label}</span>
-                              </div>
-                              <div className="flex items-center gap-1 shrink-0">
-                                {item.keys.map((k, kIdx) => (
-                                  <kbd
-                                    key={kIdx}
-                                    className="px-2 py-0.5 min-w-[22px] text-center text-[11px] font-mono font-semibold text-[#505967] bg-[#f4f5f6] border border-[#dce0e8] rounded-[5px] shadow-2xs"
-                                  >
-                                    {k}
-                                  </kbd>
-                                ))}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              )}
+              {settingsTab === 'shortcuts' && <ShortcutsSettings />}
 
               {/* TAB 3: DATA & PORTABILITY */}
               {settingsTab === 'export' && (
@@ -1439,7 +1380,7 @@ export default function Page() {
         </div>
       </main>
 
-      {/* COMMAND PALETTE (Ctrl+K) */}
+      {/* COMMAND PALETTE */}
       <CommandPalette
         isOpen={isPaletteOpen}
         onClose={() => setIsPaletteOpen(false)}

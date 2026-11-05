@@ -1,5 +1,7 @@
 'use client'
 
+import { useShortcuts } from '@/lib/use-shortcuts'
+import { matches } from '@/lib/shortcuts'
 import React, { useState, useEffect, useRef } from 'react'
 import { X, CirclePlus, AlertCircle } from 'lucide-react'
 import { Contact, Deal, DealStage, DEAL_STAGE_HINTS, WorkspaceSettings, isPmStage } from '@/lib/crm-types'
@@ -32,6 +34,7 @@ export function NewDealModal({
   onUpdateDeal,
   settings,
 }: NewDealModalProps) {
+  const shortcuts = useShortcuts()
   const [title, setTitle] = useState('')
   const [clientName, setClientName] = useState('')
   const [value, setValue] = useState('')
@@ -138,7 +141,7 @@ export function NewDealModal({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
       onClose()
-    } else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+    } else if (matches(e, shortcuts.submit)) {
       e.preventDefault()
       handleSubmit()
     }

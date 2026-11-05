@@ -1717,6 +1717,7 @@ button {
 .board-col {
   background: #ffffff;
   border: 1px solid var(--border);
+  border-radius: var(--radius-cards);
   padding: 10px;
   min-width: 220px;
   transition: border-color 0.12s, background 0.12s;
@@ -1753,7 +1754,7 @@ button {
   gap: 8px;
   background: var(--color-paper);
   border: 1px solid var(--color-mist-50);
-  border-radius: 7px;
+  border-radius: 8px;
   padding: 9px 26px 9px 10px;
   font-size: 13px;
   line-height: 1.35;

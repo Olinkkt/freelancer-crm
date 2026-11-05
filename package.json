@@ -33,6 +33,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@apidevtools/swagger-parser": "^13.1.0",
     "@playwright/cli": "^0.1.21",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^24",

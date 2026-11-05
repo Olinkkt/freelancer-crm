@@ -389,7 +389,7 @@ const listClients = defineOperation({
 const getClient = defineOperation({
   name: 'get_client',
   title: 'Get a client',
-  description: 'One client with all their deals.',
+  description: 'One client with all their deals. Use it to see a client\'s full history before writing to them or creating another deal.',
   scope: 'read',
   idempotent: true,
   http: { method: 'GET', path: '/clients/{id}' },
@@ -1034,7 +1034,7 @@ const createFollowUp = defineOperation({
 const toggleFollowUp = defineOperation({
   name: 'toggle_follow_up',
   title: 'Complete or reopen a follow-up',
-  description: 'Flip a follow-up between done and open.',
+  description: 'Flip a standalone follow-up between done and open. Deal next actions are changed with set_next_action instead.',
   scope: 'write',
   mcp: false,
   http: { method: 'POST', path: '/follow-ups/{id}/toggle' },

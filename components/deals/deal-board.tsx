@@ -124,6 +124,9 @@ export function DealBoard({ items, onChange }: DealBoardProps) {
                   e.preventDefault()
                   addCard(col.id)
                 }}
+                onBlur={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget as Node) && !draft.trim()) setAddingIn(null)
+                }}
               >
                 <textarea
                   autoFocus

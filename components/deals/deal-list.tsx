@@ -170,21 +170,6 @@ export function DealList({
                     <strong className="truncate block" title={deal.title}>
                       {deal.title}
                     </strong>
-                    {onOpenNotes && deal.notes?.trim() && (
-                      <button
-                        type="button"
-                        aria-label={`Notes for ${deal.title}`}
-                        title={deal.notes.trim().split('\n')[0]}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onOpenNotes(deal)
-                        }}
-                        onKeyDown={(e) => e.stopPropagation()}
-                        className="shrink-0 text-[#8f99a8] hover:text-[#266df0] cursor-pointer"
-                      >
-                        <FileText size={12} />
-                      </button>
-                    )}
                   </div>
                   <span className="truncate block" title={deal.contactName}>
                     {deal.contactName}

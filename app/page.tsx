@@ -737,10 +737,6 @@ export default function Page() {
               onOpenNotes={openDealNotes}
               onMoveStage={handleMoveDealStage}
               onChecklistChange={handleChecklistChange}
-              onDelete={(id) => {
-                closeDeal()
-                handleDeleteDeal(id)
-              }}
             />
           ) : activeView === 'Deals' ? (
             /* DEALS VIEW (list) */

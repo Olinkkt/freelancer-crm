@@ -25,7 +25,6 @@ interface DealDetailProps {
   onOpenNotes: (deal: Deal) => void
   onMoveStage: (dealId: string, stage: DealStage) => void
   onChecklistChange: (dealId: string, items: DeliverableItem[]) => void
-  onDelete: (dealId: string) => void
 }
 
 function waitingSinceLabel(iso: string, locale?: string): string {
@@ -45,7 +44,6 @@ export function DealDetail({
   onOpenNotes,
   onMoveStage,
   onChecklistChange,
-  onDelete,
 }: DealDetailProps) {
   const next = nextDealStage(deal.stage)
   const inPm = isPmStage(deal.stage)

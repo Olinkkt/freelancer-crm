@@ -48,10 +48,3 @@ export function sanitizeErrorMessage(err: unknown, fallbackMessage: string = 'A 
 
   return msg
 }
-
-export function sanitizeError(err: unknown, fallbackMessage: string = 'A database error occurred'): Error {
-  if (err instanceof Error && !isDatabaseError(err)) {
-    return err
-  }
-  return new Error(sanitizeErrorMessage(err, fallbackMessage))
-}

@@ -9,7 +9,6 @@ import {
   DealStage,
   DeliverableItem,
   WorkspaceData,
-  WorkspaceSettings,
 } from '@/lib/crm-types'
 import { sanitizeErrorMessage } from '@/lib/errors'
 import { ChecklistSchema, DealStageSchema } from '@/lib/validations'
@@ -28,19 +27,6 @@ export async function fetchWorkspaceData(): Promise<WorkspaceData> {
     return await repo.getWorkspaceData()
   } catch (err: any) {
     throw new Error(sanitizeErrorMessage(err, 'Failed to fetch workspace data'))
-  }
-}
-
-// Currency/locale for formatting money outside the main workspace view
-export async function fetchWorkspaceSettingsAction(): Promise<WorkspaceSettings | null> {
-  await assertAuth()
-  try {
-    const settings = await repo.getWorkspaceSettings()
-    if (!settings) return null
-    const { passcodeHash: _omit, ...publicSettings } = settings
-    return publicSettings
-  } catch (err: any) {
-    throw new Error(sanitizeErrorMessage(err, 'Failed to fetch workspace settings'))
   }
 }
 
@@ -77,15 +63,6 @@ export async function deleteDealAction(id: string): Promise<boolean> {
     return success
   } catch (err: any) {
     throw new Error(sanitizeErrorMessage(err, 'Failed to delete deal'))
-  }
-}
-
-export async function fetchDealByIdAction(idOrSlug: string): Promise<Deal | null> {
-  await assertAuth()
-  try {
-    return await repo.getDealById(idOrSlug)
-  } catch (err: any) {
-    throw new Error(sanitizeErrorMessage(err, 'Failed to fetch deal'))
   }
 }
 

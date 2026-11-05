@@ -88,20 +88,16 @@ export function EditSettingsModal({
 
   // Calendar Subscription Feed (.ics) state
   const [feedInfo, setFeedInfo] = useState<CalendarFeedInfo | null>(null)
-  const [loadingFeed, setLoadingFeed] = useState(false)
   const [feedCopied, setFeedCopied] = useState(false)
   const [rotatingFeed, setRotatingFeed] = useState(false)
   const [feedError, setFeedError] = useState<string | null>(null)
 
   const fetchCalendarFeedInfo = async () => {
-    setLoadingFeed(true)
     try {
       const info = await getCalendarFeedInfoAction()
       setFeedInfo(info)
     } catch (err: any) {
       console.error('Failed to load calendar feed info:', err)
-    } finally {
-      setLoadingFeed(false)
     }
   }
 

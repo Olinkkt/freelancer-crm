@@ -411,7 +411,6 @@ export function CommandPalette({
 
   // Group items by category for rendering headers
   const categories = PALETTE_CATEGORY_ORDER
-  const activeDeal = deals.find((d) => d.id === targetDealId)
 
   return (
     <div

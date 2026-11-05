@@ -88,7 +88,6 @@ export function DealList({
           <button type="button" className="primary-button" onClick={onAddDealClick}>
             <CirclePlus size={16} />
             <span>New deal</span>
-            <kbd className="ml-1 px-1 bg-[#3a3e45] text-white rounded text-[10px] font-mono">N</kbd>
           </button>
         )}
       </div>

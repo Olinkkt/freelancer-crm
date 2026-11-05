@@ -3,7 +3,6 @@
 import React, { memo, useEffect, useRef, useState } from 'react'
 import { FileText, X } from 'lucide-react'
 import type { Deal } from '@/lib/crm-types'
-import { useModKey } from '@/lib/use-mod-key'
 import { ScratchpadEditor } from '@/components/drawers/scratchpad-editor'
 
 interface NotesModalProps {
@@ -17,7 +16,6 @@ interface NotesModalProps {
  * opacity/transform only (compositor-friendly, no backdrop blur).
  */
 function NotesModalImpl({ deal, onClose, onSave }: NotesModalProps) {
-  const modKey = useModKey()
   const [notes, setNotes] = useState(deal?.notes ?? '')
   const [state, setState] = useState<'idle' | 'saving' | 'saved'>('idle')
   const dealRef = useRef(deal)
@@ -110,10 +108,7 @@ function NotesModalImpl({ deal, onClose, onSave }: NotesModalProps) {
           <ScratchpadEditor notes={notes} onChangeNotes={change} />
         </div>
         <div className="flex items-center justify-between px-4 py-2.5 bg-[#fafbfc] border-t border-[#edf0f3] text-[11px]">
-          <span className="text-[#8f99a8]">
-            <kbd className="px-1 font-mono bg-white border border-[#e4e7ec] rounded">Esc</kbd> Close ·{' '}
-            <kbd className="px-1 font-mono bg-white border border-[#e4e7ec] rounded">{modKey}+S</kbd> Save now
-          </span>
+          <span />
           <span className="text-[#8f99a8]" aria-live="polite">
             {state === 'saving' ? 'Saving…' : state === 'saved' ? 'Saved' : 'Autosaves'}
           </span>

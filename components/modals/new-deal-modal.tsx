@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { useModKey } from '@/lib/use-mod-key'
 import { X, CirclePlus, ArrowUpRight, Calendar, AlertCircle } from 'lucide-react'
 import { Contact, Deal, DealStage, DEAL_STAGE_HINTS, WorkspaceSettings, isPmStage } from '@/lib/crm-types'
 import { StageOptions } from '@/components/deals/stage-options'
@@ -33,7 +32,6 @@ export function NewDealModal({
   onUpdateDeal,
   settings,
 }: NewDealModalProps) {
-  const modKey = useModKey()
   const [title, setTitle] = useState('')
   const [clientName, setClientName] = useState('')
   const [value, setValue] = useState('')
@@ -298,10 +296,7 @@ export function NewDealModal({
           </div>
 
           <div className="pt-2 flex items-center justify-between">
-            <span className="text-[11px] text-[#9fa1a7] font-mono">
-              Press <kbd className="px-1 bg-[#f4f5f6] border border-[#e4e7ec] rounded-[5px] text-[10px]">{modKey}</kbd> +{' '}
-              <kbd className="px-1 bg-[#f4f5f6] border border-[#e4e7ec] rounded-[5px] text-[10px]">↵</kbd> to save
-            </span>
+            <span />
             <div className="flex items-center gap-2">
               <button
                 type="button"

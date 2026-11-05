@@ -138,7 +138,7 @@ export function TodayList({
           <h3 className="text-[13px] font-semibold text-[#1c1d1f] mb-1">All clear</h3>
           <p className="text-[11px] text-[#8f99a8] mb-3">Nothing due, nothing waiting, nothing missing.</p>
           <button type="button" className="text-button mx-auto" onClick={onAddDeal}>
-            Add a deal <kbd className="font-mono text-[10px] text-[#8f99a8]">N</kbd>
+            Add a deal
           </button>
         </div>
       ) : (

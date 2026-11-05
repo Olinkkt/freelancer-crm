@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { useModKey } from '@/lib/use-mod-key'
 import { X, CheckSquare, Building2, Clock, Calendar } from 'lucide-react'
 import { FollowUpItem } from '@/lib/crm-types'
 
@@ -18,7 +17,6 @@ export function EditFollowUpModal({
   followUp,
   onUpdateFollowUp,
 }: EditFollowUpModalProps) {
-  const modKey = useModKey()
   const [action, setAction] = useState('')
   const [company, setCompany] = useState('')
   const [day, setDay] = useState('Today')
@@ -152,15 +150,7 @@ export function EditFollowUpModal({
           </div>
 
           <div className="pt-2 flex items-center justify-between border-t border-[#edf0f3]">
-            <span className="text-[10px] text-[#8f99a8] flex items-center gap-1 font-mono">
-              <kbd className="px-1 py-0.5 bg-[#f0f2f5] border border-[#dce0e5] rounded text-[9px]">
-                {modKey}
-              </kbd>
-              <kbd className="px-1 py-0.5 bg-[#f0f2f5] border border-[#dce0e5] rounded text-[9px]">
-                ↵
-              </kbd>
-              save
-            </span>
+            <span />
             <div className="flex items-center gap-2">
               <button
                 type="button"

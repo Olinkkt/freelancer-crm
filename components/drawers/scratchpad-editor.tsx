@@ -52,9 +52,7 @@ export function ScratchpadEditor({ notes = '', onChangeNotes }: ScratchpadEditor
             {m === 'write' ? 'edit' : m}
           </button>
         ))}
-        <span className="ml-auto text-[#8f99a8]">
-          Markdown · <kbd className="px-1 font-mono bg-white border border-[#e4e7ec] rounded">Ctrl+E</kbd> {mode === 'write' ? 'preview' : 'edit'}
-        </span>
+        <span className="ml-auto text-[#8f99a8]">Markdown</span>
       </div>
 
       {mode === 'write' ? (

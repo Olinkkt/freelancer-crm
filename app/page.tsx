@@ -803,9 +803,6 @@ export default function Page() {
                 >
                   <CirclePlus size={17} />
                   <span>Add client</span>
-                  <kbd className="ml-1 px-1 bg-[#3a3e45] text-white rounded text-[10px] font-mono">
-                    C
-                  </kbd>
                 </button>
               </section>
 
@@ -874,9 +871,6 @@ export default function Page() {
                       >
                         <UserPlus size={13} />
                         <span>Add client</span>
-                        <kbd className="ml-1 px-1 bg-[#3a3e45] text-white rounded text-[10px] font-mono">
-                          C
-                        </kbd>
                       </button>
                     </div>
                   ) : (

@@ -17,6 +17,7 @@
   "dependencies": {
     "@libsql/client": "^0.18.0",
     "@libsql/kysely-libsql": "^0.4.1",
+    "@modelcontextprotocol/sdk": "1.32.1",
     "@vercel/analytics": "1.6.1",
     "clsx": "^2.1.1",
     "kysely": "^0.29.6",

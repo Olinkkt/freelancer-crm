@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { FolderKanban } from 'lucide-react'
 import { ACTIVE_PROJECT_STAGES, Deal, cardColumn } from '@/lib/crm-types'
 import { daysUntil, formatDue, normalizeDueDate } from '@/lib/due-date'
@@ -86,19 +86,24 @@ interface ProjectsOverviewProps {
   onOpenDeal: (deal: Deal) => void
 }
 
+const PROJECTS_CAP = 5
+
 export function ProjectsOverview({ rows, onOpenDeal }: ProjectsOverviewProps) {
+  const [showAll, setShowAll] = useState(false)
+  const visibleRows = showAll ? rows : rows.slice(0, PROJECTS_CAP)
+  const hidden = rows.length - visibleRows.length
   return (
     <section className="panel projects-panel" aria-label="Active projects">
       <div className="today-group-head">
         <FolderKanban size={14} />
-        <h2>Active projects</h2>
+        <h2>Projects</h2>
         <span className="font-mono">{rows.length}</span>
       </div>
       {rows.length === 0 && (
         <p className="today-empty">No active projects. Deals show up here once the contract is signed (Closed).</p>
       )}
       <ul>
-        {rows.map((row) => {
+        {visibleRows.map((row) => {
           const { deal } = row
           const pct = row.tasksTotal ? Math.round((row.tasksDone / row.tasksTotal) * 100) : 0
           return (
@@ -106,7 +111,7 @@ export function ProjectsOverview({ rows, onOpenDeal }: ProjectsOverviewProps) {
               <button type="button" className="project-main" onClick={() => onOpenDeal(deal)}>
                 <strong>{deal.title}</strong>
                 <span>
-                  {deal.contactName} · {deal.stage}
+                  {deal.stage}
                   {row.due ? ` · ${formatDue(row.due)}` : ''}
                 </span>
               </button>
@@ -143,6 +148,11 @@ export function ProjectsOverview({ rows, onOpenDeal }: ProjectsOverviewProps) {
           )
         })}
       </ul>
+      {rows.length > PROJECTS_CAP && (
+        <button type="button" className="home-more" onClick={() => setShowAll((v) => !v)}>
+          {showAll ? 'Show less' : `+${hidden} more`}
+        </button>
+      )}
     </section>
   )
 }

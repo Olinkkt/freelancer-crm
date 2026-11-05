@@ -1359,26 +1359,32 @@ export default function Page() {
           ) : (
             /* HOME VIEW: Today */
             <>
-              <section className="page-heading">
-                <div>
-                  <p className="eyebrow" suppressHydrationWarning>{formattedToday || getFormattedToday()}</p>
-                  <h1 suppressHydrationWarning>{greeting}</h1>
-                  <p className="subcopy">
-                    Today: what’s due, who you’re waiting on, and what needs a next step.
-                  </p>
-                </div>
+              <section className="home-heading">
+                <h1 suppressHydrationWarning>{greeting}</h1>
+                <p className="eyebrow" suppressHydrationWarning>{formattedToday || getFormattedToday()}</p>
               </section>
 
-              <TodayList
-                groups={todayGroups}
-                onOpenDeal={openDeal}
-                onToggleFollowUp={toggleFollowUp}
-                onEditFollowUp={setEditingFollowUp}
-                onDeleteFollowUp={handleDeleteFollowUp}
-                onAddDeal={() => setIsNewDealOpen(true)}
-              />
+              <div className="home-grid">
+                <TodayList
+                  groups={todayGroups}
+                  onOpenDeal={openDeal}
+                  onToggleFollowUp={toggleFollowUp}
+                  onEditFollowUp={setEditingFollowUp}
+                  onDeleteFollowUp={handleDeleteFollowUp}
+                  onAddDeal={() => setIsNewDealOpen(true)}
+                />
+                <ProjectsOverview rows={projectRows} onOpenDeal={openDeal} />
+              </div>
 
-              <ProjectsOverview rows={projectRows} onOpenDeal={openDeal} />
+              <footer className="home-footer">
+                <button type="button" className="home-pipeline" onClick={() => setActiveView('Deals')}>
+                  {OPEN_DEAL_STAGES.map((stage) => `${deals.filter((d) => d.stage === stage).length} ${stage.toLowerCase()}`).join(' · ')}
+                </button>
+                <button type="button" className="text-button" onClick={() => setIsNewDealOpen(true)}>
+                  + New deal
+                </button>
+                <span className="home-hint">⌘K</span>
+              </footer>
             </>
           )}
         </div>

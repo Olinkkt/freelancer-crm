@@ -1,6 +1,7 @@
 'use client'
 
-import { Check, Clock, AlertCircle, Inbox, Edit3, Trash2 } from 'lucide-react'
+import { useState } from 'react'
+import { Check, ChevronDown, Inbox, Edit3, Trash2 } from 'lucide-react'
 import { RowActionMenu } from '@/components/ui/row-action-menu'
 import { Deal, FollowUpItem, isPmStage } from '@/lib/crm-types'
 import { daysUntil, formatDue, normalizeDueDate } from '@/lib/due-date'
@@ -103,6 +104,8 @@ export function buildToday(deals: Deal[], followUps: FollowUpItem[], completedFo
   return { due, waiting, needsYou }
 }
 
+const TODAY_CAP = 5
+
 interface TodayListProps {
   groups: TodayGroups
   onOpenDeal: (deal: Deal) => void
@@ -120,17 +123,75 @@ export function TodayList({
   onDeleteFollowUp,
   onAddDeal,
 }: TodayListProps) {
-  const sections: { key: keyof TodayGroups; title: string; empty: string; icon: typeof Clock }[] = [
-    { key: 'due', title: 'Due', empty: 'Nothing due today.', icon: Clock },
-    { key: 'waiting', title: 'Waiting on client', empty: 'Not waiting on anyone.', icon: Inbox },
-    { key: 'needsYou', title: 'Needs you', empty: 'Every deal has a dated next action.', icon: AlertCircle },
-  ]
-  const total = groups.due.length + groups.waiting.length + groups.needsYou.length
+  const [showAll, setShowAll] = useState(false)
+  const [showWaiting, setShowWaiting] = useState(false)
+
+  // One flat list: due first (already urgency-sorted), then deals that need a next step.
+  const actionable = [...groups.due, ...groups.needsYou]
+  const visible = showAll ? actionable : actionable.slice(0, TODAY_CAP)
+  const hidden = actionable.length - visible.length
+  const total = actionable.length + groups.waiting.length
+
+  const renderRow = (item: TodayItem, isDue: boolean) => (
+    <li key={item.key} className="followup-row today-row">
+      {item.kind === 'followUp' ? (
+        <button
+          type="button"
+          className="check-button"
+          aria-label={`Mark ${item.title} complete`}
+          onClick={() => onToggleFollowUp(item.followUp.id)}
+        />
+      ) : (
+        <span className={`today-dot ${item.tone}`} aria-hidden />
+      )}
+      <button
+        type="button"
+        className="today-row-main"
+        disabled={item.kind !== 'deal'}
+        onClick={() => item.kind === 'deal' && onOpenDeal(item.deal)}
+        title={`${item.title} · ${item.detail}`}
+      >
+        <strong>{item.title}</strong>
+        <span>{item.detail}</span>
+      </button>
+      {isDue && item.kind === 'deal' && item.deal.nextDueDate && (
+        <time className={item.tone === 'overdue' ? 'text-[#d92d20] font-semibold' : ''}>
+          {formatDue(item.deal.nextDueDate)}
+        </time>
+      )}
+      {isDue && item.kind === 'followUp' && (
+        <time className={item.tone === 'overdue' ? 'text-[#d92d20] font-semibold' : ''}>
+          {formatDue(normalizeDueDate(item.followUp.time) ?? item.followUp.time)}
+        </time>
+      )}
+      {item.kind === 'followUp' && (
+        <RowActionMenu
+          triggerLabel={`Options for ${item.title}`}
+          items={[
+            { label: 'Edit follow-up', icon: Edit3, onClick: () => onEditFollowUp(item.followUp) },
+            { label: 'Mark complete', icon: Check, onClick: () => onToggleFollowUp(item.followUp.id) },
+            {
+              label: 'Delete follow-up',
+              icon: Trash2,
+              destructive: true,
+              divider: true,
+              onClick: () => onDeleteFollowUp(item.followUp.id),
+            },
+          ]}
+        />
+      )}
+    </li>
+  )
 
   return (
     <section className="panel today-panel" aria-label="Today">
+      <div className="today-group-head">
+        <h2>Today</h2>
+        <span className="font-mono">{actionable.length}</span>
+      </div>
+
       {total === 0 ? (
-        <div className="py-10 text-center">
+        <div className="py-6 text-center">
           <div className="w-9 h-9 rounded-full bg-[#f4f5f6] flex items-center justify-center mx-auto mb-2">
             <Check size={17} className="text-[#43a878]" />
           </div>
@@ -141,73 +202,35 @@ export function TodayList({
           </button>
         </div>
       ) : (
-        sections.map(({ key, title, empty, icon: Icon }) => {
-          const items = groups[key]
-          return (
-            <div key={key} className="today-group">
-              <div className="today-group-head">
-                <Icon size={14} />
-                <h2>{title}</h2>
-                <span className="font-mono">{items.length}</span>
-              </div>
-              {items.length === 0 ? (
-                <p className="today-empty">{empty}</p>
-              ) : (
-                <ul>
-                  {items.map((item) => (
-                    <li key={item.key} className="followup-row today-row">
-                      {item.kind === 'followUp' ? (
-                        <button
-                          type="button"
-                          className="check-button"
-                          aria-label={`Mark ${item.title} complete`}
-                          onClick={() => onToggleFollowUp(item.followUp.id)}
-                        />
-                      ) : (
-                        <span className={`deal-avatar shrink-0 ${item.deal.color}`}>{item.deal.contactName.charAt(0)}</span>
-                      )}
-                      <button
-                        type="button"
-                        className="today-row-main"
-                        disabled={item.kind !== 'deal'}
-                        onClick={() => item.kind === 'deal' && onOpenDeal(item.deal)}
-                      >
-                        <strong>{item.title}</strong>
-                        <span>{item.detail}</span>
-                      </button>
-                      {item.kind === 'deal' && item.deal.nextDueDate && key === 'due' && (
-                        <time className={item.tone === 'overdue' ? 'text-[#d92d20] font-semibold' : ''}>
-                          {formatDue(item.deal.nextDueDate)}
-                        </time>
-                      )}
-                      {item.kind === 'followUp' && key === 'due' && (
-                        <time className={item.tone === 'overdue' ? 'text-[#d92d20] font-semibold' : ''}>
-                          {formatDue(normalizeDueDate(item.followUp.time) ?? item.followUp.time)}
-                        </time>
-                      )}
-                      {item.kind === 'followUp' && (
-                        <RowActionMenu
-                          triggerLabel={`Options for ${item.title}`}
-                          items={[
-                            { label: 'Edit follow-up', icon: Edit3, onClick: () => onEditFollowUp(item.followUp) },
-                            { label: 'Mark complete', icon: Check, onClick: () => onToggleFollowUp(item.followUp.id) },
-                            {
-                              label: 'Delete follow-up',
-                              icon: Trash2,
-                              destructive: true,
-                              divider: true,
-                              onClick: () => onDeleteFollowUp(item.followUp.id),
-                            },
-                          ]}
-                        />
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
+        <>
+          {actionable.length === 0 ? (
+            <p className="today-empty">Nothing due. You’re clear.</p>
+          ) : (
+            <ul>{visible.map((item) => renderRow(item, groups.due.includes(item)))}</ul>
+          )}
+          {(hidden > 0 || showAll) && actionable.length > TODAY_CAP && (
+            <button type="button" className="home-more" onClick={() => setShowAll((v) => !v)}>
+              {showAll ? 'Show less' : `+${hidden} more`}
+            </button>
+          )}
+
+          {groups.waiting.length > 0 && (
+            <div className="today-waiting">
+              <button
+                type="button"
+                className="today-waiting-toggle"
+                aria-expanded={showWaiting}
+                onClick={() => setShowWaiting((v) => !v)}
+              >
+                <Inbox size={13} />
+                <span>Waiting on client</span>
+                <span className="font-mono">{groups.waiting.length}</span>
+                <ChevronDown size={13} className={showWaiting ? 'rotate-180' : ''} />
+              </button>
+              {showWaiting && <ul>{groups.waiting.map((item) => renderRow(item, false))}</ul>}
             </div>
-          )
-        })
+          )}
+        </>
       )}
     </section>
   )

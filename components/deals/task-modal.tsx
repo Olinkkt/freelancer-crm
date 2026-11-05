@@ -95,7 +95,7 @@ export function TaskModal({ card, onClose, onChange }: TaskModalProps) {
                 placeholder="Add a more detailed description… (Markdown supported)"
                 onChange={(e) => setDesc(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
+                  if ((e.key === 's' || e.key === 'Enter') && (e.ctrlKey || e.metaKey)) {
                     e.preventDefault()
                     saveDesc()
                   }
@@ -105,6 +105,7 @@ export function TaskModal({ card, onClose, onChange }: TaskModalProps) {
                 <button type="button" className="board-add-submit" onClick={saveDesc}>
                   Save
                 </button>
+                <span className="task-save-hint">Ctrl+Enter</span>
                 <button
                   type="button"
                   className="task-edit-btn"

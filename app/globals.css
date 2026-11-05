@@ -2052,3 +2052,5 @@ button {
 .task-desc-view { cursor: text; border-radius: 8px; margin-left: -8px; padding: 6px 8px; margin-top: -6px; }
 .task-desc-view:hover { background: var(--color-paper); }
 .task-desc-view a { cursor: pointer; }
+
+.task-save-hint { margin-left: auto; font-size: 11px; color: var(--color-slate-700); }

@@ -26,13 +26,13 @@ export async function authenticateApi(req: Request): Promise<Principal> {
   if (presented) {
     if (!presented.startsWith(TOKEN_PREFIX)) {
       throw new ApiError('unauthorized', 'Unknown credential', {
-        hint: `Use an API token (starts with "${TOKEN_PREFIX}"). Create one in Settings → API tokens.`,
+        hint: `Use an API token (starts with "${TOKEN_PREFIX}"). Create one in Settings → API.`,
       })
     }
     const token = await verifyApiToken(presented)
     if (!token) {
       throw new ApiError('unauthorized', 'Invalid or revoked API token', {
-        hint: 'Create a new token in Settings → API tokens.',
+        hint: 'Create a new token in Settings → API.',
       })
     }
     return { kind: 'token', tokenId: token.id, tokenName: token.name, scopes: token.scopes }
@@ -43,7 +43,7 @@ export async function authenticateApi(req: Request): Promise<Principal> {
   }
 
   throw new ApiError('unauthorized', 'Authentication required', {
-    hint: 'Send "Authorization: Bearer fcrm_…". Create a token in Settings → API tokens.',
+    hint: 'Send "Authorization: Bearer fcrm_…". Create a token in Settings → API.',
   })
 }
 

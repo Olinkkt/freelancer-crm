@@ -52,7 +52,7 @@ export async function runOperation(op: Operation, rawInput: unknown, opts: RunOp
         entityType: r.entityType,
         entityId: r.entityId,
         before: r.before,
-        after: dryRun ? result : r.after,
+        after: r.after ?? (dryRun ? result : undefined),
         dryRun,
         // Only the first row carries the key and response, so a retry replays once
         idempotencyKey: i === 0 ? key : undefined,

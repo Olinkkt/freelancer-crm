@@ -108,7 +108,10 @@ async function mutateDeal(
   const before = await loadDeal(id, true)
   const next = await change(clone(before))
   if (opts.checkNextAction) assertNextActionRule(next)
-  if (ctx.dryRun) return next
+  if (ctx.dryRun) {
+    ctx.record({ entityType: 'deal', entityId: id, before, after: next })
+    return next
+  }
 
   const saved = await repo.updateDeal(next)
   if (!saved) throw notFound('Deal', id)

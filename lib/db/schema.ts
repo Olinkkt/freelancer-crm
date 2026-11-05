@@ -61,9 +61,40 @@ interface WorkspaceSettingsTable {
   updated_at: string
 }
 
+interface ApiTokenTable {
+  id: string
+  name: string
+  token_hash: string
+  /** First characters of the token, safe to display */
+  prefix: string
+  /** Comma-separated: 'read' or 'read,write' */
+  scopes: string
+  created_at: string
+  last_used_at: string | null
+  revoked_at: string | null
+}
+
+/** Every write made through an API token or MCP (no UI yet) */
+interface ApiAuditLogTable {
+  id: string
+  at: string
+  token_id: string | null
+  via: string // 'rest' | 'mcp'
+  operation: string
+  entity_type: string | null
+  entity_id: string | null
+  before: string | null // JSON
+  after: string | null // JSON
+  dry_run: number // 0 or 1
+  idempotency_key: string | null
+  response: string | null // JSON, replayed for idempotent retries
+}
+
 export interface Database {
   contacts: ContactTable
   deals: DealTable
   follow_ups: FollowUpTable
   workspace_settings: WorkspaceSettingsTable
+  api_tokens: ApiTokenTable
+  api_audit_log: ApiAuditLogTable
 }

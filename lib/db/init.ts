@@ -2,7 +2,7 @@ import { sql } from 'kysely'
 import { normalizeDueDate } from '@/lib/due-date'
 import { db } from './client'
 
-const SCHEMA_VERSION = 15
+const SCHEMA_VERSION = 16
 
 const globalForInit = globalThis as unknown as {
   dbInitPromise?: Promise<void>
@@ -146,6 +146,36 @@ export async function ensureDbInitialized(force = false): Promise<void> {
       // Column already exists
     }
 
+    // Migration (v16): scoped API tokens and the audit log of agent writes
+    await sql`
+      CREATE TABLE IF NOT EXISTS api_tokens (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        token_hash TEXT NOT NULL UNIQUE,
+        prefix TEXT NOT NULL,
+        scopes TEXT NOT NULL DEFAULT 'read',
+        created_at TEXT NOT NULL,
+        last_used_at TEXT,
+        revoked_at TEXT
+      );
+    `.execute(db)
+    await sql`
+      CREATE TABLE IF NOT EXISTS api_audit_log (
+        id TEXT PRIMARY KEY,
+        at TEXT NOT NULL,
+        token_id TEXT,
+        via TEXT NOT NULL DEFAULT 'rest',
+        operation TEXT NOT NULL,
+        entity_type TEXT,
+        entity_id TEXT,
+        before TEXT,
+        after TEXT,
+        dry_run INTEGER NOT NULL DEFAULT 0,
+        idempotency_key TEXT,
+        response TEXT
+      );
+    `.execute(db)
+
     // Migration (v7): Google Calendar OAuth removed; drop its token and event-mapping tables
     await sql`DROP TABLE IF EXISTS google_calendar_events;`.execute(db)
     await sql`DROP TABLE IF EXISTS google_calendar_integrations;`.execute(db)
@@ -158,6 +188,8 @@ export async function ensureDbInitialized(force = false): Promise<void> {
       await sql`CREATE INDEX IF NOT EXISTS idx_deals_stage ON deals(stage);`.execute(db)
       await sql`CREATE INDEX IF NOT EXISTS idx_deals_contact ON deals(contact_id);`.execute(db)
       await sql`CREATE INDEX IF NOT EXISTS idx_follow_ups_deal ON follow_ups(deal_id);`.execute(db)
+      await sql`CREATE INDEX IF NOT EXISTS idx_audit_idempotency ON api_audit_log(token_id, idempotency_key);`.execute(db)
+      await sql`CREATE INDEX IF NOT EXISTS idx_audit_at ON api_audit_log(at);`.execute(db)
     } catch {
       // Ignore index creation errors if dialect differs
     }

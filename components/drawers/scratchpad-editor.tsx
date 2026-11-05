@@ -18,9 +18,9 @@ function toggleTaskLine(source: string, line: number): string {
   return lines.join('\n')
 }
 
-/** Markdown notes: Write / Preview tabs. Ctrl+E flips between them. */
+/** Markdown notes: Preview / Edit tabs. Ctrl+E flips between them. */
 export function ScratchpadEditor({ notes = '', onChangeNotes }: ScratchpadEditorProps) {
-  const [mode, setMode] = useState<'write' | 'preview'>('write')
+  const [mode, setMode] = useState<'write' | 'preview'>(notes.trim() ? 'preview' : 'write')
   const areaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
@@ -38,7 +38,7 @@ export function ScratchpadEditor({ notes = '', onChangeNotes }: ScratchpadEditor
       }}
     >
       <div className="flex items-center gap-1 mb-2 text-[11px]" role="tablist">
-        {(['write', 'preview'] as const).map((m) => (
+        {(['preview', 'write'] as const).map((m) => (
           <button
             key={m}
             type="button"
@@ -49,11 +49,11 @@ export function ScratchpadEditor({ notes = '', onChangeNotes }: ScratchpadEditor
               mode === m ? 'bg-[#edf0f3] text-[#1c1d1f]' : 'text-[#8f99a8] hover:text-[#1c1d1f]'
             }`}
           >
-            {m}
+            {m === 'write' ? 'edit' : m}
           </button>
         ))}
         <span className="ml-auto text-[#8f99a8]">
-          Markdown · <kbd className="px-1 font-mono bg-white border border-[#e4e7ec] rounded">Ctrl+E</kbd> preview
+          Markdown · <kbd className="px-1 font-mono bg-white border border-[#e4e7ec] rounded">Ctrl+E</kbd> {mode === 'write' ? 'preview' : 'edit'}
         </span>
       </div>
 

@@ -11,7 +11,7 @@ const globalForDb = globalThis as unknown as {
   initPromise?: Promise<void>
 }
 
-export function createDb(): Kysely<Database> {
+function createDb(): Kysely<Database> {
   const dbUrl = process.env.DATABASE_URL || 'file:./data/crm.db'
 
   if (dbUrl.startsWith('postgres://') || dbUrl.startsWith('postgresql://')) {

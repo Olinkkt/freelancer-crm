@@ -61,7 +61,7 @@ export const DEAL_STAGE_HINTS: Record<DealStage, string> = {
 }
 
 /** Checklist groups on a deal. 'podklady' (stored key) = client materials, what the client owes you. */
-export type ChecklistSection = 'podklady' | 'deliverables'
+type ChecklistSection = 'podklady' | 'deliverables'
 
 /** Task board columns on a deal, in order (Trello-style) */
 export const BOARD_COLUMNS = [

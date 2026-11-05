@@ -1,4 +1,4 @@
-export interface ContactTable {
+interface ContactTable {
   id: string
   name: string
   email: string
@@ -11,7 +11,7 @@ export interface ContactTable {
   updated_at: string
 }
 
-export interface DealTable {
+interface DealTable {
   id: string
   title: string
   value: string
@@ -34,7 +34,7 @@ export interface DealTable {
   updated_at: string
 }
 
-export interface FollowUpTable {
+interface FollowUpTable {
   id: string
   deal_id: string | null
   day: string
@@ -46,7 +46,7 @@ export interface FollowUpTable {
   created_at: string
 }
 
-export interface WorkspaceSettingsTable {
+interface WorkspaceSettingsTable {
   id: string
   operator_name: string
   operator_email: string

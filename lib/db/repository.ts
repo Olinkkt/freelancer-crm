@@ -80,7 +80,7 @@ async function resolveDealClient(
   return created
 }
 
-export function mapDealRow(r: any): Deal {
+function mapDealRow(r: any): Deal {
   const stage = (r.stage as DealStage) || 'Lead'
 
   return {

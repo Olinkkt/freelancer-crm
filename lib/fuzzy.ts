@@ -2,7 +2,7 @@
  * Tiny fuzzy matcher for the command palette. No dependency.
  * Returns a score (higher is better) or -1 when `term` doesn't match `text`.
  */
-export function fuzzyScore(term: string, text: string): number {
+function fuzzyScore(term: string, text: string): number {
   if (!term) return 0
   const t = text.toLowerCase()
   const q = term.toLowerCase()

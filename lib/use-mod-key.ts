@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 
 /** True on macOS / iOS, where shortcuts use ⌘ instead of Ctrl */
-export function isApplePlatform(): boolean {
+function isApplePlatform(): boolean {
   if (typeof navigator === 'undefined') return false
   const nav = navigator as Navigator & { userAgentData?: { platform?: string } }
   const platform = nav.userAgentData?.platform || nav.platform || nav.userAgent || ''

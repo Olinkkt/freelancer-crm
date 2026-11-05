@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { MoreHorizontal } from 'lucide-react'
 
-export interface RowActionMenuItem {
+interface RowActionMenuItem {
   label: string
   icon?: React.ComponentType<{ size?: number; className?: string }>
   onClick: () => void

@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { DEAL_STAGES } from '@/lib/crm-types'
 
-export const ContactBackupSchema = z.object({
+const ContactBackupSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   email: z.string().optional(),
@@ -24,7 +24,7 @@ const LEGACY_STAGES: Record<string, (typeof DEAL_STAGES)[number]> = {
 }
 
 /** One checklist item on a deal (stored in the deliverables JSON column) */
-export const ChecklistItemSchema = z.object({
+const ChecklistItemSchema = z.object({
   id: z.string().min(1),
   title: z.string().trim().min(1, 'Item cannot be empty').max(200),
   description: z.string().max(10000).optional(),
@@ -60,7 +60,7 @@ export const DealBackupSchema = z.object({
   invoices: z.array(z.any()).optional(),
 })
 
-export const FollowUpBackupSchema = z.object({
+const FollowUpBackupSchema = z.object({
   id: z.string().min(1),
   dealId: z.string().nullable().optional(),
   day: z.string().optional(),
@@ -71,7 +71,7 @@ export const FollowUpBackupSchema = z.object({
   completed: z.boolean().optional(),
 })
 
-export const WorkspaceSettingsBackupSchema = z.object({
+const WorkspaceSettingsBackupSchema = z.object({
   operatorName: z.string().optional(),
   operatorEmail: z.string().optional(),
   operatorRole: z.string().optional(),
@@ -104,8 +104,6 @@ export const BackupPayloadSchema = z
       path: ['backup'],
     }
   )
-
-export type ValidatedBackupPayload = z.infer<typeof BackupPayloadSchema>
 
 // API Input schemas
 const DealInputBaseSchema = z.object({

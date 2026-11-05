@@ -29,7 +29,7 @@ export function generateCSV<T extends Record<string, any>>(
 /**
  * Initiates client-side download of a generated CSV file
  */
-export function triggerDownload(content: string, filename: string): void {
+function triggerDownload(content: string, filename: string): void {
   const blob = new Blob(['\uFEFF' + content], { type: 'text/csv;charset=utf-8;' }) // \uFEFF for Excel UTF-8 BOM
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')

@@ -7,7 +7,7 @@ import { getDateString, stripDiacritics } from '@/lib/date-utils'
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
 
-export function isIsoDate(value?: string | null): value is string {
+function isIsoDate(value?: string | null): value is string {
   return !!value && ISO_DATE.test(value)
 }
 
@@ -136,7 +136,7 @@ export function formatDue(due?: string | null, now: Date = new Date()): string {
 }
 
 /** Suggested next actions per pipeline stage. */
-export const NEXT_ACTION_PRESETS: Record<string, string[]> = {
+const NEXT_ACTION_PRESETS: Record<string, string[]> = {
   Lead: ['Discovery call', 'Send intro email', 'Share portfolio', 'Qualify budget'],
   Qualified: ['Send proposal', 'Scope review call', 'Share case studies', 'Confirm timeline'],
   Proposal: ['Follow up on proposal', 'Send revised scope', 'Answer questions', 'Send contract'],

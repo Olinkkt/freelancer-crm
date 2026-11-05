@@ -38,7 +38,7 @@ function getAuthSecret(): string {
   return (process.env.AUTH_SECRET || '').trim()
 }
 
-export async function getEffectiveAuthSecret(): Promise<string> {
+async function getEffectiveAuthSecret(): Promise<string> {
   const envSecret = getAuthSecret()
   if (envSecret) return envSecret
 

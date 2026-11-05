@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState } from 'react'
-import { ArrowLeft, Check, Clock, Edit3, FileText, Plus, Trash2, X } from 'lucide-react'
+import React, { useEffect, useRef, useState } from 'react'
+import { ArrowLeft, Check, ChevronDown, Clock, Edit3, FileText, Plus, Trash2, X } from 'lucide-react'
 import {
   ChecklistSection,
   Deal,
@@ -31,7 +31,7 @@ interface DealDetailProps {
 const SECTIONS: { key: ChecklistSection; title: string; hint: string; placeholder: string }[] = [
   {
     key: 'podklady',
-    title: 'Podklady',
+    title: 'Client materials',
     hint: 'What the client owes you: texts, photos, logins, brand assets',
     placeholder: 'e.g. Logo in SVG',
   },
@@ -110,28 +110,19 @@ export function DealDetail({
             <p className="mt-1 text-[12px] text-[#8f99a8]">{DEAL_STAGE_HINTS[deal.stage]}</p>
           </div>
         </div>
-        <div className="deal-stage-track">
-          {[
-            { label: 'CRM', stages: OPEN_DEAL_STAGES },
-            { label: 'PM', stages: PM_STAGES },
-          ].map((group) => (
-            <div key={group.label} className="deal-stage-group">
-              <span className="deal-stage-group-label">{group.label}</span>
-              <div className="deal-stage-steps">
-                {group.stages.map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    title={DEAL_STAGE_HINTS[s]}
-                    aria-pressed={deal.stage === s}
-                    className={`deal-stage-step ${deal.stage === s ? 'current' : ''}`}
-                    onClick={() => deal.stage !== s && onMoveStage(deal.id, s)}
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-            </div>
+        <div className="deal-stage-steps mt-4">
+          <CrmStagePicker stage={deal.stage} onPick={(st) => onMoveStage(deal.id, st)} />
+          {PM_STAGES.map((s) => (
+            <button
+              key={s}
+              type="button"
+              title={DEAL_STAGE_HINTS[s]}
+              aria-pressed={deal.stage === s}
+              className={`deal-stage-step ${deal.stage === s ? 'current' : ''}`}
+              onClick={() => deal.stage !== s && onMoveStage(deal.id, s)}
+            >
+              {s}
+            </button>
           ))}
         </div>
       </section>
@@ -205,6 +196,69 @@ export function DealDetail({
         </button>
       </div>
     </>
+  )
+}
+
+/** "+" pill holding the CRM stages; shows the current one when the deal is still in sales */
+function CrmStagePicker({ stage, onPick }: { stage: DealStage; onPick: (stage: DealStage) => void }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const inCrm = OPEN_DEAL_STAGES.includes(stage)
+
+  useEffect(() => {
+    if (!open) return
+    const close = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    const esc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation()
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', close)
+    window.addEventListener('keydown', esc, true)
+    return () => {
+      document.removeEventListener('mousedown', close)
+      window.removeEventListener('keydown', esc, true)
+    }
+  }, [open])
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        title="Sales (CRM) stages"
+        className={`deal-stage-step inline-flex items-center gap-1 ${inCrm ? 'current' : ''}`}
+        onClick={() => setOpen((v) => !v)}
+      >
+        {inCrm ? stage : <Plus size={13} aria-label="CRM stages" />}
+        <ChevronDown size={12} />
+      </button>
+      {open && (
+        <div role="menu" className="deal-stage-menu">
+          <p className="deal-stage-group-label px-2.5 pt-1 pb-1.5">SALES (CRM)</p>
+          {OPEN_DEAL_STAGES.map((s) => (
+            <button
+              key={s}
+              type="button"
+              role="menuitemradio"
+              aria-checked={stage === s}
+              className={stage === s ? 'active' : ''}
+              onClick={() => {
+                setOpen(false)
+                if (stage !== s) onPick(s)
+              }}
+            >
+              <span>{s}</span>
+              <small>{DEAL_STAGE_HINTS[s]}</small>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
 

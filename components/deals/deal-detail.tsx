@@ -113,7 +113,7 @@ export function DealDetail({
           ) : (
             <p className="mt-1 text-[12px] text-[#b54708]">No next action. Every deal needs one.</p>
           )}
-          <button type="button" className="text-button mt-3" onClick={() => onEdit(deal)}>
+          <button type="button" className="text-button mt-auto pt-3 self-start" onClick={() => onEdit(deal)}>
             <Edit3 size={13} /> Change
           </button>
         </section>
@@ -122,11 +122,11 @@ export function DealDetail({
         <section className="panel">
           <p className="section-kicker">Notes</p>
           {deal.notes?.trim() ? (
-            <p className="mt-1 text-[12px] text-[#505967] whitespace-pre-wrap line-clamp-6">{deal.notes.trim()}</p>
+            <p className="mt-1 text-[12px] text-[#505967] whitespace-pre-wrap line-clamp-3">{deal.notes.trim()}</p>
           ) : (
             <p className="mt-1 text-[12px] text-[#8f99a8]">No notes yet.</p>
           )}
-          <button type="button" className="text-button mt-3" onClick={() => onOpenNotes(deal)}>
+          <button type="button" className="text-button mt-auto pt-3 self-start" onClick={() => onOpenNotes(deal)}>
             <FileText size={13} /> Open notes
           </button>
         </section>

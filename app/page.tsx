@@ -859,8 +859,8 @@ export default function Page() {
                   </div>
                 </div>
 
-                <div className="company-table contacts-table">
-                  <div className="company-table-head">
+                <div className="deals-list clients-list">
+                  <div className="deals-list-head">
                     <span>Client</span>
                     <span>Phone</span>
                     <span>Open deals</span>
@@ -897,7 +897,7 @@ export default function Page() {
                       .map((contact) => {
                         return (
                           <div
-                            className="company-row cursor-pointer hover:bg-[#fafbfc] transition-colors"
+                            className="deals-list-row"
                             key={contact.id}
                             role="button"
                             tabIndex={0}
@@ -921,21 +921,21 @@ export default function Page() {
                             </div>
                             <div className="company-contact">
                               {contact.phone ? (
-                                <a href={`tel:${contact.phone}`} onClick={(e) => e.stopPropagation()} className="text-[12px] text-[#1c1d1f] hover:underline font-mono">
+                                <a href={`tel:${contact.phone}`} onClick={(e) => e.stopPropagation()} className="cell-num hover:underline">
                                   {contact.phone}
                                 </a>
                               ) : (
                                 <span className="text-[#8f99a8] text-[11px]">—</span>
                               )}
                             </div>
-                            <strong>{getContactOpenDealsCount(contact)}</strong>
+                            <span className="cell-num">{getContactOpenDealsCount(contact)}</span>
                             <span className="last-touch">{contact.lastTouch}</span>
                             <div className="truncate">
                               {contact.email ? (
                                 <a
                                   href={`mailto:${contact.email}`}
                                   onClick={(e) => e.stopPropagation()}
-                                  className="text-[#266df0] hover:underline font-mono text-[11px] truncate block"
+                                  className="hover:underline truncate block"
                                   title={contact.email}
                                 >
                                   {contact.email}

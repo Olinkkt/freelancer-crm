@@ -194,7 +194,7 @@ export function DealList({
 
               <span className="font-medium text-[#1c1d1f]">{deal.stage}</span>
 
-              <strong className="tabular-nums">{formatDealValue(deal.value, settings)}</strong>
+              <span className="cell-num">{formatDealValue(deal.value, settings)}</span>
 
               <div className="deals-list-next min-w-0">
                 {!deal.next ? (

@@ -2001,7 +2001,7 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin: 24px 0 10px;
+  margin: 16px 0 10px;
   font-size: 13px;
   font-weight: 600;
   color: var(--color-ink-black);
@@ -2032,7 +2032,7 @@ button {
   resize: vertical;
   outline: none;
 }
-.task-desc-view { font-size: 13px; color: var(--color-carbon); padding-left: 8px; }
+.task-desc-view { font-size: 14px; color: var(--color-carbon); padding-left: 8px; }
 .task-desc-empty {
   display: block;
   width: 100%;

@@ -1494,12 +1494,21 @@ button {
 }
 
 .project-stage {
+  position: relative;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  height: 4px;
+}
+
+.project-stage > .project-steps,
+.project-stage > .project-tasks-bar {
+  width: 100%;
 }
 
 .project-stage > span {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
   font-size: 11px;
   color: #8f99a8;
   white-space: nowrap;

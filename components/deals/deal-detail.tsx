@@ -12,6 +12,8 @@ import {
   isPmStage,
   nextDealStage,
 } from '@/lib/crm-types'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { DealBoard } from '@/components/deals/deal-board'
 import { DeliverableItem } from '@/lib/crm-types'
 import { formatDealValue } from '@/lib/config'
@@ -137,7 +139,14 @@ export function DealDetail({
         <section className="panel">
           <p className="section-kicker">Notes</p>
           {deal.notes?.trim() ? (
-            <p className="mt-1 text-[12px] text-[#505967] whitespace-pre-wrap line-clamp-3">{deal.notes.trim()}</p>
+            <div className="notes-md notes-md-preview mt-1 text-[12px] text-[#505967] max-h-[96px] overflow-hidden">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{ a: ({ node: _n, ...p }) => <a {...p} target="_blank" rel="noopener noreferrer" /> }}
+              >
+                {deal.notes.trim()}
+              </ReactMarkdown>
+            </div>
           ) : (
             <p className="mt-1 text-[12px] text-[#8f99a8]">No notes yet.</p>
           )}

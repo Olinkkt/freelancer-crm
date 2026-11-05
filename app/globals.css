@@ -2312,3 +2312,6 @@ button {
   font-size: 12px;
   color: var(--color-slate-700);
 }
+
+.notes-md-preview { -webkit-mask-image: linear-gradient(to bottom, #000 70%, transparent); mask-image: linear-gradient(to bottom, #000 70%, transparent); }
+.notes-md-preview h1, .notes-md-preview h2, .notes-md-preview h3 { font-size: 12px; font-weight: 600; margin: 0 0 2px; }

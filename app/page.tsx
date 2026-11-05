@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {
-  ArrowUpRight,
   CirclePlus,
   LayoutDashboard,
   Search,
@@ -136,7 +135,7 @@ export default function Page() {
   const [editingFollowUp, setEditingFollowUp] = useState<FollowUpItem | null>(null)
   const [isEditSettingsOpen, setIsEditSettingsOpen] = useState(false)
   const [settingsModalInitialTab, setSettingsModalInitialTab] = useState<'profile' | 'calendar'>('profile')
-  const [settingsTab, setSettingsTab] = useState<'profile' | 'shortcuts' | 'export' | 'system'>('profile')
+  const [settingsTab, setSettingsTab] = useState<'profile' | 'shortcuts' | 'export'>('profile')
   const [shortcutFilter, setShortcutFilter] = useState('')
 
   // Floating Toasts / HUD
@@ -171,7 +170,6 @@ export default function Page() {
     locale: OPERATOR_CONFIG.locale,
     isClaimed: false,
   })
-  const [dbStatus, setDbStatus] = useState<'checking' | 'connected' | 'error'>('checking')
 
   const loadData = useCallback(async () => {
     try {
@@ -197,11 +195,9 @@ export default function Page() {
         if (data.settings) {
           setCurrentSettings(data.settings)
         }
-        setDbStatus('connected')
       }
     } catch (err: any) {
       console.error('Failed to load workspace data:', err)
-      setDbStatus('error')
       addToast('Error loading workspace data', undefined, 'warning')
     } finally {
       setIsLoading(false)
@@ -1012,9 +1008,6 @@ export default function Page() {
               <section className="page-heading">
                 <div>
                   <h1>Settings</h1>
-                  <p className="subcopy">
-                    Profile, shortcuts, data export and system status.
-                  </p>
                 </div>
               </section>
 
@@ -1025,28 +1018,21 @@ export default function Page() {
                   className={settingsTab === 'profile' ? 'tab-active' : ''}
                   onClick={() => setSettingsTab('profile')}
                 >
-                  General & Profile
+                  Profile
                 </button>
                 <button
                   type="button"
                   className={settingsTab === 'shortcuts' ? 'tab-active' : ''}
                   onClick={() => setSettingsTab('shortcuts')}
                 >
-                  Keyboard Shortcuts
+                  Shortcuts
                 </button>
                 <button
                   type="button"
                   className={settingsTab === 'export' ? 'tab-active' : ''}
                   onClick={() => setSettingsTab('export')}
                 >
-                  Data & Portability
-                </button>
-                <button
-                  type="button"
-                  className={settingsTab === 'system' ? 'tab-active' : ''}
-                  onClick={() => setSettingsTab('system')}
-                >
-                  System & Deployment
+                  Data
                 </button>
               </div>
 
@@ -1056,9 +1042,9 @@ export default function Page() {
                   {/* SECTION 1: OPERATOR IDENTITY */}
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start pb-8 border-b border-[#e4e7ec]">
                     <div className="md:col-span-4">
-                      <h3 className="text-[15px] font-semibold text-[#1c1d1f] tracking-tight">Operator Identity</h3>
+                      <h3 className="text-[15px] font-semibold text-[#1c1d1f] tracking-tight">Profile</h3>
                       <p className="text-[13px] text-[#6f7988] mt-1 leading-relaxed">
-                        Your personal operator profile, contact email, and active title shown across client communications and exports.
+                        Your name, email and role.
                       </p>
                     </div>
                     <div className="md:col-span-8">
@@ -1073,10 +1059,6 @@ export default function Page() {
                                 <strong className="text-[16px] font-semibold text-[#1c1d1f] tracking-tight truncate">
                                   {currentSettings.operatorName}
                                 </strong>
-                                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#027a48] bg-[#ecfdf3] border border-[#d1fadf] px-2 py-0.5 rounded-[7px]">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-[#12b76a]" />
-                                  Active
-                                </span>
                               </div>
                               <span className="text-[13px] text-[#6f7988] truncate block mt-0.5">
                                 {currentSettings.operatorEmail}
@@ -1097,7 +1079,7 @@ export default function Page() {
                             className="select-button self-start sm:self-center shrink-0"
                           >
                             <Edit3 size={13} className="text-[#6f7988]" />
-                            <span>Edit Profile</span>
+                            <span>Edit</span>
                           </button>
                         </div>
                       </div>
@@ -1107,17 +1089,17 @@ export default function Page() {
                   {/* SECTION 2: REGIONAL & CURRENCY */}
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start pb-8 border-b border-[#e4e7ec]">
                     <div className="md:col-span-4">
-                      <h3 className="text-[15px] font-semibold text-[#1c1d1f] tracking-tight">Regional & Currency</h3>
+                      <h3 className="text-[15px] font-semibold text-[#1c1d1f] tracking-tight">Currency & locale</h3>
                       <p className="text-[13px] text-[#6f7988] mt-1 leading-relaxed">
-                        Default currency standard, regional number formatting, and workflow momentum methodology.
+                        Used for deal values and dates.
                       </p>
                     </div>
                     <div className="md:col-span-8">
                       <div className="bg-white border border-[#e4e7ec] rounded-xl divide-y divide-[#f0f1f3] shadow-[rgba(28,40,64,0.04)_0px_2px_4px_-1px] text-[13px]">
                         <div className="flex items-center justify-between p-4">
                           <div>
-                            <span className="text-[#1c1d1f] font-medium block">Default Currency</span>
-                            <span className="text-[#6f7988] text-[12px]">Applied to deal pipeline values and revenue rollups</span>
+                            <span className="text-[#1c1d1f] font-medium block">Currency</span>
+                            <span className="text-[#6f7988] text-[12px]">Deal values and totals</span>
                           </div>
                           <strong className="font-mono text-[#1c1d1f]">
                             {currentSettings.currency} <span className="text-[#8f99a8] font-normal">({currentSettings.currencySymbol.trim()})</span>
@@ -1125,17 +1107,10 @@ export default function Page() {
                         </div>
                         <div className="flex items-center justify-between p-4">
                           <div>
-                            <span className="text-[#1c1d1f] font-medium block">Workspace Locale</span>
-                            <span className="text-[#6f7988] text-[12px]">Regional date conventions and numeric grouping</span>
+                            <span className="text-[#1c1d1f] font-medium block">Locale</span>
+                            <span className="text-[#6f7988] text-[12px]">Date and number format</span>
                           </div>
                           <span className="font-mono text-[#505967]">{currentSettings.locale}</span>
-                        </div>
-                        <div className="flex items-center justify-between p-4">
-                          <div>
-                            <span className="text-[#1c1d1f] font-medium block">Workflow</span>
-                            <span className="text-[#6f7988] text-[12px]">Task and follow-up tracking</span>
-                          </div>
-                          <span className="text-[#266df0] font-medium">Next Action Prompts</span>
                         </div>
                       </div>
                     </div>
@@ -1146,7 +1121,7 @@ export default function Page() {
                     <div className="md:col-span-4">
                       <h3 className="text-[15px] font-semibold text-[#1c1d1f] tracking-tight">Security</h3>
                       <p className="text-[13px] text-[#6f7988] mt-1 leading-relaxed">
-                        Control workspace access protection, session security, and lock status.
+                        Passcode and session.
                       </p>
                     </div>
                     <div className="md:col-span-8">
@@ -1155,21 +1130,13 @@ export default function Page() {
                           <div>
                             <div className="flex items-center gap-2">
                               <strong className="text-[15px] font-semibold text-[#1c1d1f] tracking-tight">
-                                {authRequired ? 'Master Passcode Protected' : 'Open Development Mode'}
+                                {authRequired ? 'Passcode on' : 'Passcode off'}
                               </strong>
-                              <span className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-[7px] border ${
-                                authRequired
-                                  ? 'text-[#027a48] bg-[#ecfdf3] border-[#d1fadf]'
-                                  : 'text-[#6f7988] bg-[#f4f5f6] border-[#e4e7ec]'
-                              }`}>
-                                <span className={`w-1.5 h-1.5 rounded-full ${authRequired ? 'bg-[#12b76a]' : 'bg-[#9fa1a7]'}`} />
-                                {authRequired ? 'Protected' : 'Open Access'}
-                              </span>
                             </div>
                             <p className="text-[12px] text-[#6f7988] mt-1">
                               {authRequired
-                                ? 'Session active (expires in 30 days)'
-                                : 'Workspace is accessible locally without a gate. You can configure a master passcode anytime.'}
+                                ? 'Session lasts 30 days.'
+                                : 'Anyone who can reach this app can open it.'}
                             </p>
                           </div>
                           {authRequired ? (
@@ -1178,7 +1145,7 @@ export default function Page() {
                               onClick={handleLockWorkspace}
                               className="primary-button text-[12px] py-1.5 px-3 min-h-0 self-start sm:self-center shrink-0"
                             >
-                              Lock Workspace
+                              Lock
                             </button>
                           ) : (
                             <button
@@ -1189,7 +1156,7 @@ export default function Page() {
                               }}
                               className="select-button text-[12px] self-start sm:self-center shrink-0"
                             >
-                              Configure Passcode
+                              Set passcode
                             </button>
                           )}
                         </div>
@@ -1202,7 +1169,7 @@ export default function Page() {
                     <div className="md:col-span-4">
                       <h3 className="text-[15px] font-semibold text-[#1c1d1f] tracking-tight">Calendar</h3>
                       <p className="text-[13px] text-[#6f7988] mt-1 leading-relaxed">
-                        Subscribe to your deals’ next actions from any calendar app. Nothing to configure.
+                        Subscribe to next actions from any calendar app.
                       </p>
                     </div>
                     <div className="md:col-span-8">
@@ -1217,7 +1184,7 @@ export default function Page() {
                                 Calendar feed (.ics)
                               </strong>
                               <p className="text-[12px] text-[#6f7988] mt-1 leading-normal">
-                                Works with Google Calendar, Apple Calendar and phone calendars. Deal pages also have an Add to Google Calendar link.
+                                Works with Google, Apple and phone calendars.
                               </p>
                             </div>
                           </div>
@@ -1229,7 +1196,7 @@ export default function Page() {
                             }}
                             className="select-button text-[12px] py-1.5 px-3 font-semibold text-[#1c1d1f] cursor-pointer self-start sm:self-center shrink-0"
                           >
-                            <span>Get feed link</span>
+                            <span>Get link</span>
                             <ChevronRight size={13} className="text-[#6f7988]" />
                           </button>
                         </div>
@@ -1245,10 +1212,7 @@ export default function Page() {
                   {/* SEARCH & VELOCITY BANNER */}
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pb-4 border-b border-[#e4e7ec]">
                     <div>
-                      <h3 className="text-[16px] font-semibold text-[#1c1d1f] tracking-tight">Workflow Preferences</h3>
-                      <p className="text-[13px] text-[#6f7988] mt-0.5">
-                        Execute actions with single keystrokes without reaching for your mouse.
-                      </p>
+                      <h3 className="text-[16px] font-semibold text-[#1c1d1f] tracking-tight">Shortcuts</h3>
                     </div>
                     <div className="relative min-w-[240px]">
                       <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9fa1a7]" />
@@ -1265,12 +1229,12 @@ export default function Page() {
                   {/* SHORTCUT GROUPS */}
                   {[
                     {
-                      category: 'Global & Quick Capture',
+                      category: 'Global',
                       items: [
-                        { label: 'Universal Command Palette', keys: [modKey, 'K'], note: 'Search deals, clients, views' },
-                        { label: 'Quick-add new deal drawer', keys: ['N'], note: 'Instant lead capture slide-over' },
-                        { label: 'Quick-add new client', keys: ['C'], note: 'Register a new client' },
-                        { label: 'Keyboard shortcut cheat-sheet', keys: ['?'], note: 'Open floating shortcut modal' },
+                        { label: 'Command palette', keys: [modKey, 'K'], note: 'Search deals, clients, views' },
+                        { label: 'New deal', keys: ['N'], note: 'Quick capture' },
+                        { label: 'New client', keys: ['C'], note: 'Add a client' },
+                        { label: 'Shortcut cheat-sheet', keys: ['?'], note: 'Show all shortcuts' },
                       ],
                     },
                     {
@@ -1281,12 +1245,12 @@ export default function Page() {
                       ],
                     },
                     {
-                      category: 'Workspace Navigation (Go-to)',
+                      category: 'Go to',
                       items: [
                         { label: 'Jump to Home', keys: ['G', 'D'], note: 'Daily overview' },
                         { label: 'Jump to Deals', keys: ['G', 'P'], note: 'All deals by stage' },
                         { label: 'Jump to Clients', keys: ['G', 'U'], note: 'The people you work with' },
-                        { label: 'Jump to Settings view', keys: ['G', 'S'], note: 'Workspace preferences' },
+                        { label: 'Jump to Settings', keys: ['G', 'S'], note: 'Preferences' },
                       ],
                     },
                   ]
@@ -1335,9 +1299,9 @@ export default function Page() {
                 <div className="space-y-6 max-w-4xl">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-[#e4e7ec]">
                     <div>
-                      <h3 className="text-[16px] font-semibold text-[#1c1d1f] tracking-tight">Data Ownership & Portability</h3>
+                      <h3 className="text-[16px] font-semibold text-[#1c1d1f] tracking-tight">Export</h3>
                       <p className="text-[13px] text-[#6f7988] mt-0.5">
-                        Download complete RFC-4180 unencrypted CSV archives with UTF-8 BOM encoding for direct import into Notion, Excel, or Google Sheets.
+                        CSV files for Excel, Sheets or Notion.
                       </p>
                     </div>
                     <button
@@ -1346,12 +1310,12 @@ export default function Page() {
                         exportDealsCSV(deals, currentSettings.currency)
                         exportContactsCSV(contacts)
                         exportFollowUpsCSV(followUps)
-                        addToast('All workspace data exported (3 CSV files)', 'Export')
+                        addToast('Exported 3 CSV files', 'Export')
                       }}
                       className="primary-button text-[12px] py-1.5 px-3 min-h-0 shrink-0"
                     >
                       <Download size={13} />
-                      <span>Export All (3 CSVs)</span>
+                      <span>Export all</span>
                     </button>
                   </div>
 
@@ -1359,8 +1323,8 @@ export default function Page() {
                     <div className="divide-y divide-[#f0f1f3]">
                       {[
                         {
-                          title: 'Deals Pipeline',
-                          desc: 'Stages, deal values, next actions, contacts, deliverables',
+                          title: 'Deals',
+                          desc: 'Stages, values, next actions, deliverables',
                           count: deals.length,
                           action: () => {
                             exportDealsCSV(deals, currentSettings.currency)
@@ -1368,8 +1332,8 @@ export default function Page() {
                           },
                         },
                         {
-                          title: 'People Directory',
-                          desc: 'Client names, email addresses, phone numbers, notes, touch timestamps',
+                          title: 'Clients',
+                          desc: 'Names, emails, phones, notes',
                           count: contacts.length,
                           action: () => {
                             exportContactsCSV(contacts)
@@ -1377,8 +1341,8 @@ export default function Page() {
                           },
                         },
                         {
-                          title: 'Follow-up Queue',
-                          desc: 'Next actions, scheduled times, urgency indicators, completion states',
+                          title: 'Follow-ups',
+                          desc: 'Next actions, times, completion',
                           count: followUps.length,
                           action: () => {
                             exportFollowUpsCSV(followUps)
@@ -1402,7 +1366,7 @@ export default function Page() {
                             className="select-button self-start sm:self-center shrink-0"
                           >
                             <Download size={13} className="text-[#266df0]" />
-                            <span>Download .csv</span>
+                            <span>CSV</span>
                           </button>
                         </div>
                       ))}
@@ -1414,13 +1378,10 @@ export default function Page() {
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div>
                         <div className="flex items-center gap-2">
-                          <strong className="text-[15px] font-semibold text-[#1c1d1f]">Database Snapshot (JSON)</strong>
-                          <span className="text-[10px] font-mono font-medium text-[#027a48] bg-[#ecfdf3] border border-[#d1fadf] px-2 py-0.5 rounded-[6px]">
-                            Recommended for Self-Hosters
-                          </span>
+                          <strong className="text-[15px] font-semibold text-[#1c1d1f]">Backup (JSON)</strong>
                         </div>
                         <p className="text-[12px] text-[#6f7988] mt-1 leading-relaxed">
-                          Export or restore a complete self-contained snapshot of all deals, clients, deal notes, follow-ups, and workspace configuration. Perfect for Coolify volume backups or migrating servers.
+                          Full snapshot of your workspace. Restoring replaces current records.
                         </p>
                       </div>
                     </div>
@@ -1429,16 +1390,16 @@ export default function Page() {
                       <a
                         href="/api/backup"
                         download
-                        onClick={() => addToast('Downloading complete database snapshot...', 'Backup')}
+                        onClick={() => addToast('Downloading backup', 'Backup')}
                         className="primary-button text-[12px] py-1.5 px-3 min-h-0"
                       >
                         <Download size={13} />
-                        <span>Download Full Database Backup</span>
+                        <span>Download backup</span>
                       </a>
 
                       <label className="select-button cursor-pointer text-[12px] py-1.5 px-3 min-h-0">
                         <Upload size={13} className="text-[#266df0]" />
-                        <span>Restore from JSON File</span>
+                        <span>Restore</span>
                         <input
                           type="file"
                           accept=".json,application/json"
@@ -1446,7 +1407,7 @@ export default function Page() {
                           onChange={async (e) => {
                             const file = e.target.files?.[0]
                             if (!file) return
-                            if (!window.confirm('⚠️ Caution: Restoring from a backup will replace current workspace records. Continue?')) {
+                            if (!window.confirm('Restoring replaces current workspace records. Continue?')) {
                               e.target.value = ''
                               return
                             }
@@ -1460,7 +1421,7 @@ export default function Page() {
                               })
                               const result = await res.json()
                               if (res.ok && result.success) {
-                                addToast('Workspace successfully restored! Reloading data...', 'Restore')
+                                addToast('Workspace restored', 'Restore')
                                 await loadData()
                               } else {
                                 addToast(result.error || 'Failed to restore workspace', undefined, 'warning')
@@ -1473,61 +1434,6 @@ export default function Page() {
                           }}
                         />
                       </label>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* TAB 4: SYSTEM & DEPLOYMENT */}
-              {settingsTab === 'system' && (
-                <div className="space-y-6 max-w-4xl">
-                  <div className="flex items-center justify-between pb-4 border-b border-[#e4e7ec]">
-                    <div>
-                      <h3 className="text-[16px] font-semibold text-[#1c1d1f] tracking-tight">Deployment & Architecture</h3>
-                      <p className="text-[13px] text-[#6f7988] mt-0.5">
-                        Unified Next.js 16 full-stack architecture running standalone on Coolify. Zero external latency, minimal RAM footprint.
-                      </p>
-                    </div>
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-mono font-medium rounded-[7px] border ${
-                      dbStatus === 'connected'
-                        ? 'text-[#027a48] bg-[#ecfdf3] border-[#d1fadf]'
-                        : 'text-[#b42318] bg-[#fef3f2] border-[#fee4e2]'
-                    }`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${dbStatus === 'connected' ? 'bg-[#12b76a]' : 'bg-[#f04438]'}`} />
-                      {dbStatus === 'connected' ? 'Database Online' : 'Checking Connection'}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="bg-white border border-[#e4e7ec] rounded-xl p-4 shadow-[rgba(28,40,64,0.04)_0px_2px_4px_-1px]">
-                      <span className="text-[11px] font-medium text-[#6f7988] block mb-1">Database Engine</span>
-                      <strong className="text-[14px] text-[#1c1d1f] font-semibold block">PostgreSQL / SQLite (LibSQL)</strong>
-                      <p className="text-[12px] text-[#8f99a8] mt-1">Persistent local volume with WAL mode and 5000ms busy timeout.</p>
-                    </div>
-
-                    <div className="bg-white border border-[#e4e7ec] rounded-xl p-4 shadow-[rgba(28,40,64,0.04)_0px_2px_4px_-1px]">
-                      <span className="text-[11px] font-medium text-[#6f7988] block mb-1">Healthcheck Endpoint</span>
-                      <a
-                        href="/api/health"
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-[14px] font-semibold text-[#266df0] hover:underline inline-flex items-center gap-1 font-mono"
-                      >
-                        /api/health <ArrowUpRight size={13} />
-                      </a>
-                      <p className="text-[12px] text-[#8f99a8] mt-1">Rolling zero-downtime container monitoring for Coolify / Docker.</p>
-                    </div>
-
-                    <div className="bg-white border border-[#e4e7ec] rounded-xl p-4 shadow-[rgba(28,40,64,0.04)_0px_2px_4px_-1px]">
-                      <span className="text-[11px] font-medium text-[#6f7988] block mb-1">Cryptographic Security</span>
-                      <strong className="text-[14px] text-[#1c1d1f] font-semibold block">Session Token</strong>
-                      <p className="text-[12px] text-[#8f99a8] mt-1">Web Crypto API with HttpOnly SameSite=Lax cookie session validation.</p>
-                    </div>
-
-                    <div className="bg-white border border-[#e4e7ec] rounded-xl p-4 shadow-[rgba(28,40,64,0.04)_0px_2px_4px_-1px]">
-                      <span className="text-[11px] font-medium text-[#6f7988] block mb-1">Software License</span>
-                      <strong className="text-[14px] text-[#1c1d1f] font-semibold block">AGPL-3.0 Open Source</strong>
-                      <p className="text-[12px] text-[#8f99a8] mt-1">Freelancer CRM v1.0.4 • Personal Workspace.</p>
                     </div>
                   </div>
                 </div>

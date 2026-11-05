@@ -72,7 +72,6 @@ import {
   updateFollowUpAction,
   logActivityAction,
   toggleFollowUpAction,
-  syncTodosAction,
 } from '@/app/actions/crm'
 import {
   getAuthStatus,
@@ -474,16 +473,6 @@ export default function Page() {
   }
 
   // Sync action items from Scratchpad to Dashboard Follow-ups
-  const handleSyncTodos = async (todos: string[], companyName: string = 'Workspace') => {
-    try {
-      const newItems = await syncTodosAction(todos, companyName)
-      setFollowUps((prev) => [...newItems, ...prev])
-      addToast(`Synced ${todos.length} action item${todos.length > 1 ? 's' : ''} to Follow-ups`, 'Follow-up')
-    } catch (err: any) {
-      addToast(err?.message || 'Failed to sync follow-up items', undefined, 'warning')
-    }
-  }
-
   // Delete Deal
   const handleDeleteDeal = async (id: string) => {
     setDeals((prev) => prev.filter((d) => d.id !== id))
@@ -2040,7 +2029,6 @@ export default function Page() {
         deals={deals}
         contacts={contacts}
         onUpdateDeal={handleUpdateDeal}
-        onSyncTodos={handleSyncTodos}
         onAddActivity={(act) => handleLogActivity(act)}
       />
 

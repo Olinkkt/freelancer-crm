@@ -58,7 +58,6 @@ interface CommandPaletteProps {
   deals: Deal[]
   contacts: Contact[]
   onUpdateDeal?: (deal: Deal) => void
-  onSyncTodos?: (todos: string[], companyName?: string) => void
   onAddActivity?: (activity: Omit<Activity, 'id'>) => void
 }
 
@@ -69,7 +68,6 @@ export function CommandPalette({
   deals,
   contacts,
   onUpdateDeal,
-  onSyncTodos,
   onAddActivity,
 }: CommandPaletteProps) {
   const [query, setQuery] = useState('')
@@ -107,46 +105,10 @@ export function CommandPalette({
       {
         id: 'action-scratchpad',
         category: 'Notes',
-        title: 'Open Scratchpad & Meeting Notes',
-        subtitle: 'Fast slash-command notes, /call, /scope, /quote, /todo',
+        title: 'Open Scratchpad',
+        subtitle: 'Jot down notes for a deal',
         icon: <FileText size={15} className="text-[#266df0]" />,
         actionType: 'open_scratchpad',
-      },
-      {
-        id: 'action-slash-call',
-        category: 'Notes',
-        title: '/call — Client Call Log',
-        subtitle: 'Insert timestamped call notes & decisions template',
-        icon: <PhoneCall size={15} className="text-[#266df0]" />,
-        actionType: 'open_scratchpad',
-        payload: { command: '/call' },
-      },
-      {
-        id: 'action-slash-scope',
-        category: 'Notes',
-        title: '/scope — Deliverables & Scope Checklist',
-        subtitle: 'Insert structured deliverables milestone checklist',
-        icon: <ListTodo size={15} className="text-[#805ad5]" />,
-        actionType: 'open_scratchpad',
-        payload: { command: '/scope' },
-      },
-      {
-        id: 'action-slash-quote',
-        category: 'Notes',
-        title: '/quote — Commercial Quote Calculation',
-        subtitle: 'Insert 50% deposit and commercial terms breakdown',
-        icon: <Calculator size={15} className="text-[#43a878]" />,
-        actionType: 'open_scratchpad',
-        payload: { command: '/quote' },
-      },
-      {
-        id: 'action-slash-todo',
-        category: 'Notes',
-        title: '/todo — Next Action Item',
-        subtitle: 'Insert action item that syncs directly to dashboard follow-ups',
-        icon: <CheckSquare size={15} className="text-[#c4882b]" />,
-        actionType: 'open_scratchpad',
-        payload: { command: '/todo' },
       },
 
       // Quick Actions
@@ -373,13 +335,6 @@ export function CommandPalette({
     setTimeout(() => setIsSavedToast(false), 2500)
   }
 
-  const handleSyncTodosFromScratchpad = (todos: string[]) => {
-    if (onSyncTodos) {
-      const targetDeal = deals.find((d) => d.id === targetDealId)
-      onSyncTodos(todos, targetDeal?.contactName || 'Workspace')
-    }
-  }
-
   // Keyboard navigation within the palette
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (subpage === 'scratchpad') {
@@ -424,27 +379,6 @@ export function CommandPalette({
   const executeItem = (item: PaletteItem) => {
     if (item.actionType === 'open_scratchpad') {
       setSubpage('scratchpad')
-      if (item.payload?.command) {
-        const cmd = item.payload.command
-        const targetDeal = deals.find((d) => d.id === targetDealId)
-        let snippet = ''
-        if (cmd === '/call') {
-          const nowStr = new Date().toLocaleDateString(OPERATOR_CONFIG.locale || 'en-US', {
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-          })
-          snippet = `### 📞 Client Call — ${nowStr}\n- **Client:** ${targetDeal?.contactName || 'Client'}\n- **Key Decisions:**\n  • `
-        } else if (cmd === '/scope') {
-          snippet = `### 📋 Project Scope: ${targetDeal?.title || 'Scope'}\n- [ ] Phase 1: Wireframes\n- [ ] Phase 2: Design\n- [ ] Phase 3: Build`
-        } else if (cmd === '/quote') {
-          snippet = `### 💰 Commercial Quote\n- **Project Fee:** ${targetDeal?.value || formatMoney(30000)}\n- **Deposit (50%):** Due upon kickoff\n- **Balance (50%):** Due upon delivery`
-        } else if (cmd === '/todo') {
-          snippet = `- [ ] Follow up on next milestone with ${targetDeal?.contactName || 'client'} tomorrow`
-        }
-        setScratchpadNotes((prev) => (prev ? `${prev}\n\n${snippet}` : snippet))
-      }
       return
     }
     onClose()
@@ -517,17 +451,6 @@ export function CommandPalette({
               <ScratchpadEditor
                 notes={scratchpadNotes}
                 onChangeNotes={setScratchpadNotes}
-                onSyncTodos={handleSyncTodosFromScratchpad}
-                dealContext={
-                  activeDeal
-                    ? {
-                        title: activeDeal.title,
-                        company: activeDeal.contactName,
-                        contactName: activeDeal.contactName,
-                        value: activeDeal.value,
-                      }
-                    : undefined
-                }
               />
             </div>
 

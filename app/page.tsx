@@ -1,33 +1,25 @@
 'use client'
 
-import React, { useState, useEffect, useCallback, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import {
   AlertCircle,
   ArrowUpRight,
   Building2,
   CalendarDays,
   Check,
-  ChevronDown,
-  ChevronUp,
   CirclePlus,
   FileText,
   LayoutDashboard,
-  MessageSquare,
   Search,
   Settings2,
   Users,
   WalletCards,
   Clock,
-  Sparkles,
-  PhoneCall,
   UserPlus,
   Keyboard,
   Download,
   Trash2,
   Mail,
-  Banknote,
-  CheckCircle2,
   Edit3,
   Upload,
   Calendar,
@@ -36,17 +28,15 @@ import {
 } from 'lucide-react'
 import {
   exportDealsCSV,
-  exportCompaniesCSV,
   exportContactsCSV,
   exportActivitiesCSV,
   exportFollowUpsCSV,
 } from '@/lib/csv-export'
 import { getFormattedToday, getDynamicGreeting } from '@/lib/date-utils'
 import { OPERATOR_CONFIG, formatMoney, formatDealValue, getOperatorInitials } from '@/lib/config'
-import { CalendarView } from '@/components/calendar/calendar-view'
-import { Deal, Contact, Company, Activity, FollowUpItem, DealStage, STAGE_DEFAULT_PROBABILITIES } from '@/lib/crm-types'
+import { Deal, Contact, Activity, FollowUpItem, DealStage, DEAL_STAGES, OPEN_DEAL_STAGES } from '@/lib/crm-types'
+import { useModKey } from '@/lib/use-mod-key'
 import {
-  INITIAL_COMPANIES,
   INITIAL_CONTACTS,
   INITIAL_DEALS,
   INITIAL_FOLLOW_UPS,
@@ -59,14 +49,10 @@ import {
 import { ShortcutsModal } from '@/components/modals/shortcuts-modal'
 import { NewDealModal } from '@/components/modals/new-deal-modal'
 import { NewContactModal } from '@/components/modals/new-contact-modal'
-import { NewCompanyModal } from '@/components/modals/new-company-modal'
-import { LogCallModal } from '@/components/modals/log-call-modal'
 import { EditFollowUpModal } from '@/components/modals/edit-follow-up-modal'
 import { EditSettingsModal } from '@/components/modals/edit-settings-modal'
-import { DealDetailDrawer } from '@/components/drawers/deal-detail-drawer'
-import { DealKanban } from '@/components/deals/deal-kanban'
+import { DealList } from '@/components/deals/deal-list'
 import { ToastHUD, ToastHUDItem } from '@/components/ui/toast-hud'
-import { MarkdownFormatter } from '@/components/ui/markdown-formatter'
 import { OperatorGate } from '@/components/auth/operator-gate'
 import { SetupWizard } from '@/components/auth/setup-wizard'
 import { RowActionMenu } from '@/components/ui/row-action-menu'
@@ -79,30 +65,17 @@ import {
   moveDealStageAction,
   createContactAction,
   updateContactAction,
-  createCompanyAction,
-  updateCompanyAction,
   deleteContactAction,
-  setPrimaryContactAction,
-  deleteCompanyAction,
-  deleteActivityAction,
-  updateActivityAction,
   deleteFollowUpAction,
   updateFollowUpAction,
   logActivityAction,
   toggleFollowUpAction,
-  syncTodosAction,
 } from '@/app/actions/crm'
 import {
   getAuthStatus,
   logoutOperator,
   updateWorkspaceSettingsAction,
 } from '@/app/actions/auth'
-import {
-  getGoogleCalendarStatusAction,
-  triggerGoogleCalendarSyncAction,
-} from '@/app/actions/google-calendar'
-import { GoogleCalendarStatusResponse } from '@/lib/google-calendar/types'
-import { generateGoogleCalendarWebLink, resolveEventDates } from '@/lib/google-calendar/web-links'
 
 
 function NavItem({
@@ -131,9 +104,9 @@ function NavItem({
 }
 
 export default function Page() {
-  const router = useRouter()
+  const modKey = useModKey()
   // Navigation & View State
-  const [activeView, setActiveView] = useState<string>('Dashboard')
+  const [activeView, setActiveView] = useState<string>('Home')
   const [activeTab, setActiveTab] = useState<string>('Overview')
 
   // Dynamic Dashboard Date & Greeting
@@ -146,48 +119,30 @@ export default function Page() {
 
   // CRM Data State
   const [deals, setDeals] = useState<Deal[]>(INITIAL_DEALS)
-  const [companies, setCompanies] = useState<Company[]>(INITIAL_COMPANIES)
   const [contacts, setContacts] = useState<Contact[]>(INITIAL_CONTACTS)
   const [activities, setActivities] = useState<Activity[]>(INITIAL_ACTIVITIES)
   const [followUps, setFollowUps] = useState<FollowUpItem[]>(INITIAL_FOLLOW_UPS)
   const [completedFollowUps, setCompletedFollowUps] = useState<string[]>([])
 
   // Search in sub-views
-  const [companySearch, setCompanySearch] = useState('')
   const [contactSearch, setContactSearch] = useState('')
-  const [activitySearch, setActivitySearch] = useState('')
   const [dealSearch, setDealSearch] = useState('')
   const [isDealSearchOpen, setIsDealSearchOpen] = useState(false)
-  const [expandedActivityIds, setExpandedActivityIds] = useState<Record<string, boolean>>({})
-
-  const toggleExpandActivity = (id: string) => {
-    setExpandedActivityIds((prev) => ({
-      ...prev,
-      [id]: !prev[id],
-    }))
-  }
-
-  // Modals & Drawers State
+  // Modals State
   const [isPaletteOpen, setIsPaletteOpen] = useState(false)
+  /** Deal whose notes the palette should open on (set by "Notes" on a deal row) */
+  const [paletteNotesDealId, setPaletteNotesDealId] = useState<string | null>(null)
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false)
   const [isNewDealOpen, setIsNewDealOpen] = useState(false)
   const [isNewContactOpen, setIsNewContactOpen] = useState(false)
-  const [isNewCompanyOpen, setIsNewCompanyOpen] = useState(false)
-  const [isLogCallOpen, setIsLogCallOpen] = useState(false)
-  const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null)
-  const [isDealDrawerOpen, setIsDealDrawerOpen] = useState(false)
-  const [prefilledCompany, setPrefilledCompany] = useState<string | undefined>(undefined)
+  const [prefilledClient, setPrefilledClient] = useState<string | undefined>(undefined)
 
   // Editing state for entities
   const [editingDeal, setEditingDeal] = useState<Deal | null>(null)
-  const [editingCompany, setEditingCompany] = useState<Company | null>(null)
   const [editingContact, setEditingContact] = useState<Contact | null>(null)
-  const [editingActivity, setEditingActivity] = useState<Activity | null>(null)
   const [editingFollowUp, setEditingFollowUp] = useState<FollowUpItem | null>(null)
   const [isEditSettingsOpen, setIsEditSettingsOpen] = useState(false)
-  const [settingsModalInitialTab, setSettingsModalInitialTab] = useState<'profile' | 'integrations'>('profile')
-  const [gcalStatus, setGcalStatus] = useState<GoogleCalendarStatusResponse | null>(null)
-  const [isSyncingGcal, setIsSyncingGcal] = useState(false)
+  const [settingsModalInitialTab, setSettingsModalInitialTab] = useState<'profile' | 'calendar'>('profile')
   const [settingsTab, setSettingsTab] = useState<'profile' | 'shortcuts' | 'export' | 'system'>('profile')
   const [shortcutFilter, setShortcutFilter] = useState('')
 
@@ -241,7 +196,6 @@ export default function Page() {
       if (auth.isSetupComplete && (auth.authenticated || !auth.required)) {
         const data = await fetchWorkspaceData()
         setDeals(data.deals)
-        setCompanies(data.companies)
         setContacts(data.contacts)
         setActivities(data.activities)
         setFollowUps(data.followUps)
@@ -266,52 +220,15 @@ export default function Page() {
     loadData()
   }, [loadData])
 
-  const refreshGoogleCalendarStatus = useCallback(async () => {
-    try {
-      const status = await getGoogleCalendarStatusAction()
-      setGcalStatus(status)
-    } catch (err: any) {
-      console.error('Failed to load Google Calendar status:', err)
-    }
-  }, [])
-
-  useEffect(() => {
-    refreshGoogleCalendarStatus()
-  }, [refreshGoogleCalendarStatus])
-
-  // Google Calendar OAuth redirect handling & deep-link parameters
+  // ?settings=open deep link opens the settings modal
   useEffect(() => {
     if (typeof window === 'undefined') return
-    const params = new URLSearchParams(window.location.search)
-    const settingsParam = params.get('settings')
-    const gcalParam = params.get('gcal')
-    const messageParam = params.get('message')
-
-    if (settingsParam === 'open' || gcalParam) {
-      if (gcalParam === 'connected') {
-        addToast('Google Calendar connected successfully! 📅', undefined, 'success')
-        setSettingsModalInitialTab('integrations')
-        setIsEditSettingsOpen(true)
-        refreshGoogleCalendarStatus()
-      } else if (gcalParam === 'error') {
-        const errorMsg = messageParam || 'Failed to connect Google Calendar'
-        addToast(errorMsg, undefined, 'warning')
-        setSettingsModalInitialTab('integrations')
-        setIsEditSettingsOpen(true)
-      } else if (settingsParam === 'open') {
-        setIsEditSettingsOpen(true)
-      }
-
-      // Clean up URL search params using window.history.replaceState so refresh does not re-trigger
-      const url = new URL(window.location.href)
-      url.searchParams.delete('settings')
-      url.searchParams.delete('gcal')
-      url.searchParams.delete('message')
-      const cleanUrl = url.pathname + (url.search ? url.search : '') + url.hash
-      window.history.replaceState({}, '', cleanUrl)
-    }
-  }, [addToast, refreshGoogleCalendarStatus])
-
+    const url = new URL(window.location.href)
+    if (url.searchParams.get('settings') !== 'open') return
+    setIsEditSettingsOpen(true)
+    url.searchParams.delete('settings')
+    window.history.replaceState({}, '', url.pathname + url.search + url.hash)
+  }, [])
 
   // Two-key chord navigation state ("G" then another key)
   const pendingChordRef = useRef<string | null>(null)
@@ -341,16 +258,13 @@ export default function Page() {
         isPaletteOpen ||
         isShortcutsOpen ||
         isNewDealOpen ||
-        isNewContactOpen ||
-        isLogCallOpen
+        isNewContactOpen
 
       if (e.key === 'Escape') {
         if (isPaletteOpen) setIsPaletteOpen(false)
         if (isShortcutsOpen) setIsShortcutsOpen(false)
         if (isNewDealOpen) setIsNewDealOpen(false)
         if (isNewContactOpen) setIsNewContactOpen(false)
-        if (isLogCallOpen) setIsLogCallOpen(false)
-        if (isDealDrawerOpen) setIsDealDrawerOpen(false)
         return
       }
 
@@ -359,16 +273,6 @@ export default function Page() {
 
       const key = e.key.toLowerCase()
 
-      // When deal drawer is open: allow pressing 'l' to open Quick Log Call modal
-      if (isDealDrawerOpen) {
-        if (key === 'l' && !e.metaKey && !e.ctrlKey) {
-          e.preventDefault()
-          setIsLogCallOpen(true)
-          addToast('Quick Log Call / Note', 'L')
-        }
-        return
-      }
-
       // ? or Shift+/ : Show Shortcuts
       if (e.key === '?' || (e.shiftKey && e.key === '/')) {
         e.preventDefault()
@@ -376,40 +280,25 @@ export default function Page() {
         return
       }
 
-      // Handle G chords: 'g' then 'd', 'p', 'c', 'u', 'k', 'a', 's'
+      // Handle G chords: 'g' then 'd', 'p', 'u', 'k', 's'
       if (pendingChordRef.current === 'g') {
         if (chordTimeoutRef.current) clearTimeout(chordTimeoutRef.current)
         pendingChordRef.current = null
 
         if (key === 'd') {
           e.preventDefault()
-          setActiveView('Dashboard')
-          addToast('Navigated to Dashboard', 'G D')
+          setActiveView('Home')
+          addToast('Navigated to Home', 'G D')
           return
         } else if (key === 'p') {
           e.preventDefault()
           setActiveView('Deals')
-          addToast('Navigated to Deals & Pipeline', 'G P')
-          return
-        } else if (key === 'c') {
-          e.preventDefault()
-          setActiveView('Companies')
-          addToast('Navigated to Companies', 'G C')
+          addToast('Navigated to Deals', 'G P')
           return
         } else if (key === 'u') {
           e.preventDefault()
-          setActiveView('Contacts')
-          addToast('Navigated to Contacts', 'G U')
-          return
-        } else if (key === 'k') {
-          e.preventDefault()
-          setActiveView('Calendar')
-          addToast('Navigated to Calendar', 'G K')
-          return
-        } else if (key === 'a') {
-          e.preventDefault()
-          setActiveView('Activities')
-          addToast('Navigated to Activities', 'G A')
+          setActiveView('Clients')
+          addToast('Navigated to Clients', 'G U')
           return
         } else if (key === 's') {
           e.preventDefault()
@@ -439,14 +328,7 @@ export default function Page() {
       if (key === 'c' && !e.metaKey && !e.ctrlKey) {
         e.preventDefault()
         setIsNewContactOpen(true)
-        addToast('Quick Capture Contact', 'C')
-        return
-      }
-
-      if (key === 'l' && !e.metaKey && !e.ctrlKey) {
-        e.preventDefault()
-        setIsLogCallOpen(true)
-        addToast('Quick Log Call / Note', 'L')
+        addToast('Quick Capture Client', 'C')
         return
       }
     }
@@ -461,10 +343,25 @@ export default function Page() {
     isShortcutsOpen,
     isNewDealOpen,
     isNewContactOpen,
-    isLogCallOpen,
-    isDealDrawerOpen,
     addToast,
   ])
+
+  // Deal detail page removed; open the edit modal until it's rebuilt
+  const openDeal = (deal: Deal) => {
+    setEditingDeal(deal)
+    setIsNewDealOpen(true)
+  }
+
+  // Forget the notes target however the palette closes (Esc, ⌘K, click-out)
+  useEffect(() => {
+    if (!isPaletteOpen) setPaletteNotesDealId(null)
+  }, [isPaletteOpen])
+
+  // Deal notes live in the ⌘K scratchpad; open it already pointed at this deal
+  const openDealNotes = (deal: Deal) => {
+    setPaletteNotesDealId(deal.id)
+    setIsPaletteOpen(true)
+  }
 
   // Handle Command Palette Selection
   const handlePaletteAction = (actionType: PaletteActionType, payload?: any) => {
@@ -481,33 +378,17 @@ export default function Page() {
       case 'new_contact':
         setIsNewContactOpen(true)
         break
-      case 'log_call':
-        setIsLogCallOpen(true)
-        break
       case 'show_shortcuts':
         setIsShortcutsOpen(true)
         break
       case 'open_deal':
-        if (payload) {
-          setSelectedDeal(payload)
-          setIsDealDrawerOpen(true)
-        }
-        break
-      case 'open_project_workspace':
         if (payload?.id) {
-          router.push(`/deals/${payload.id}`)
+          openDeal(payload)
         }
-        break
-      case 'open_company':
-        setActiveView('Companies')
-        if (payload?.name) setCompanySearch(payload.name)
         break
       case 'open_contact':
-        setActiveView('Contacts')
+        setActiveView('Clients')
         if (payload?.name) setContactSearch(payload.name)
-        break
-      case 'toggle_kanban':
-        setActiveView('Deals')
         break
       case 'open_scratchpad':
         setIsPaletteOpen(true)
@@ -522,8 +403,6 @@ export default function Page() {
     try {
       const newDeal = await createDealAction(dealData)
       setDeals((prev) => [newDeal, ...prev])
-      const workspace = await fetchWorkspaceData()
-      setCompanies(workspace.companies)
       addToast(`Added deal "${newDeal.title}"`, 'N')
     } catch (err: any) {
       addToast(err?.message || 'Failed to create deal', undefined, 'warning')
@@ -535,34 +414,17 @@ export default function Page() {
     try {
       const newContact = await createContactAction(contactData)
       setContacts((prev) => [newContact, ...prev])
-      const workspace = await fetchWorkspaceData()
-      setCompanies(workspace.companies)
-      addToast(`Added contact "${newContact.name}"`, 'C')
+      addToast(`Added client "${newContact.name}"`, 'C')
     } catch (err: any) {
-      addToast(err?.message || 'Failed to create contact', undefined, 'warning')
+      addToast(err?.message || 'Failed to create client', undefined, 'warning')
     }
   }
 
-  // Create Company Handler
-  const handleAddCompany = async (companyData: Omit<Company, 'id'>) => {
+  // Log a deal note (from the command palette scratchpad)
+  const handleLogActivity = async (activityData: Omit<Activity, 'id'>) => {
+    const targetDealId = activityData.dealId
     try {
-      const newCompany = await createCompanyAction(companyData)
-      setCompanies((prev) => [newCompany, ...prev])
-      addToast(`Added company "${newCompany.name}"`)
-    } catch (err: any) {
-      addToast(err?.message || 'Failed to create company', undefined, 'warning')
-    }
-  }
-
-  // Log Activity Handler with unified Deal and Scratchpad sync
-  const handleLogActivity = async (
-    activityData: Omit<Activity, 'id'>,
-    followUpData?: Omit<FollowUpItem, 'id'>,
-    dealId?: string
-  ) => {
-    const targetDealId = dealId || activityData.dealId
-    try {
-      const result = await logActivityAction(activityData, followUpData, targetDealId)
+      const result = await logActivityAction(activityData, undefined, targetDealId)
       setActivities((prev) => [result.activity, ...prev])
 
       if (result.followUp) {
@@ -573,16 +435,13 @@ export default function Page() {
         setDeals((prev) =>
           prev.map((d) => (d.id === result.updatedDeal!.id ? result.updatedDeal! : d))
         )
-        if (selectedDeal?.id === result.updatedDeal.id) {
-          setSelectedDeal(result.updatedDeal)
-        }
       }
 
       const linkedDeal = deals.find((d) => d.id === targetDealId)
       const toastMsg = linkedDeal
         ? `Logged ${result.activity.type} & synced to ${linkedDeal.title}`
         : `Logged ${result.activity.type} with ${result.activity.person}`
-      addToast(toastMsg, 'L')
+      addToast(toastMsg)
     } catch (err: any) {
       addToast(err?.message || 'Failed to log activity', undefined, 'warning')
     }
@@ -591,30 +450,12 @@ export default function Page() {
   // Update Deal in list
   const handleUpdateDeal = async (updated: Deal) => {
     setDeals((prev) => prev.map((d) => (d.id === updated.id ? updated : d)))
-    if (selectedDeal?.id === updated.id) {
-      setSelectedDeal(updated)
-    }
     try {
       const saved = await updateDealAction(updated)
       setDeals((prev) => prev.map((d) => (d.id === saved.id ? saved : d)))
-      if (selectedDeal?.id === saved.id) {
-        setSelectedDeal(saved)
-      }
       addToast(`Deal "${saved.title}" updated`)
     } catch (err: any) {
       addToast(err?.message || 'Failed to update deal', undefined, 'warning')
-    }
-  }
-
-  // Update Company
-  const handleUpdateCompany = async (updated: Company) => {
-    setCompanies((prev) => prev.map((c) => (c.id === updated.id ? updated : c)))
-    try {
-      const saved = await updateCompanyAction(updated)
-      setCompanies((prev) => prev.map((c) => (c.id === saved.id ? saved : c)))
-      addToast(`Company "${saved.name}" updated`)
-    } catch (err: any) {
-      addToast(err?.message || 'Failed to update company', undefined, 'warning')
     }
   }
 
@@ -624,23 +465,9 @@ export default function Page() {
     try {
       const saved = await updateContactAction(updated)
       setContacts((prev) => prev.map((c) => (c.id === saved.id ? saved : c)))
-      const workspace = await fetchWorkspaceData()
-      setCompanies(workspace.companies)
-      addToast(`Contact "${saved.name}" updated`)
+      addToast(`Client "${saved.name}" updated`)
     } catch (err: any) {
-      addToast(err?.message || 'Failed to update contact', undefined, 'warning')
-    }
-  }
-
-  // Update Activity
-  const handleUpdateActivity = async (updated: Activity) => {
-    setActivities((prev) => prev.map((a) => (a.id === updated.id ? updated : a)))
-    try {
-      const saved = await updateActivityAction(updated)
-      setActivities((prev) => prev.map((a) => (a.id === saved.id ? saved : a)))
-      addToast('Activity updated')
-    } catch (err: any) {
-      addToast(err?.message || 'Failed to update activity', undefined, 'warning')
+      addToast(err?.message || 'Failed to update client', undefined, 'warning')
     }
   }
 
@@ -657,80 +484,34 @@ export default function Page() {
   }
 
   // Sync action items from Scratchpad to Dashboard Follow-ups
-  const handleSyncTodos = async (todos: string[], companyName: string = 'Workspace') => {
-    try {
-      const newItems = await syncTodosAction(todos, companyName, selectedDeal?.id)
-      setFollowUps((prev) => [...newItems, ...prev])
-      addToast(`Synced ${todos.length} action item${todos.length > 1 ? 's' : ''} to Follow-ups`, 'Follow-up')
-    } catch (err: any) {
-      addToast(err?.message || 'Failed to sync follow-up items', undefined, 'warning')
-    }
-  }
-
   // Delete Deal
   const handleDeleteDeal = async (id: string) => {
     setDeals((prev) => prev.filter((d) => d.id !== id))
-    if (selectedDeal?.id === id) {
-      setIsDealDrawerOpen(false)
-      setSelectedDeal(null)
-    }
     try {
       await deleteDealAction(id)
-      const workspace = await fetchWorkspaceData()
-      setCompanies(workspace.companies)
       addToast('Deal deleted')
     } catch (err: any) {
       addToast(err?.message || 'Failed to delete deal', undefined, 'warning')
     }
   }
 
-  // Delete Company
-  const handleDeleteCompany = async (id: string, name: string) => {
-    setCompanies((prev) => prev.filter((c) => c.id !== id))
-    addToast(`Company "${name}" deleted`)
-    try {
-      await deleteCompanyAction(id)
-      const workspace = await fetchWorkspaceData()
-      setDeals(workspace.deals)
-      setContacts(workspace.contacts)
-    } catch (err: any) {
-      addToast(err?.message || 'Failed to delete company', undefined, 'warning')
-    }
-  }
-
-  // Delete Contact
+  // Delete Client (server first: a client with deals can't be deleted)
   const handleDeleteContact = async (id: string, name: string) => {
-    setContacts((prev) => prev.filter((c) => c.id !== id))
-    addToast(`Contact "${name}" deleted`)
+    const linkedDeals = deals.filter((d) => d.contactId === id).length
+    if (linkedDeals > 0) {
+      addToast(
+        `"${name}" still has ${linkedDeals} deal${linkedDeals === 1 ? '' : 's'}. Delete or reassign them first.`,
+        undefined,
+        'warning'
+      )
+      return
+    }
     try {
       await deleteContactAction(id)
-      const workspace = await fetchWorkspaceData()
-      setCompanies(workspace.companies)
+      setContacts((prev) => prev.filter((c) => c.id !== id))
+      addToast(`Client "${name}" deleted`)
     } catch (err: any) {
-      addToast(err?.message || 'Failed to delete contact', undefined, 'warning')
-    }
-  }
-
-  // Set Primary Contact for Company
-  const handleSetPrimaryContact = async (contact: Contact) => {
-    try {
-      await setPrimaryContactAction(contact.company, contact.id)
-      const workspace = await fetchWorkspaceData()
-      setCompanies(workspace.companies)
-      addToast(`Set ${contact.name} as primary contact for ${contact.company}`)
-    } catch (err: any) {
-      addToast(err?.message || 'Failed to set primary contact', undefined, 'warning')
-    }
-  }
-
-  // Delete Activity
-  const handleDeleteActivity = async (id: string, title: string) => {
-    setActivities((prev) => prev.filter((a) => a.id !== id))
-    addToast(`Activity "${title}" deleted`)
-    try {
-      await deleteActivityAction(id)
-    } catch (err: any) {
-      addToast(err?.message || 'Failed to delete activity', undefined, 'warning')
+      addToast(err?.message || 'Failed to delete client', undefined, 'warning')
     }
   }
 
@@ -747,73 +528,8 @@ export default function Page() {
   }
 
   const handleMoveDealStage = async (dealId: string, newStage: DealStage) => {
-    const isClosed = newStage === 'Won' || newStage === 'Paid'
-    const isPaid = newStage === 'Paid'
-    const isWon = newStage === 'Won'
-    const targetDeal = deals.find((d) => d.id === dealId)
-
-    // If moving to Paid (Completed Project), ensure all existing milestones are marked done
-    let dealDeliverables = targetDeal?.deliverables
-
-    if (isPaid && targetDeal) {
-      if (dealDeliverables && dealDeliverables.length > 0) {
-        dealDeliverables = dealDeliverables.map((d) => ({
-          ...d,
-          status: 'Done' as const,
-          clientSignOff: true,
-        }))
-      }
-    }
-
-    const nextProb = isClosed
-      ? '100%'
-      : STAGE_DEFAULT_PROBABILITIES[newStage] || '20%'
-
-    setDeals((prev) =>
-      prev.map((d) => {
-        if (d.id === dealId) {
-          return {
-            ...d,
-            stage: newStage,
-            probability: nextProb,
-            color: isClosed ? 'green' : 'blue',
-            deliverables: isPaid && dealDeliverables ? dealDeliverables : d.deliverables,
-            invoices: d.invoices,
-            next: isPaid ? 'Request testimonial & case study review' : isWon ? 'Kickoff meeting & design sprint' : d.next,
-            nextDueDate: isPaid ? 'In 3 days' : isWon ? 'Tomorrow, 10:00' : d.nextDueDate,
-          }
-        }
-        return d
-      })
-    )
-
-    setSelectedDeal((prev) =>
-      prev?.id === dealId
-        ? {
-            ...prev,
-            stage: newStage,
-            probability: nextProb,
-            color: isClosed ? 'green' : 'blue',
-          }
-        : prev
-    )
-
-    if (isPaid) {
-      const deal = deals.find((d) => d.id === dealId)
-      if (deal) {
-        const toComplete = followUps
-          .filter((f) => f.company === deal.company && !completedFollowUps.includes(f.id))
-          .map((f) => f.id)
-        if (toComplete.length > 0) {
-          setCompletedFollowUps((prev) => [...new Set([...prev, ...toComplete])])
-        }
-      }
-      addToast('🎉 All milestones completed & invoices settled! Project finished.')
-    } else if (isWon) {
-      addToast('Deal Won! Active client project started.')
-    } else {
-      addToast(`Moved deal to ${newStage}`)
-    }
+    setDeals((prev) => prev.map((d) => (d.id === dealId ? { ...d, stage: newStage } : d)))
+    addToast(newStage === 'Won' ? 'Deal won: contract signed' : `Moved deal to ${newStage}`)
 
     try {
       const updated = await moveDealStageAction(dealId, newStage)
@@ -846,45 +562,15 @@ export default function Page() {
 
 
   // Compute metrics
-  const openDeals = deals.filter((d) => d.stage !== 'Won' && d.stage !== 'Paid')
+  const openDeals = deals.filter((d) => OPEN_DEAL_STAGES.includes(d.stage))
   const openDealsCount = openDeals.length
   const totalPipelineAmount = openDeals.reduce(
     (sum, d) => sum + (d.rawAmount || parseInt(d.value.replace(/[^0-9]/g, '')) || 0),
     0
   )
-  const getContactOpenDealsCount = (contact: Contact) => {
-    const contactNameNorm = contact.name.trim().toLowerCase()
-    const contactEmailNorm = contact.email ? contact.email.trim().toLowerCase() : ''
-    const contactCompanyNorm = contact.company ? contact.company.trim().toLowerCase() : ''
-    const comp = companies.find((c) => c.name.trim().toLowerCase() === contactCompanyNorm)
-    const isPrimaryContact = comp && comp.contact ? comp.contact.trim().toLowerCase() === contactNameNorm : false
+  const getContactOpenDealsCount = (contact: Contact) =>
+    openDeals.filter((d) => d.contactId === contact.id).length
 
-    return openDeals.filter((d) => {
-      const dealContactNorm = d.contactName ? d.contactName.trim().toLowerCase() : ''
-      const dealEmailNorm = d.contactEmail ? d.contactEmail.trim().toLowerCase() : ''
-      const dealCompanyNorm = d.company ? d.company.trim().toLowerCase() : ''
-
-      if (dealContactNorm && dealContactNorm === contactNameNorm) return true
-      if (dealEmailNorm && contactEmailNorm && dealEmailNorm === contactEmailNorm) return true
-
-      if (!dealContactNorm && !dealEmailNorm && isPrimaryContact && dealCompanyNorm === contactCompanyNorm) {
-        return true
-      }
-
-      return false
-    }).length
-  }
-  const getCompanyOpenDealsCount = (comp: Company) => {
-    return openDeals.filter(
-      (d) => d.company.trim().toLowerCase() === comp.name.trim().toLowerCase()
-    ).length
-  }
-  const getCompanyPipelineValue = (comp: Company) => {
-    const sum = openDeals
-      .filter((d) => d.company.trim().toLowerCase() === comp.name.trim().toLowerCase())
-      .reduce((s, d) => s + (d.rawAmount || parseInt(d.value.replace(/[^0-9]/g, '')) || 0), 0)
-    return formatMoney(sum, currentSettings)
-  }
   const closingDeals = deals.filter((d) => d.stage === 'Proposal')
   const expectedCloseAmount = closingDeals.reduce(
     (sum, d) => sum + (d.rawAmount || parseInt(d.value.replace(/[^0-9]/g, '')) || 0),
@@ -902,16 +588,10 @@ export default function Page() {
   ).length
   const winRate =
     deals.length > 0
-      ? `${Math.round((deals.filter((d) => d.stage === 'Won' || d.stage === 'Paid').length / deals.length) * 100)}%`
+      ? `${Math.round((deals.filter((d) => d.stage === 'Won').length / deals.length) * 100)}%`
       : '0%'
 
-  const pipelineStagesSummary: { label: DealStage; count: number; amount: string }[] = [
-    'Lead',
-    'Qualified',
-    'Proposal',
-    'Won',
-    'Paid',
-  ].map((st) => {
+  const pipelineStagesSummary: { label: DealStage; count: number; amount: string }[] = DEAL_STAGES.map((st) => {
     const stageDeals = deals.filter((d) => d.stage === st)
     const stageSum = stageDeals.reduce(
       (sum, d) => sum + (d.rawAmount || parseInt(d.value.replace(/[^0-9]/g, '')) || 0),
@@ -977,9 +657,16 @@ export default function Page() {
           <p className="nav-label">Workspace</p>
           <NavItem
             icon={LayoutDashboard}
-            label="Dashboard"
-            active={activeView === 'Dashboard'}
-            onClick={() => setActiveView('Dashboard')}
+            label="Home"
+            active={activeView === 'Home'}
+            onClick={() => setActiveView('Home')}
+          />
+          <NavItem
+            icon={Users}
+            label="Clients"
+            badge={String(contacts.length)}
+            active={activeView === 'Clients'}
+            onClick={() => setActiveView('Clients')}
           />
           <NavItem
             icon={WalletCards}
@@ -988,34 +675,7 @@ export default function Page() {
             active={activeView === 'Deals'}
             onClick={() => setActiveView('Deals')}
           />
-          <NavItem
-            icon={Building2}
-            label="Companies"
-            badge={String(companies.length)}
-            active={activeView === 'Companies'}
-            onClick={() => setActiveView('Companies')}
-          />
-          <NavItem
-            icon={Users}
-            label="Contacts"
-            badge={String(contacts.length)}
-            active={activeView === 'Contacts'}
-            onClick={() => setActiveView('Contacts')}
-          />
-          <NavItem
-            icon={FileText}
-            label="Activities"
-            badge={String(activities.length)}
-            active={activeView === 'Activities'}
-            onClick={() => setActiveView('Activities')}
-          />
           <p className="nav-label second">Manage</p>
-          <NavItem
-            icon={CalendarDays}
-            label="Calendar"
-            active={activeView === 'Calendar'}
-            onClick={() => setActiveView('Calendar')}
-          />
           <NavItem
             icon={Settings2}
             label="Settings"
@@ -1033,6 +693,27 @@ export default function Page() {
         </div>
       </aside>
 
+      {/* MOBILE NAV (sidebar is hidden below 760px) */}
+      <nav className="mobile-nav" aria-label="Primary navigation (mobile)">
+        {[
+          { label: 'Home', icon: LayoutDashboard },
+          { label: 'Clients', icon: Users },
+          { label: 'Deals', icon: WalletCards },
+          { label: 'Settings', icon: Settings2 },
+        ].map(({ label, icon: Icon }) => (
+          <button
+            key={label}
+            type="button"
+            className={activeView === label ? 'active' : ''}
+            aria-current={activeView === label ? 'page' : undefined}
+            onClick={() => setActiveView(label)}
+          >
+            <Icon size={19} strokeWidth={1.8} />
+            <span>{label}</span>
+          </button>
+        ))}
+      </nav>
+
       {/* MAIN CONTENT AREA */}
       <main className="main-content">
         {/* TOPBAR */}
@@ -1048,11 +729,11 @@ export default function Page() {
               type="button"
               onClick={() => setIsPaletteOpen(true)}
               className="topbar-search"
-              title="Search workspace (Ctrl+K)"
+              title={`Search workspace (${modKey}+K)`}
             >
               <Search size={14} />
               <span>Search workspace...</span>
-              <span className="search-shortcut">Ctrl+K</span>
+              <span className="search-shortcut">{modKey}+K</span>
             </button>
 
             <button className="avatar" title={currentSettings.operatorName}>
@@ -1064,14 +745,13 @@ export default function Page() {
         {/* VIEW CONTAINER */}
         <div className="content-wrap">
           {activeView === 'Deals' ? (
-            /* DEALS & PIPELINE VIEW (Kanban Board) */
+            /* DEALS VIEW (list) */
             <>
               <section className="page-heading">
                 <div>
-                  <p className="eyebrow">Sales workspace</p>
-                  <h1>Deals & Pipeline</h1>
+                  <h1>Deals</h1>
                   <p className="subcopy">
-                    Visual stage progression and keyboard navigation across your active opportunities.
+                    Every deal in one list. Filter by stage, or change a deal’s stage from its row.
                   </p>
                 </div>
               </section>
@@ -1081,7 +761,7 @@ export default function Page() {
                 <div>
                   <span className="metric-label">Open deals</span>
                   <strong>{openDealsCount}</strong>
-                  <small>Across 6 active stages</small>
+                  <small>In {OPEN_DEAL_STAGES.join(', ').replace(/, ([^,]*)$/, ' or $1')}</small>
                 </div>
                 <div>
                   <span className="metric-label">Pipeline value</span>
@@ -1089,7 +769,7 @@ export default function Page() {
                     {formatMoney(totalPipelineAmount, currentSettings)}
                   </strong>
                   <small>
-                    {deals.length === 0 ? 'No active pipeline' : `Across ${deals.length} total opportunities`}
+                    {deals.length === 0 ? 'No active pipeline' : `Across ${deals.length} deal${deals.length === 1 ? '' : 's'} in total`}
                   </small>
                 </div>
                 <div>
@@ -1108,14 +788,10 @@ export default function Page() {
                 </div>
               </section>
 
-              {/* Kanban Board Component */}
-              <DealKanban
+              <DealList
                 deals={deals}
                 settings={currentSettings}
-                onOpenDeal={(deal) => {
-                  setSelectedDeal(deal)
-                  setIsDealDrawerOpen(true)
-                }}
+                onOpenDeal={openDeal}
                 onEditDeal={(deal) => {
                   setEditingDeal(deal)
                   setIsNewDealOpen(true)
@@ -1123,314 +799,17 @@ export default function Page() {
                 onAddDealClick={() => setIsNewDealOpen(true)}
                 onMoveDealStage={handleMoveDealStage}
                 onDeleteDeal={handleDeleteDeal}
-                onLogInteraction={(deal) => {
-                  setSelectedDeal(deal)
-                  setIsLogCallOpen(true)
-                }}
+                onOpenNotes={openDealNotes}
               />
             </>
-          ) : activeView === 'Calendar' ? (
-            /* CALENDAR VIEW */
-            <CalendarView
-              deals={deals}
-              followUps={followUps}
-              onOpenDeal={(deal) => {
-                setSelectedDeal(deal)
-                setIsDealDrawerOpen(true)
-              }}
-            />
-          ) : activeView === 'Activities' ? (
-            /* ACTIVITIES TIMELINE VIEW */
+          ) : activeView === 'Clients' ? (
+            /* CLIENTS VIEW */
             <>
               <section className="page-heading">
                 <div>
-                  <p className="eyebrow">Workspace timeline</p>
-                  <h1>Activities & Meeting Notes</h1>
+                  <h1>Clients</h1>
                   <p className="subcopy">
-                    Keep track of client calls, scoping decisions, and next actions.
-                  </p>
-                </div>
-                <button
-                  className="primary-button"
-                  onClick={() => setIsLogCallOpen(true)}
-                >
-                  <CirclePlus size={17} />
-                  <span>Log interaction</span>
-                  <kbd className="ml-1 px-1 bg-[#3a3e45] text-white rounded text-[10px] font-mono">
-                    L
-                  </kbd>
-                </button>
-              </section>
-
-              <section className="company-summary">
-                <div>
-                  <span className="metric-label">Total activities</span>
-                  <strong>{activities.length}</strong>
-                  <small>Recorded touchpoints</small>
-                </div>
-                <div>
-                  <span className="metric-label">Due today</span>
-                  <strong>
-                    {activities.filter((a) => a.status === 'Due today').length}
-                  </strong>
-                  <small>
-                    {activities.filter((a) => a.status === 'Upcoming').length} upcoming scheduled
-                  </small>
-                </div>
-                <div>
-                  <span className="metric-label">Completed</span>
-                  <strong>
-                    {activities.filter((a) => a.status === 'Completed').length}
-                  </strong>
-                  <small>
-                    {activities.filter((a) => a.status === 'Completed').length >= 5
-                      ? 'High client touch frequency'
-                      : 'Completed touchpoints'}
-                  </small>
-                </div>
-              </section>
-
-              <section className="panel companies-panel">
-                <div className="company-toolbar">
-                  <div>
-                    <p className="section-kicker">Touchpoint history</p>
-                    <h2>Activity timeline</h2>
-                  </div>
-                  <div className="company-tools">
-                    <label className="search-field">
-                      <Search size={15} />
-                      <input
-                        value={activitySearch}
-                        onChange={(e) => setActivitySearch(e.target.value)}
-                        placeholder="Search activities"
-                      />
-                    </label>
-                  </div>
-                </div>
-
-                <div className="company-table activities-table">
-                  <div className="company-table-head">
-                    <span>Activity</span>
-                    <span>Contact</span>
-                    <span>Company</span>
-                    <span>Date</span>
-                    <span>Status</span>
-                    <span />
-                  </div>
-                  {activities.length === 0 ? (
-                    <div className="py-12 px-4 text-center">
-                      <div className="w-10 h-10 rounded-full bg-[#f4f5f6] text-[#8f99a8] flex items-center justify-center mx-auto mb-2.5">
-                        <PhoneCall size={18} />
-                      </div>
-                      <h3 className="text-[13px] font-semibold text-[#1c1d1f] mb-1">No activities logged yet</h3>
-                      <p className="text-[11px] text-[#8f99a8] max-w-xs mx-auto mb-3">
-                        Keep a running timeline of discovery calls, meeting minutes, and notes.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => setIsLogCallOpen(true)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#232529] hover:bg-[#101113] text-white text-[11px] font-medium rounded-[8px] transition-colors cursor-pointer"
-                      >
-                        <PhoneCall size={13} />
-                        <span>Quick-log call / note</span>
-                        <kbd className="ml-1 px-1 bg-[#3a3e45] text-white rounded text-[10px] font-mono">
-                          L
-                        </kbd>
-                      </button>
-                    </div>
-                  ) : (
-                    activities
-                      .filter(
-                        (a) =>
-                          a.title.toLowerCase().includes(activitySearch.toLowerCase()) ||
-                          a.person.toLowerCase().includes(activitySearch.toLowerCase()) ||
-                          a.company.toLowerCase().includes(activitySearch.toLowerCase())
-                      )
-                      .map((activity) => {
-                      const isExpanded = !!expandedActivityIds[activity.id]
-                      const associatedDeal = deals.find(
-                        (d) => d.id === activity.dealId || d.company === activity.company
-                      )
-
-                      return (
-                        <div key={`${activity.id}-${activity.title}`}>
-                          <div
-                            className="company-row cursor-pointer hover:bg-[#fafbfc] transition-colors"
-                            onClick={() => toggleExpandActivity(activity.id)}
-                          >
-                            <div className="company-name min-w-0">
-                              <span className={`company-avatar shrink-0 ${activity.color}`}>
-                                {activity.type.charAt(0)}
-                              </span>
-                              <div className="min-w-0">
-                                <strong className="truncate block" title={activity.title}>{activity.title}</strong>
-                                <span className="truncate block">{activity.type}</span>
-                              </div>
-                            </div>
-                            <div className="company-contact">
-                              <strong>{activity.person}</strong>
-                            </div>
-                            <div className="company-contact">
-                              <strong>{activity.company}</strong>
-                            </div>
-                            <span className="last-touch">{activity.date}</span>
-                            <span
-                              className={`status-pill ${
-                                activity.status === 'Completed'
-                                  ? 'active'
-                                  : activity.status === 'Due today'
-                                  ? 'prospect'
-                                  : 'inactive'
-                              }`}
-                            >
-                              {activity.status}
-                            </span>
-                            <div className="flex items-center justify-end gap-1">
-                              {activity.summary && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    toggleExpandActivity(activity.id)
-                                  }}
-                                  className="w-6 h-6 flex items-center justify-center text-[#8f99a8] hover:text-[#1c1d1f] rounded transition-colors"
-                                  title={isExpanded ? 'Collapse notes' : 'Expand notes'}
-                                >
-                                  {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                                </button>
-                              )}
-                              <RowActionMenu
-                                triggerLabel={`More options for ${activity.title}`}
-                                items={[
-                                  {
-                                    label: 'Edit activity',
-                                    icon: Edit3,
-                                    onClick: () => {
-                                      setEditingActivity(activity)
-                                      setIsLogCallOpen(true)
-                                    },
-                                  },
-                                  {
-                                    label: 'Add to Google Calendar',
-                                    icon: Calendar,
-                                    onClick: () => {
-                                      const dates = resolveEventDates(activity.date)
-                                      const isAllDay = Boolean(dates.start.date)
-                                      const url = generateGoogleCalendarWebLink({
-                                        title: activity.title
-                                          ? `${activity.type}: ${activity.title}`
-                                          : `${activity.type} with ${activity.person || activity.company}`,
-                                        details: [
-                                          activity.person ? `Person: ${activity.person}` : null,
-                                          activity.company ? `Company: ${activity.company}` : null,
-                                          activity.summary || activity.notes ? activity.summary || activity.notes : null,
-                                        ]
-                                          .filter(Boolean)
-                                          .join('\n\n'),
-                                        location: activity.company || undefined,
-                                        date: isAllDay ? dates.start.date : undefined,
-                                        startTime: !isAllDay ? dates.start.dateTime : undefined,
-                                        endTime: !isAllDay ? dates.end.dateTime : undefined,
-                                        addHourDuration: 1,
-                                      })
-                                      window.open(url, '_blank', 'noopener,noreferrer')
-                                    },
-                                  },
-                                  ...(associatedDeal
-                                    ? [
-                                        {
-                                          label: `Open deal (${associatedDeal.title})`,
-                                          icon: FileText,
-                                          onClick: () => {
-                                            setSelectedDeal(associatedDeal)
-                                            setIsDealDrawerOpen(true)
-                                          },
-                                        },
-                                      ]
-                                    : []),
-                                  {
-                                    label: 'Log interaction',
-                                    icon: PhoneCall,
-                                    onClick: () => {
-                                      setIsLogCallOpen(true)
-                                    },
-                                  },
-                                  {
-                                    label: 'Delete activity',
-                                    icon: Trash2,
-                                    destructive: true,
-                                    divider: true,
-                                    onClick: () => handleDeleteActivity(activity.id, activity.title),
-                                  },
-                                ]}
-                              />
-                            </div>
-                          </div>
-
-                          {/* Expanded Notes & Linked Deal Opportunity */}
-                          {isExpanded && (
-                            <div className="px-4 py-3 bg-[#fafbfc] border-t border-[#edf0f3] text-[12px] space-y-2.5 animate-in fade-in duration-100">
-                              {activity.summary ? (
-                                <div className="p-3.5 bg-white border border-[#e4e7ec] rounded-[8px] shadow-2xs">
-                                  <MarkdownFormatter content={activity.summary} />
-                                </div>
-                              ) : (
-                                <p className="text-[11px] text-[#8f99a8] italic">
-                                  No detailed notes recorded for this interaction.
-                                </p>
-                              )}
-
-                              {associatedDeal && (
-                                <div className="flex items-center justify-between pt-1 text-[11px]">
-                                  <span className="text-[#6f7988] flex items-center gap-1.5">
-                                    <Building2 size={13} className="text-[#8f99a8]" />
-                                    Opportunity: <strong className="text-[#1c1d1f]">{associatedDeal.title}</strong>{' '}
-                                    <span className="font-mono text-[#505967]">({associatedDeal.value})</span>
-                                  </span>
-
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setSelectedDeal(associatedDeal)
-                                      setIsDealDrawerOpen(true)
-                                    }}
-                                    className="inline-flex items-center gap-1 text-[#266df0] hover:underline font-semibold cursor-pointer"
-                                  >
-                                    <span>Open Deal Drawer</span>
-                                    <ArrowUpRight size={13} />
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )
-                    })
-                  )}
-
-                  {activities.length > 0 &&
-                    activities.filter(
-                      (a) =>
-                        a.title.toLowerCase().includes(activitySearch.toLowerCase()) ||
-                        a.person.toLowerCase().includes(activitySearch.toLowerCase()) ||
-                        a.company.toLowerCase().includes(activitySearch.toLowerCase())
-                    ).length === 0 && (
-                      <div className="py-8 text-center text-[#8f99a8] text-[12px]">
-                        No activities matching &ldquo;{activitySearch}&rdquo;
-                      </div>
-                    )}
-                </div>
-              </section>
-            </>
-          ) : activeView === 'Contacts' ? (
-            /* CONTACTS VIEW */
-            <>
-              <section className="page-heading">
-                <div>
-                  <p className="eyebrow">Workspace directory</p>
-                  <h1>Contacts</h1>
-                  <p className="subcopy">
-                    Stay close to the people who move every opportunity forward.
+                    Everyone you work with. Click a client to edit their details.
                   </p>
                 </div>
                 <button
@@ -1438,7 +817,7 @@ export default function Page() {
                   onClick={() => setIsNewContactOpen(true)}
                 >
                   <CirclePlus size={17} />
-                  <span>Add contact</span>
+                  <span>Add client</span>
                   <kbd className="ml-1 px-1 bg-[#3a3e45] text-white rounded text-[10px] font-mono">
                     C
                   </kbd>
@@ -1447,19 +826,19 @@ export default function Page() {
 
               <section className="company-summary">
                 <div>
-                  <span className="metric-label">Total contacts</span>
+                  <span className="metric-label">Total clients</span>
                   <strong>{contacts.length}</strong>
-                  <small>Across {companies.length} client accounts</small>
+                  <small>People you work with</small>
                 </div>
                 <div>
                   <span className="metric-label">Active pipeline</span>
                   <strong>
                     {contacts.filter((c) => getContactOpenDealsCount(c) > 0).length}
                   </strong>
-                  <small>Tied to active opportunities</small>
+                  <small>With at least one open deal</small>
                 </div>
                 <div>
-                  <span className="metric-label">Open opportunities</span>
+                  <span className="metric-label">Open deals</span>
                   <strong>{openDealsCount}</strong>
                   <small className="font-mono">
                     {formatMoney(totalPipelineAmount, currentSettings)} in pipeline
@@ -1471,7 +850,7 @@ export default function Page() {
                 <div className="company-toolbar">
                   <div>
                     <p className="section-kicker">People directory</p>
-                    <h2>All contacts</h2>
+                    <h2>All clients</h2>
                   </div>
                   <div className="company-tools">
                     <label className="search-field">
@@ -1479,7 +858,7 @@ export default function Page() {
                       <input
                         value={contactSearch}
                         onChange={(e) => setContactSearch(e.target.value)}
-                        placeholder="Search contacts"
+                        placeholder="Search clients"
                       />
                     </label>
                   </div>
@@ -1487,8 +866,8 @@ export default function Page() {
 
                 <div className="company-table contacts-table">
                   <div className="company-table-head">
-                    <span>Contact</span>
-                    <span>Company</span>
+                    <span>Client</span>
+                    <span>Phone</span>
                     <span>Open deals</span>
                     <span>Last touch</span>
                     <span>Email</span>
@@ -1499,7 +878,7 @@ export default function Page() {
                       <div className="w-10 h-10 rounded-full bg-[#f4f5f6] text-[#8f99a8] flex items-center justify-center mx-auto mb-2.5">
                         <Users size={18} />
                       </div>
-                      <h3 className="text-[13px] font-semibold text-[#1c1d1f] mb-1">No contacts yet</h3>
+                      <h3 className="text-[13px] font-semibold text-[#1c1d1f] mb-1">No clients yet</h3>
                       <p className="text-[11px] text-[#8f99a8] max-w-xs mx-auto mb-3">
                         Save client founders, project stakeholders, and creative partners.
                       </p>
@@ -1509,7 +888,7 @@ export default function Page() {
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#232529] hover:bg-[#101113] text-white text-[11px] font-medium rounded-[8px] transition-colors cursor-pointer"
                       >
                         <UserPlus size={13} />
-                        <span>Add contact</span>
+                        <span>Add client</span>
                         <kbd className="ml-1 px-1 bg-[#3a3e45] text-white rounded text-[10px] font-mono">
                           C
                         </kbd>
@@ -1520,29 +899,46 @@ export default function Page() {
                       .filter(
                         (c) =>
                           c.name.toLowerCase().includes(contactSearch.toLowerCase()) ||
-                          c.company.toLowerCase().includes(contactSearch.toLowerCase()) ||
+                          (c.phone || '').toLowerCase().includes(contactSearch.toLowerCase()) ||
                           c.email.toLowerCase().includes(contactSearch.toLowerCase())
                       )
                       .map((contact) => {
-                        const comp = companies.find(
-                          (c) => c.name.trim().toLowerCase() === contact.company.trim().toLowerCase()
-                        )
-                        const isPrimary = comp ? comp.contact === contact.name : false
-
                         return (
-                          <div className="company-row" key={contact.id}>
+                          <div
+                            className="company-row cursor-pointer hover:bg-[#fafbfc] transition-colors"
+                            key={contact.id}
+                            role="button"
+                            tabIndex={0}
+                            aria-label={`Edit ${contact.name}`}
+                            onClick={() => {
+                              setEditingContact(contact)
+                              setIsNewContactOpen(true)
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.target !== e.currentTarget) return
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault()
+                                setEditingContact(contact)
+                                setIsNewContactOpen(true)
+                              }
+                            }}
+                          >
                             <div className="company-name min-w-0">
                               <span className={`company-avatar shrink-0 ${contact.color}`}>
                                 {contact.name.charAt(0)}
                               </span>
                               <div className="min-w-0">
                                 <strong className="truncate block" title={contact.name}>{contact.name}</strong>
-                                {' '}
-                                {contact.role && <span className="truncate block">{contact.role}</span>}
                               </div>
                             </div>
                             <div className="company-contact">
-                              <strong className="text-[13px] font-semibold text-[#1c1d1f]">{contact.company}</strong>
+                              {contact.phone ? (
+                                <a href={`tel:${contact.phone}`} onClick={(e) => e.stopPropagation()} className="text-[12px] text-[#1c1d1f] hover:underline font-mono">
+                                  {contact.phone}
+                                </a>
+                              ) : (
+                                <span className="text-[#8f99a8] text-[11px]">—</span>
+                              )}
                             </div>
                             <strong>{getContactOpenDealsCount(contact)}</strong>
                             <span className="last-touch">{contact.lastTouch}</span>
@@ -1550,6 +946,7 @@ export default function Page() {
                               {contact.email ? (
                                 <a
                                   href={`mailto:${contact.email}`}
+                                  onClick={(e) => e.stopPropagation()}
                                   className="text-[#266df0] hover:underline font-mono text-[11px] truncate block"
                                   title={contact.email}
                                 >
@@ -1559,27 +956,18 @@ export default function Page() {
                                 <span className="text-[#8f99a8] text-[11px]">—</span>
                               )}
                             </div>
-                            <div className="flex justify-end">
+                            <div className="flex justify-end" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
                               <RowActionMenu
                                 triggerLabel={`More options for ${contact.name}`}
                                 items={[
                                   {
-                                    label: 'Edit contact',
+                                    label: 'Edit client',
                                     icon: Edit3,
                                     onClick: () => {
                                       setEditingContact(contact)
                                       setIsNewContactOpen(true)
                                     },
                                   },
-                                  ...(!isPrimary && contact.company
-                                    ? [
-                                        {
-                                          label: 'Make primary contact',
-                                          icon: CheckCircle2,
-                                          onClick: () => handleSetPrimaryContact(contact),
-                                        },
-                                      ]
-                                    : []),
                                   ...(contact.email
                                     ? [
                                         {
@@ -1592,28 +980,20 @@ export default function Page() {
                                       ]
                                     : []),
                                   {
-                                    label: 'Create deal for contact',
+                                    label: 'Create deal for client',
                                     icon: CirclePlus,
                                     onClick: () => {
-                                      setPrefilledCompany(contact.company)
+                                      setPrefilledClient(contact.name)
                                       setIsNewDealOpen(true)
                                     },
                                   },
                                   {
-                                    label: 'Log interaction',
-                                    icon: PhoneCall,
-                                    onClick: () => {
-                                      setPrefilledCompany(contact.company)
-                                      setIsLogCallOpen(true)
-                                    },
-                                  },
-                                  {
-                                    label: 'Delete contact',
+                                    label: 'Delete client',
                                     icon: Trash2,
                                     destructive: true,
                                     divider: true,
                                     onClick: () => {
-                                      if (window.confirm(`Are you sure you want to delete contact "${contact.name}"?`)) {
+                                      if (window.confirm(`Are you sure you want to delete client "${contact.name}"?`)) {
                                         handleDeleteContact(contact.id, contact.name)
                                       }
                                     },
@@ -1630,223 +1010,11 @@ export default function Page() {
                     contacts.filter(
                       (c) =>
                         c.name.toLowerCase().includes(contactSearch.toLowerCase()) ||
-                        c.company.toLowerCase().includes(contactSearch.toLowerCase()) ||
+                        (c.phone || '').toLowerCase().includes(contactSearch.toLowerCase()) ||
                         c.email.toLowerCase().includes(contactSearch.toLowerCase())
                     ).length === 0 && (
                       <div className="py-8 text-center text-[#8f99a8] text-[12px]">
-                        No contacts matching &ldquo;{contactSearch}&rdquo;
-                      </div>
-                    )}
-                </div>
-              </section>
-            </>
-          ) : activeView === 'Companies' ? (
-            /* COMPANIES VIEW */
-            <>
-              <section className="page-heading">
-                <div>
-                  <p className="eyebrow">Workspace directory</p>
-                  <h1>Companies</h1>
-                  <p className="subcopy">
-                    Keep track of the people and businesses behind your pipeline.
-                  </p>
-                </div>
-                <button
-                  className="primary-button"
-                  onClick={() => setIsNewCompanyOpen(true)}
-                >
-                  <CirclePlus size={17} /> Add company
-                </button>
-              </section>
-
-              <section className="company-summary">
-                <div>
-                  <span className="metric-label">Total companies</span>
-                  <strong>{companies.length}</strong>
-                  <small>Accounts tracked</small>
-                </div>
-                <div>
-                  <span className="metric-label">Active accounts</span>
-                  <strong>
-                    {companies.filter((c) => c.status === 'Active').length}
-                  </strong>
-                  <small>Key client roster</small>
-                </div>
-                <div>
-                  <span className="metric-label">Open opportunities</span>
-                  <strong>{openDealsCount}</strong>
-                  <small className="font-mono">
-                    {formatMoney(totalPipelineAmount, currentSettings)} in pipeline
-                  </small>
-                </div>
-              </section>
-
-              <section className="panel companies-panel">
-                <div className="company-toolbar">
-                  <div>
-                    <p className="section-kicker">All accounts</p>
-                    <h2>Company directory</h2>
-                  </div>
-                  <div className="company-tools">
-                    <label className="search-field">
-                      <Search size={15} />
-                      <input
-                        value={companySearch}
-                        onChange={(e) => setCompanySearch(e.target.value)}
-                        placeholder="Search companies"
-                      />
-                    </label>
-                  </div>
-                </div>
-
-                <div className="company-table">
-                  <div className="company-table-head">
-                    <span>Company</span>
-                    <span>Primary contact</span>
-                    <span>Open deals</span>
-                    <span>Pipeline value</span>
-                    <span>Status</span>
-                    <span />
-                  </div>
-                  {companies.length === 0 ? (
-                    <div className="py-12 px-4 text-center">
-                      <div className="w-10 h-10 rounded-full bg-[#f4f5f6] text-[#8f99a8] flex items-center justify-center mx-auto mb-2.5">
-                        <Building2 size={18} />
-                      </div>
-                      <h3 className="text-[13px] font-semibold text-[#1c1d1f] mb-1">No company accounts yet</h3>
-                      <p className="text-[11px] text-[#8f99a8] max-w-xs mx-auto mb-3">
-                        Companies are registered automatically as you log deals and contacts, or you can add one directly.
-                      </p>
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setIsNewCompanyOpen(true)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#232529] hover:bg-[#101113] text-white text-[11px] font-medium rounded-[8px] transition-colors cursor-pointer"
-                        >
-                          <Building2 size={13} />
-                          <span>Add company</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setIsNewDealOpen(true)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#dce0e5] hover:bg-[#f5f7fa] text-[#1c1d1f] text-[11px] font-medium rounded-[8px] transition-colors cursor-pointer"
-                        >
-                          <CirclePlus size={13} />
-                          <span>Add opportunity</span>
-                          <kbd className="ml-1 px-1 bg-[#e5e7eb] text-[#374151] rounded text-[10px] font-mono">
-                            N
-                          </kbd>
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    companies
-                      .filter(
-                        (c) =>
-                          c.name.toLowerCase().includes(companySearch.toLowerCase()) ||
-                          c.contact.toLowerCase().includes(companySearch.toLowerCase())
-                      )
-                      .map((comp) => (
-                        <div className="company-row" key={comp.id}>
-                          <div className="company-name min-w-0">
-                            <span className={`company-avatar shrink-0 ${comp.color}`}>
-                              {comp.name.charAt(0)}
-                            </span>
-                            <div className="min-w-0">
-                              <strong className="truncate block" title={comp.name}>{comp.name}</strong>
-                              {' '}
-                              <span className="truncate block">{comp.type}</span>
-                            </div>
-                          </div>
-                          <div className="company-contact">
-                            {comp.contact || comp.email ? (
-                              <div className="min-w-0">
-                                {comp.contact && (
-                                  <strong className="truncate block" title={comp.contact}>{comp.contact}</strong>
-                                )}
-                                {' '}
-                                {comp.email && (
-                                  <span className="truncate block font-mono text-[11px] text-[#8f99a8] mt-0.5" title={comp.email}>
-                                    {comp.email}
-                                  </span>
-                                )}
-                              </div>
-                            ) : (
-                              <span className="text-[#8f99a8] text-[11px]">—</span>
-                            )}
-                          </div>
-                          <strong>{getCompanyOpenDealsCount(comp)}</strong>
-                          <strong className="font-mono tabular-nums">{getCompanyPipelineValue(comp)}</strong>
-                          <span className={`status-pill ${comp.status.toLowerCase()}`}>
-                            {comp.status}
-                          </span>
-                          <RowActionMenu
-                            triggerLabel={`More options for ${comp.name}`}
-                            items={[
-                              {
-                                label: 'Edit company',
-                                icon: Edit3,
-                                onClick: () => {
-                                  setEditingCompany(comp)
-                                  setIsNewCompanyOpen(true)
-                                },
-                              },
-                              {
-                                label: 'Add deal for company',
-                                icon: CirclePlus,
-                                onClick: () => {
-                                  setPrefilledCompany(comp.name)
-                                  setIsNewDealOpen(true)
-                                },
-                              },
-                              {
-                                label: 'Add contact for company',
-                                icon: UserPlus,
-                                onClick: () => {
-                                  setPrefilledCompany(comp.name)
-                                  setIsNewContactOpen(true)
-                                },
-                              },
-                              {
-                                label: 'Log interaction',
-                                icon: PhoneCall,
-                                onClick: () => {
-                                  setPrefilledCompany(comp.name)
-                                  setIsLogCallOpen(true)
-                                },
-                              },
-                              ...(comp.email
-                                ? [
-                                    {
-                                      label: 'Send email',
-                                      icon: Mail,
-                                      onClick: () => {
-                                        window.location.href = `mailto:${comp.email}`
-                                      },
-                                    },
-                                  ]
-                                : []),
-                              {
-                                label: 'Delete company',
-                                icon: Trash2,
-                                destructive: true,
-                                divider: true,
-                                onClick: () => handleDeleteCompany(comp.id, comp.name),
-                              },
-                            ]}
-                          />
-                        </div>
-                      ))
-                  )}
-
-                  {companies.length > 0 &&
-                    companies.filter(
-                      (c) =>
-                        c.name.toLowerCase().includes(companySearch.toLowerCase()) ||
-                        c.contact.toLowerCase().includes(companySearch.toLowerCase())
-                    ).length === 0 && (
-                      <div className="py-8 text-center text-[#8f99a8] text-[12px]">
-                        No companies matching &ldquo;{companySearch}&rdquo;
+                        No clients matching &ldquo;{contactSearch}&rdquo;
                       </div>
                     )}
                 </div>
@@ -1857,10 +1025,9 @@ export default function Page() {
             <>
               <section className="page-heading">
                 <div>
-                  <p className="eyebrow">Workspace preferences</p>
-                  <h1>Settings & System</h1>
+                  <h1>Settings</h1>
                   <p className="subcopy">
-                    Manage your workspace preferences, security, backups, and display options.
+                    Profile, shortcuts, data export and system status.
                   </p>
                 </div>
               </section>
@@ -2044,12 +1211,12 @@ export default function Page() {
                     </div>
                   </div>
 
-                  {/* SECTION 4: INTEGRATIONS & GOOGLE CALENDAR */}
+                  {/* SECTION 4: CALENDAR FEED */}
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start pt-8 border-t border-[#e4e7ec]">
                     <div className="md:col-span-4">
-                      <h3 className="text-[15px] font-semibold text-[#1c1d1f] tracking-tight">Integrations & Sync</h3>
+                      <h3 className="text-[15px] font-semibold text-[#1c1d1f] tracking-tight">Calendar</h3>
                       <p className="text-[13px] text-[#6f7988] mt-1 leading-relaxed">
-                        Connect Google Calendar for real-time synchronization of client calls, meetings, and deal milestones.
+                        Subscribe to your deals’ next actions from any calendar app. Nothing to configure.
                       </p>
                     </div>
                     <div className="md:col-span-8">
@@ -2060,80 +1227,25 @@ export default function Page() {
                               <Calendar size={20} />
                             </div>
                             <div className="min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <strong className="text-[15px] font-semibold text-[#1c1d1f] tracking-tight">
-                                  Google Calendar
-                                </strong>
-                                {gcalStatus?.connected ? (
-                                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#027a48] bg-[#ecfdf3] border border-[#d1fadf] px-2 py-0.5 rounded-[7px]">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-[#12b76a]" />
-                                    Connected
-                                  </span>
-                                ) : gcalStatus?.configured ? (
-                                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#505967] bg-[#f4f5f6] border border-[#e4e7ec] px-2 py-0.5 rounded-[7px]">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-[#9fa1a7]" />
-                                    Disconnected
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#b54708] bg-[#fffaeb] border border-[#fedf89] px-2 py-0.5 rounded-[7px]">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-[#f79009]" />
-                                    Setup Needed
-                                  </span>
-                                )}
-                              </div>
+                              <strong className="text-[15px] font-semibold text-[#1c1d1f] tracking-tight">
+                                Calendar feed (.ics)
+                              </strong>
                               <p className="text-[12px] text-[#6f7988] mt-1 leading-normal">
-                                {gcalStatus?.connected
-                                  ? `Synced with ${gcalStatus.calendarName || 'primary'} calendar. Auto-sync is ${gcalStatus.autoSync ? 'enabled' : 'disabled'}.`
-                                  : gcalStatus?.configured
-                                  ? 'OAuth credentials configured. Ready to connect your Google account.'
-                                  : '1-click fallback links active everywhere. Add OAuth credentials in .env to enable two-way sync.'}
+                                Works with Google Calendar, Apple Calendar and phone calendars. Deal pages also have an Add to Google Calendar link.
                               </p>
-                              {gcalStatus?.connected && gcalStatus.lastSyncedAt && (
-                                <span className="block text-[11px] text-[#8f99a8] mt-1">
-                                  Last synced: {new Date(gcalStatus.lastSyncedAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
-                                </span>
-                              )}
                             </div>
                           </div>
-                          <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
-                            {gcalStatus?.connected && (
-                              <button
-                                type="button"
-                                disabled={isSyncingGcal}
-                                onClick={async () => {
-                                  setIsSyncingGcal(true)
-                                  try {
-                                    const res = await triggerGoogleCalendarSyncAction()
-                                    if (res.success) {
-                                      addToast(`Synced ${res.syncedCount} item${res.syncedCount === 1 ? '' : 's'} to Google Calendar`, undefined, 'success')
-                                      await refreshGoogleCalendarStatus()
-                                    } else {
-                                      addToast(res.error || 'Sync failed', undefined, 'warning')
-                                    }
-                                  } catch (err: any) {
-                                    addToast(err?.message || 'Sync failed', undefined, 'warning')
-                                  } finally {
-                                    setIsSyncingGcal(false)
-                                  }
-                                }}
-                                className="select-button text-[12px] py-1.5 px-2.5 cursor-pointer disabled:opacity-50"
-                              >
-                                <RefreshCw size={12} className={isSyncingGcal ? 'animate-spin' : ''} />
-                                <span>{isSyncingGcal ? 'Syncing...' : 'Sync Now'}</span>
-                              </button>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setSettingsModalInitialTab('integrations')
-                                setIsEditSettingsOpen(true)
-                              }}
-                              className="select-button text-[12px] py-1.5 px-3 font-semibold text-[#1c1d1f] cursor-pointer"
-                            >
-                              <span>Manage</span>
-                              <ChevronRight size={13} className="text-[#6f7988]" />
-                            </button>
-                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSettingsModalInitialTab('calendar')
+                              setIsEditSettingsOpen(true)
+                            }}
+                            className="select-button text-[12px] py-1.5 px-3 font-semibold text-[#1c1d1f] cursor-pointer self-start sm:self-center shrink-0"
+                          >
+                            <span>Get feed link</span>
+                            <ChevronRight size={13} className="text-[#6f7988]" />
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -2169,31 +1281,25 @@ export default function Page() {
                     {
                       category: 'Global & Quick Capture',
                       items: [
-                        { label: 'Universal Command Palette', keys: ['Ctrl+K'], note: 'Search deals, contacts, views' },
+                        { label: 'Universal Command Palette', keys: [modKey, 'K'], note: 'Search deals, clients, views' },
                         { label: 'Quick-add new deal drawer', keys: ['N'], note: 'Instant lead capture slide-over' },
-                        { label: 'Quick-add new contact drawer', keys: ['C'], note: 'Register new client contact' },
-                        { label: 'Quick-log call / meeting note', keys: ['L'], note: 'Log notes and next actions' },
+                        { label: 'Quick-add new client', keys: ['C'], note: 'Register a new client' },
                         { label: 'Keyboard shortcut cheat-sheet', keys: ['?'], note: 'Open floating shortcut modal' },
                       ],
                     },
                     {
-                      category: 'Deals & Pipeline',
+                      category: 'Deals',
                       items: [
-                        { label: 'Navigate Kanban stage columns', keys: ['←', '→'], note: 'Shift active column focus' },
-                        { label: 'Select deal card in column', keys: ['↑', '↓'], note: 'Navigate deal cards' },
-                        { label: 'Cycle forward through deals', keys: ['Tab'], note: 'Fast linear card cycling' },
-                        { label: 'Inspect deal (slide-over drawer)', keys: ['↵'], note: 'Open full deal inspector' },
-                        { label: 'Shift deal stage left / right', keys: ['[', ']'], note: 'Advance or revert stage' },
+                        { label: 'Move between deals', keys: ['Tab'], note: 'Focus the next deal row' },
+                        { label: 'Edit deal', keys: ['↵'], note: 'Edit the focused deal' },
                       ],
                     },
                     {
                       category: 'Workspace Navigation (Go-to)',
                       items: [
-                        { label: 'Jump to Dashboard overview', keys: ['G', 'D'], note: 'Daily executive brief' },
-                        { label: 'Jump to Deals pipeline', keys: ['G', 'P'], note: 'Kanban stages and values' },
-                        { label: 'Jump to Companies directory', keys: ['G', 'C'], note: 'Client account rollups' },
-                        { label: 'Jump to Contacts directory', keys: ['G', 'T'], note: 'People touch history' },
-                        { label: 'Jump to Activities log', keys: ['G', 'A'], note: 'Audited interactions' },
+                        { label: 'Jump to Home', keys: ['G', 'D'], note: 'Daily overview' },
+                        { label: 'Jump to Deals', keys: ['G', 'P'], note: 'All deals by stage' },
+                        { label: 'Jump to Clients', keys: ['G', 'U'], note: 'The people you work with' },
                         { label: 'Jump to Settings view', keys: ['G', 'S'], note: 'Workspace preferences' },
                       ],
                     },
@@ -2252,16 +1358,15 @@ export default function Page() {
                       type="button"
                       onClick={() => {
                         exportDealsCSV(deals, currentSettings.currency)
-                        exportCompaniesCSV(companies)
                         exportContactsCSV(contacts)
                         exportActivitiesCSV(activities)
                         exportFollowUpsCSV(followUps)
-                        addToast('All workspace data exported (5 CSV files)', 'Export')
+                        addToast('All workspace data exported (4 CSV files)', 'Export')
                       }}
                       className="primary-button text-[12px] py-1.5 px-3 min-h-0 shrink-0"
                     >
                       <Download size={13} />
-                      <span>Export All (5 CSVs)</span>
+                      <span>Export All (4 CSVs)</span>
                     </button>
                   </div>
 
@@ -2270,7 +1375,7 @@ export default function Page() {
                       {[
                         {
                           title: 'Deals Pipeline',
-                          desc: 'Stages, deal values, probability, next actions, contacts, deliverables',
+                          desc: 'Stages, deal values, next actions, contacts, deliverables',
                           count: deals.length,
                           action: () => {
                             exportDealsCSV(deals, currentSettings.currency)
@@ -2278,17 +1383,8 @@ export default function Page() {
                           },
                         },
                         {
-                          title: 'Accounts & Companies',
-                          desc: 'Company directory, client types, primary contacts, deal counts, pipeline values',
-                          count: companies.length,
-                          action: () => {
-                            exportCompaniesCSV(companies)
-                            addToast(`Exported ${companies.length} companies to CSV`, 'CSV')
-                          },
-                        },
-                        {
                           title: 'People Directory',
-                          desc: 'Contact names, email addresses, phone numbers, roles, touch timestamps',
+                          desc: 'Client names, email addresses, phone numbers, notes, touch timestamps',
                           count: contacts.length,
                           action: () => {
                             exportContactsCSV(contacts)
@@ -2348,7 +1444,7 @@ export default function Page() {
                           </span>
                         </div>
                         <p className="text-[12px] text-[#6f7988] mt-1 leading-relaxed">
-                          Export or restore a complete self-contained snapshot of all deals, accounts, contacts, timeline interactions, follow-ups, and workspace configuration. Perfect for Coolify volume backups or migrating servers.
+                          Export or restore a complete self-contained snapshot of all deals, clients, deal notes, follow-ups, and workspace configuration. Perfect for Coolify volume backups or migrating servers.
                         </p>
                       </div>
                     </div>
@@ -2463,13 +1559,13 @@ export default function Page() {
             </>
 
           ) : (
-            /* DASHBOARD / OVERVIEW VIEW */
+            /* HOME VIEW */
             <>
               <section className="page-heading">
                 <div>
                   <p className="eyebrow" suppressHydrationWarning>{formattedToday || getFormattedToday()}</p>
                   <h1 suppressHydrationWarning>{greeting}</h1>
-                  <p className="subcopy">Here&apos;s what needs your attention today.</p>
+                  <p className="subcopy">Follow-ups due and deals in progress.</p>
                 </div>
               </section>
 
@@ -2545,12 +1641,6 @@ export default function Page() {
                       <p className="section-kicker">Your next actions</p>
                       <h2>Follow-ups</h2>
                     </div>
-                    <button
-                      className="text-button"
-                      onClick={() => setActiveView('Calendar')}
-                    >
-                      View calendar <ArrowUpRight size={14} />
-                    </button>
                   </div>
 
                   <div className="followup-list">
@@ -2601,14 +1691,6 @@ export default function Page() {
                                   onClick: () => toggleFollowUp(item.id),
                                 },
                                 {
-                                  label: `Log interaction (${item.company})`,
-                                  icon: PhoneCall,
-                                  onClick: () => {
-                                    setPrefilledCompany(item.company)
-                                    setIsLogCallOpen(true)
-                                  },
-                                },
-                                {
                                   label: 'Delete follow-up',
                                   icon: Trash2,
                                   destructive: true,
@@ -2635,7 +1717,7 @@ export default function Page() {
                       className="text-button"
                       onClick={() => setActiveView('Deals')}
                     >
-                      Open Kanban <ArrowUpRight size={14} />
+                      All deals <ArrowUpRight size={14} />
                     </button>
                   </div>
 
@@ -2739,7 +1821,6 @@ export default function Page() {
                     <span>Deal</span>
                     <span>Stage</span>
                     <span>Value</span>
-                    <span>Probability</span>
                     <span>Next action</span>
                     <span />
                   </div>
@@ -2771,17 +1852,14 @@ export default function Page() {
                           const q = dealSearch.toLowerCase().trim()
                           const matches =
                             deal.title.toLowerCase().includes(q) ||
-                            deal.company.toLowerCase().includes(q) ||
+                            deal.contactName.toLowerCase().includes(q) ||
                             deal.stage.toLowerCase().includes(q) ||
                             (deal.next && deal.next.toLowerCase().includes(q)) ||
                             deal.value.toLowerCase().includes(q)
                           if (!matches) return false
                         }
                         if (activeTab === 'Closing soon') {
-                          return (
-                            deal.stage === 'Proposal' ||
-                            parseInt(deal.probability) >= 70
-                          )
+                          return deal.stage === 'Proposal'
                         }
                         if (activeTab === 'Recently added') {
                           return deal.stage === 'Lead'
@@ -2792,18 +1870,15 @@ export default function Page() {
                         <div
                           className="deal-row cursor-pointer hover:bg-[#fafbfc] transition-colors"
                           key={deal.id}
-                          onClick={() => {
-                            setSelectedDeal(deal)
-                            setIsDealDrawerOpen(true)
-                          }}
+                          onClick={() => openDeal(deal)}
                         >
                           <div className="deal-title min-w-0">
                             <span className={`deal-avatar shrink-0 ${deal.color}`}>
-                              {deal.company.charAt(0)}
+                              {deal.contactName.charAt(0)}
                             </span>
                             <div className="min-w-0">
                               <strong className="truncate block" title={deal.title}>{deal.title}</strong>
-                              <span className="truncate block" title={deal.company}>{deal.company}</span>
+                              <span className="truncate block" title={deal.contactName}>{deal.contactName}</span>
                             </div>
                           </div>
                           <div className="flex items-center gap-1.5 flex-wrap">
@@ -2814,12 +1889,9 @@ export default function Page() {
                               </span>
                             )}
                           </div>
-                          <strong className="font-mono tabular-nums">{formatDealValue(deal.value)}</strong>
-                          <span className="probability font-mono">{deal.probability}</span>
+                          <strong className="font-mono tabular-nums">{formatDealValue(deal.value, currentSettings)}</strong>
                           <span className="next-action flex items-center gap-1">
-                            {deal.stage === 'Paid' ? (
-                              <span className="text-[#8f99a8]">—</span>
-                            ) : deal.next ? (
+                            {deal.next ? (
                               <>
                                 <Clock size={12} className="text-[#266df0] shrink-0" />
                                 <span className="truncate">{deal.next}</span>
@@ -2843,36 +1915,16 @@ export default function Page() {
                                 },
                               },
                               {
-                                label: 'Open deal drawer',
+                                label: 'Notes',
                                 icon: FileText,
-                                onClick: () => {
-                                  setSelectedDeal(deal)
-                                  setIsDealDrawerOpen(true)
-                                },
+                                onClick: () => openDealNotes(deal),
                               },
-                              {
-                                label: 'Log interaction',
-                                icon: PhoneCall,
-                                onClick: () => {
-                                  setSelectedDeal(deal)
-                                  setIsLogCallOpen(true)
-                                },
-                              },
-                              ...(deal.stage !== 'Won' && deal.stage !== 'Paid'
+                              ...(deal.stage !== 'Won'
                                 ? [
                                     {
                                       label: 'Mark as Won',
                                       icon: Check,
                                       onClick: () => handleMoveDealStage(deal.id, 'Won'),
-                                    },
-                                  ]
-                                : []),
-                              ...(deal.stage !== 'Paid'
-                                ? [
-                                    {
-                                      label: 'Mark as Paid',
-                                      icon: Banknote,
-                                      onClick: () => handleMoveDealStage(deal.id, 'Paid'),
                                     },
                                   ]
                                 : []),
@@ -2894,7 +1946,7 @@ export default function Page() {
                       const q = dealSearch.toLowerCase().trim()
                       return (
                         deal.title.toLowerCase().includes(q) ||
-                        deal.company.toLowerCase().includes(q) ||
+                        deal.contactName.toLowerCase().includes(q) ||
                         deal.stage.toLowerCase().includes(q) ||
                         (deal.next && deal.next.toLowerCase().includes(q)) ||
                         deal.value.toLowerCase().includes(q)
@@ -2915,12 +1967,11 @@ export default function Page() {
       <CommandPalette
         isOpen={isPaletteOpen}
         onClose={() => setIsPaletteOpen(false)}
+        notesDealId={paletteNotesDealId}
         onSelectAction={handlePaletteAction}
         deals={deals}
         contacts={contacts}
-        companies={companies}
         onUpdateDeal={handleUpdateDeal}
-        onSyncTodos={handleSyncTodos}
         onAddActivity={(act) => handleLogActivity(act)}
       />
 
@@ -2936,11 +1987,11 @@ export default function Page() {
         onClose={() => {
           setIsNewDealOpen(false)
           setEditingDeal(null)
-          setPrefilledCompany(undefined)
+          setPrefilledClient(undefined)
         }}
         onAddDeal={handleAddDeal}
-        companies={companies}
-        initialCompany={prefilledCompany}
+        clients={contacts}
+        initialClientName={prefilledClient}
         dealToEdit={editingDeal}
         onUpdateDeal={handleUpdateDeal}
         settings={currentSettings}
@@ -2952,42 +2003,10 @@ export default function Page() {
         onClose={() => {
           setIsNewContactOpen(false)
           setEditingContact(null)
-          setPrefilledCompany(undefined)
         }}
         onAddContact={handleAddContact}
-        companies={companies}
-        initialCompany={prefilledCompany}
         contactToEdit={editingContact}
         onUpdateContact={handleUpdateContact}
-      />
-
-      {/* QUICK ADD / EDIT COMPANY MODAL */}
-      <NewCompanyModal
-        isOpen={isNewCompanyOpen}
-        onClose={() => {
-          setIsNewCompanyOpen(false)
-          setEditingCompany(null)
-        }}
-        onAddCompany={handleAddCompany}
-        companyToEdit={editingCompany}
-        onUpdateCompany={handleUpdateCompany}
-        settings={currentSettings}
-      />
-
-      {/* QUICK LOG CALL / EDIT INTERACTION MODAL (L) */}
-      <LogCallModal
-        isOpen={isLogCallOpen}
-        onClose={() => {
-          setIsLogCallOpen(false)
-          setEditingActivity(null)
-        }}
-        onLogActivity={handleLogActivity}
-        companies={companies}
-        contacts={contacts}
-        deals={deals}
-        initialDealId={selectedDeal?.id}
-        activityToEdit={editingActivity}
-        onUpdateActivity={handleUpdateActivity}
       />
 
       {/* EDIT FOLLOW-UP MODAL */}
@@ -2998,27 +2017,11 @@ export default function Page() {
         onUpdateFollowUp={handleUpdateFollowUp}
       />
 
-      {/* SLIDE-OVER DEAL DETAIL DRAWER */}
-      <DealDetailDrawer
-        deal={selectedDeal}
-        isOpen={isDealDrawerOpen}
-        onClose={() => setIsDealDrawerOpen(false)}
-        onUpdateDeal={handleUpdateDeal}
-        onDeleteDeal={handleDeleteDeal}
-        onSyncTodos={handleSyncTodos}
-        activities={activities}
-        onAddActivity={(act) => handleLogActivity(act)}
-        onOpenLogCallModal={() => setIsLogCallOpen(true)}
-        onToast={(msg) => addToast(msg)}
-        settings={currentSettings}
-      />
-
       {/* EDIT SETTINGS & PREFERENCES MODAL */}
       <EditSettingsModal
         isOpen={isEditSettingsOpen}
         onClose={() => {
           setIsEditSettingsOpen(false)
-          refreshGoogleCalendarStatus()
         }}
         currentSettings={currentSettings}
         onSettingsUpdated={(updated) => {
@@ -3026,7 +2029,6 @@ export default function Page() {
           const firstName = updated.operatorName.trim().split(' ')[0]
           setGreeting(getDynamicGreeting(firstName))
           addToast('Preferences saved successfully')
-          refreshGoogleCalendarStatus()
         }}
         initialTab={settingsModalInitialTab}
         onToast={addToast}

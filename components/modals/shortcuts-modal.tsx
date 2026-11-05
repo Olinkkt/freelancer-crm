@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect } from 'react'
+import { useModKey } from '@/lib/use-mod-key'
 import { X, Keyboard, Zap, Navigation, LayoutGrid, Sparkles } from 'lucide-react'
 
 interface ShortcutsModalProps {
@@ -9,6 +10,7 @@ interface ShortcutsModalProps {
 }
 
 export function ShortcutsModal({ isOpen, onClose }: ShortcutsModalProps) {
+  const modKey = useModKey()
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
@@ -26,45 +28,35 @@ export function ShortcutsModal({ isOpen, onClose }: ShortcutsModalProps) {
       title: 'Global & Command Palette',
       icon: <Zap size={15} className="text-[#266df0]" />,
       items: [
-        { keys: ['Ctrl', 'K'], label: 'Open Command Palette' },
+        { keys: [modKey, 'K'], label: 'Open Command Palette' },
         { keys: ['?'], label: 'Show this keyboard cheatsheet' },
-        { keys: ['Esc'], label: 'Dismiss modal, drawer, or palette' },
+        { keys: ['Esc'], label: 'Dismiss modal or palette' },
       ],
     },
     {
       title: 'Instant Quick Actions (Operator Hotkeys)',
       icon: <Sparkles size={15} className="text-[#6f7988]" />,
       items: [
-        { keys: ['N'], label: 'Quick-add new deal drawer' },
-        { keys: ['C'], label: 'Quick-add new contact drawer' },
-        { keys: ['L'], label: 'Quick-log call / meeting note' },
-        { keys: ['⌘', '↵'], label: 'Submit form in quick capture' },
+        { keys: ['N'], label: 'Quick-add new deal' },
+        { keys: ['C'], label: 'Quick-add new client' },
+        { keys: [modKey, '↵'], label: 'Submit form in quick capture' },
       ],
     },
     {
-      title: 'Kanban Board Deals Navigation (No Mouse)',
+      title: 'Deals List',
       icon: <LayoutGrid size={15} className="text-[#6f7988]" />,
       items: [
-        { keys: ['←'], label: 'Move focus left to previous stage (or H)' },
-        { keys: ['→'], label: 'Move focus right to next stage (or L)' },
-        { keys: ['↑'], label: 'Move focus up to previous deal (or K)' },
-        { keys: ['↓'], label: 'Move focus down to next deal (or J)' },
-        { keys: ['Tab'], label: 'Cycle forward through deals' },
-        { keys: ['↵'], label: 'Open deal detail drawer & inspect' },
-        { keys: ['['], label: 'Shift selected deal to previous stage' },
-        { keys: [']'], label: 'Shift selected deal to next stage' },
+        { keys: ['Tab'], label: 'Focus the next deal' },
+        { keys: ['↵'], label: 'Edit the focused deal' },
       ],
     },
     {
       title: 'Rapid View Navigation',
       icon: <Navigation size={15} className="text-[#6f7988]" />,
       items: [
-        { keys: ['G', 'D'], label: 'Go to Dashboard' },
-        { keys: ['G', 'P'], label: 'Go to Deals & Pipeline' },
-        { keys: ['G', 'C'], label: 'Go to Companies' },
-        { keys: ['G', 'U'], label: 'Go to Contacts' },
-        { keys: ['G', 'K'], label: 'Go to Calendar' },
-        { keys: ['G', 'A'], label: 'Go to Activities' },
+        { keys: ['G', 'D'], label: 'Go to Home' },
+        { keys: ['G', 'P'], label: 'Go to Deals' },
+        { keys: ['G', 'U'], label: 'Go to Clients' },
         { keys: ['G', 'S'], label: 'Go to Settings' },
       ],
     },

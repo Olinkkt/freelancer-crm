@@ -1,48 +1,46 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
+import { useModKey } from '@/lib/use-mod-key'
 import { X, CirclePlus, ArrowUpRight, Calendar, AlertCircle } from 'lucide-react'
-import { Deal, DealStage, STAGE_DEFAULT_PROBABILITIES, Company, WorkspaceSettings } from '@/lib/crm-types'
+import { Contact, Deal, DealStage, DEAL_STAGES, DEAL_STAGE_HINTS, WorkspaceSettings } from '@/lib/crm-types'
 import { formatMoney, OPERATOR_CONFIG } from '@/lib/config'
 import { Combobox } from '@/components/ui/combobox'
+import { NextActionFields } from '@/components/deals/next-action-fields'
+import { addDays, isUntouchedPreset, nextActionPresets, normalizeDueDate } from '@/lib/due-date'
+import { getDateString } from '@/lib/date-utils'
 
 interface NewDealModalProps {
   isOpen: boolean
   onClose: () => void
   onAddDeal: (deal: Omit<Deal, 'id'>) => void
-  companies: Company[]
-  initialCompany?: string
+  /** Existing clients; typing a new name creates a client on save */
+  clients: Contact[]
+  initialClientName?: string
   dealToEdit?: Deal | null
   onUpdateDeal?: (deal: Deal) => void
   settings?: WorkspaceSettings
 }
 
-const STAGES: DealStage[] = [
-  'Lead',
-  'Qualified',
-  'Proposal',
-  'Won',
-  'Paid',
-]
+const STAGES = DEAL_STAGES
 
 export function NewDealModal({
   isOpen,
   onClose,
   onAddDeal,
-  companies,
-  initialCompany,
+  clients,
+  initialClientName,
   dealToEdit,
   onUpdateDeal,
   settings,
 }: NewDealModalProps) {
-  const [mode, setMode] = useState<'quick' | 'detailed'>('quick')
+  const modKey = useModKey()
   const [title, setTitle] = useState('')
-  const [company, setCompany] = useState('')
+  const [clientName, setClientName] = useState('')
   const [value, setValue] = useState('')
   const [stage, setStage] = useState<DealStage>('Lead')
-  const [probability, setProbability] = useState('20%')
   const [nextAction, setNextAction] = useState('')
-  const [nextDueDate, setNextDueDate] = useState('Tomorrow, 10:00')
+  const [nextDueDate, setNextDueDate] = useState(getDateString(addDays(new Date(), 1)))
   const [notes, setNotes] = useState('')
   const [error, setError] = useState<string | null>(null)
   const titleInputRef = useRef<HTMLInputElement>(null)
@@ -51,37 +49,45 @@ export function NewDealModal({
     if (isOpen) {
       setError(null)
       if (dealToEdit) {
-        setMode('detailed')
         setTitle(dealToEdit.title || '')
-        setCompany(dealToEdit.company || initialCompany || '')
+        setClientName(dealToEdit.contactName || initialClientName || '')
         setValue(dealToEdit.value || '')
         setStage(dealToEdit.stage || 'Lead')
-        setProbability(dealToEdit.probability || STAGE_DEFAULT_PROBABILITIES[dealToEdit.stage || 'Lead'] || '20%')
         setNextAction(dealToEdit.next || '')
-        setNextDueDate(dealToEdit.nextDueDate || '')
+        setNextDueDate(normalizeDueDate(dealToEdit.nextDueDate) || getDateString(addDays(new Date(), 1)))
         setNotes(dealToEdit.notes || '')
       } else {
-        setMode('quick')
         setTitle('')
-        setCompany(initialCompany || '')
+        setClientName(initialClientName || '')
         setValue(formatMoney(25000, settings))
         setStage('Lead')
-        setProbability(STAGE_DEFAULT_PROBABILITIES['Lead'])
-        setNextAction('Discovery call & initial scope review')
-        setNextDueDate('Tomorrow, 10:00')
+        setNextAction(nextActionPresets('Lead')[0])
+        setNextDueDate(getDateString(addDays(new Date(), 1)))
         setNotes('')
       }
       setTimeout(() => {
         titleInputRef.current?.focus()
       }, 50)
     }
-  }, [isOpen, companies, initialCompany, dealToEdit, settings])
+  }, [isOpen, initialClientName, dealToEdit, settings])
 
   if (!isOpen) return null
 
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault()
-    if (!title.trim() || !company.trim()) return
+    if (!title.trim() || !clientName.trim()) return
+
+    // Link to an existing client by name; otherwise the server creates one
+    const typedName = clientName.trim()
+    const existingClient =
+      (dealToEdit?.contactId && dealToEdit.contactName.trim().toLowerCase() === typedName.toLowerCase()
+        ? clients.find((c) => c.id === dealToEdit.contactId)
+        : undefined) || clients.find((c) => c.name.trim().toLowerCase() === typedName.toLowerCase())
+    const clientFields = {
+      contactId: existingClient?.id,
+      contactName: existingClient?.name || typedName,
+      contactEmail: existingClient ? existingClient.email || undefined : undefined,
+    }
 
     // Guard against negative amounts
     if (/-\s*\d+/.test(value.trim())) {
@@ -98,36 +104,31 @@ export function NewDealModal({
       Qualified: 'blue',
       Proposal: 'blue',
       Won: 'green',
-      Paid: 'green',
     }
-
-    const isPaid = stage === 'Paid'
 
     if (dealToEdit && onUpdateDeal) {
       onUpdateDeal({
         ...dealToEdit,
         title: title.trim(),
-        company: company.trim(),
+        ...clientFields,
         value: formattedVal || '—',
         rawAmount: numeric,
         stage,
-        probability,
-        next: isPaid ? '' : nextAction.trim(),
-        nextDueDate: isPaid ? undefined : nextDueDate.trim(),
+        next: nextAction.trim(),
+        nextDueDate: nextDueDate || undefined,
         color: colorMap[stage] || dealToEdit.color || 'blue',
         notes: notes.trim(),
       })
     } else {
       onAddDeal({
         title: title.trim(),
-        company: company.trim(),
+        ...clientFields,
         value: formattedVal || '—',
         rawAmount: numeric,
-        stage: mode === 'quick' ? 'Lead' : stage,
-        probability: mode === 'quick' ? '20%' : probability,
-        next: isPaid ? '' : (nextAction.trim() || 'Schedule next step'),
-        nextDueDate: isPaid ? undefined : (nextDueDate.trim() || 'This week'),
-        color: colorMap[mode === 'quick' ? 'Lead' : stage] || 'blue',
+        stage,
+        next: nextAction.trim() || 'Schedule next step',
+        nextDueDate: nextDueDate || getDateString(addDays(new Date(), 1)),
+        color: colorMap[stage] || 'blue',
         notes: notes.trim(),
         createdAt: 'Just now',
       })
@@ -162,37 +163,11 @@ export function NewDealModal({
               Hotkey: N
             </span>
             <h2 className="text-[15px] font-semibold text-[#1c1d1f] tracking-tight">
-              {dealToEdit ? 'Edit Deal' : 'Capture Opportunity'}
+              {dealToEdit ? 'Edit deal' : 'New deal'}
             </h2>
           </div>
 
           <div className="flex items-center gap-2">
-            {!dealToEdit && (
-              <div className="flex items-center bg-[#f0f2f5] p-0.5 rounded-[8px] text-[11px] font-medium">
-                <button
-                  type="button"
-                  onClick={() => setMode('quick')}
-                  className={`px-2.5 py-1 rounded-[6px] transition-all cursor-pointer ${
-                    mode === 'quick'
-                      ? 'bg-white text-[#1c1d1f] font-semibold shadow-xs'
-                      : 'text-[#6f7988] hover:text-[#1c1d1f]'
-                  }`}
-                >
-                  ⚡ Quick (5s)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMode('detailed')}
-                  className={`px-2.5 py-1 rounded-[6px] transition-all cursor-pointer ${
-                    mode === 'detailed'
-                      ? 'bg-white text-[#1c1d1f] font-semibold shadow-xs'
-                      : 'text-[#6f7988] hover:text-[#1c1d1f]'
-                  }`}
-                >
-                  Detailed
-                </button>
-              </div>
-            )}
             <button
               onClick={onClose}
               className="w-7 h-7 rounded-[10px] flex items-center justify-center text-[#9fa1a7] hover:text-[#1c1d1f] hover:bg-[#edf0f3] transition-colors"
@@ -229,18 +204,18 @@ export function NewDealModal({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-[11px] font-bold uppercase tracking-wider text-[#505967] mb-1.5">
-                Company Account *
+                Client *
               </label>
               <Combobox
-                value={company}
-                onChange={setCompany}
-                options={companies.map((c) => ({
+                value={clientName}
+                onChange={setClientName}
+                options={clients.map((c) => ({
                   id: c.id,
                   label: c.name,
                   value: c.name,
-                  sublabel: c.type,
+                  sublabel: c.email || undefined,
                 }))}
-                placeholder="Select or enter company"
+                placeholder="Choose or add a client"
                 required
                 maxLength={100}
               />
@@ -260,82 +235,48 @@ export function NewDealModal({
             </div>
           </div>
 
-          {/* Detailed Mode: Pipeline Stage & Probability */}
-          {mode === 'detailed' && (
-            <div className="grid grid-cols-2 gap-3 animate-in fade-in duration-150">
-              <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#505967] mb-1.5">
-                  Pipeline Stage
-                </label>
-                <select
-                  value={stage}
-                  onChange={(e) => {
-                    const newStage = e.target.value as DealStage
-                    setStage(newStage)
-                    setProbability(STAGE_DEFAULT_PROBABILITIES[newStage])
-                  }}
-                  className="w-full h-10 px-3 border border-[#e4e7ec] rounded-[10px] text-[13px] text-[#1c1d1f] bg-white focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
-                >
-                  {STAGES.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
-              </div>
+          <div>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-[#505967] mb-1.5">
+              Pipeline Stage
+            </label>
+            <select
+              value={stage}
+              onChange={(e) => {
+                const newStage = e.target.value as DealStage
+                setStage(newStage)
+                if (!dealToEdit && isUntouchedPreset(nextAction)) {
+                  setNextAction(nextActionPresets(newStage)[0] ?? '')
+                }
+              }}
+              className="w-full h-10 px-3 border border-[#e4e7ec] rounded-[10px] text-[13px] text-[#1c1d1f] bg-white focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
+            >
+              {STAGES.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-[11px] text-[#8f99a8]">{DEAL_STAGE_HINTS[stage]}</p>
+          </div>
 
-              <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#505967] mb-1.5">
-                  Win Probability
-                </label>
-                <select
-                  value={probability}
-                  onChange={(e) => setProbability(e.target.value)}
-                  className="w-full h-10 px-3 border border-[#e4e7ec] rounded-[10px] text-[13px] text-[#1c1d1f] bg-white focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
-                >
-                  <option value="20%">20% — Lead</option>
-                  <option value="40%">40% — Qualified</option>
-                  <option value="70%">70% — Proposal</option>
-                  <option value="100%">100% — Won / Paid</option>
-                </select>
+          {/* Mandatory Next Action GTD Prompt */}
+          <div className="p-3.5 bg-[#fafbfc] border border-[#e4e7ec] rounded-[12px] space-y-2">
+            <div className="flex items-center justify-between text-[11px] font-bold text-[#505967] uppercase tracking-wider">
+              <div className="flex items-center gap-1.5">
+                <AlertCircle size={14} />
+                <span>Next Action</span>
               </div>
             </div>
-          )}
+            <NextActionFields
+              stage={stage}
+              action={nextAction}
+              dueDate={nextDueDate}
+              onActionChange={setNextAction}
+              onDueDateChange={setNextDueDate}
+            />
+          </div>
 
-          {/* Mandatory Next Action GTD Prompt (hidden when stage is Paid) */}
-          {stage !== 'Paid' && (
-            <div className="p-3.5 bg-[#f8faff] border border-[#d6e3fc] rounded-[12px] space-y-2">
-              <div className="flex items-center justify-between text-[11px] font-bold text-[#266df0] uppercase tracking-wider">
-                <div className="flex items-center gap-1.5">
-                  <AlertCircle size={14} />
-                  <span>Next Action</span>
-                </div>
-                {mode === 'quick' && (
-                  <span className="text-[10px] lowercase font-normal text-[#6f7988]">auto-defaults to Lead</span>
-                )}
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <input
-                  type="text"
-                  value={nextAction}
-                  onChange={(e) => setNextAction(e.target.value)}
-                  placeholder="e.g. Send revised scope"
-                  className="w-full h-9 px-2.5 bg-white border border-[#dbe6fe] rounded-[10px] text-[12px] text-[#1c1d1f] focus:outline-none focus:border-[#266df0]"
-                />
-                <input
-                  type="text"
-                  value={nextDueDate}
-                  onChange={(e) => setNextDueDate(e.target.value)}
-                  placeholder="e.g. Tomorrow 14:30"
-                  className="w-full h-9 px-2.5 bg-white border border-[#dbe6fe] rounded-[10px] text-[12px] text-[#1c1d1f] focus:outline-none focus:border-[#266df0]"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Detailed Mode: Operator Notes */}
-          {mode === 'detailed' && (
-            <div className="animate-in fade-in duration-150">
+          <div>
               <label className="block text-[11px] font-bold uppercase tracking-wider text-[#505967] mb-1.5">
                 Notes
               </label>
@@ -346,12 +287,11 @@ export function NewDealModal({
                 placeholder="Initial requirements, key contacts, or budget parameters..."
                 className="w-full p-3 border border-[#e4e7ec] rounded-[10px] text-[12px] text-[#1c1d1f] placeholder:text-[#9fa1a7] focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15 resize-none"
               />
-            </div>
-          )}
+          </div>
 
           <div className="pt-2 flex items-center justify-between">
             <span className="text-[11px] text-[#9fa1a7] font-mono">
-              Press <kbd className="px-1 bg-[#f4f5f6] border border-[#e4e7ec] rounded-[5px] text-[10px]">⌘</kbd> +{' '}
+              Press <kbd className="px-1 bg-[#f4f5f6] border border-[#e4e7ec] rounded-[5px] text-[10px]">{modKey}</kbd> +{' '}
               <kbd className="px-1 bg-[#f4f5f6] border border-[#e4e7ec] rounded-[5px] text-[10px]">↵</kbd> to save
             </span>
             <div className="flex items-center gap-2">
@@ -364,7 +304,7 @@ export function NewDealModal({
               </button>
               <button
                 type="submit"
-                disabled={!title.trim() || !company.trim()}
+                disabled={!title.trim() || !clientName.trim()}
                 className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#232529] hover:bg-[#101113] text-white text-[12px] font-medium rounded-[10px] shadow-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 <CirclePlus size={15} />

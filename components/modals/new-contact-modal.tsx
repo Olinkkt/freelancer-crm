@@ -1,16 +1,14 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { X, UserPlus, Building2, Mail, Phone, Briefcase } from 'lucide-react'
-import { Contact, Company } from '@/lib/crm-types'
-import { Combobox } from '@/components/ui/combobox'
+import { useModKey } from '@/lib/use-mod-key'
+import { X, UserPlus } from 'lucide-react'
+import { Contact } from '@/lib/crm-types'
 
 interface NewContactModalProps {
   isOpen: boolean
   onClose: () => void
   onAddContact: (contact: Omit<Contact, 'id'>) => void
-  companies: Company[]
-  initialCompany?: string
   contactToEdit?: Contact | null
   onUpdateContact?: (contact: Contact) => void
 }
@@ -19,38 +17,34 @@ export function NewContactModal({
   isOpen,
   onClose,
   onAddContact,
-  companies,
-  initialCompany,
   contactToEdit,
   onUpdateContact,
 }: NewContactModalProps) {
+  const modKey = useModKey()
   const [name, setName] = useState('')
-  const [role, setRole] = useState('')
-  const [company, setCompany] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
+  const [notes, setNotes] = useState('')
   const nameInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (isOpen) {
       if (contactToEdit) {
         setName(contactToEdit.name || '')
-        setRole(contactToEdit.role || '')
-        setCompany(contactToEdit.company || initialCompany || '')
         setEmail(contactToEdit.email || '')
         setPhone(contactToEdit.phone || '')
+        setNotes(contactToEdit.notes || '')
       } else {
         setName('')
-        setRole('')
-        setCompany(initialCompany || '')
         setEmail('')
         setPhone('')
+        setNotes('')
       }
       setTimeout(() => {
         nameInputRef.current?.focus()
       }, 50)
     }
-  }, [isOpen, companies, initialCompany, contactToEdit])
+  }, [isOpen, contactToEdit])
 
   if (!isOpen) return null
 
@@ -62,18 +56,16 @@ export function NewContactModal({
       onUpdateContact({
         ...contactToEdit,
         name: name.trim(),
-        role: role.trim() ? role.trim() : null,
-        company: company.trim() || 'Independent',
         email: email.trim() || `${name.toLowerCase().replace(/\s+/g, '.')}@example.cz`,
         phone: phone.trim() || undefined,
+        notes: notes.trim() || undefined,
       })
     } else {
       onAddContact({
         name: name.trim(),
-        role: role.trim() ? role.trim() : null,
-        company: company.trim() || 'Independent',
         email: email.trim() || `${name.toLowerCase().replace(/\s+/g, '.')}@example.cz`,
         phone: phone.trim() || undefined,
+        notes: notes.trim() || undefined,
         deals: 0,
         lastTouch: 'Today',
         color: 'blue',
@@ -109,7 +101,7 @@ export function NewContactModal({
               Hotkey: C
             </span>
             <h2 className="text-[16px] font-semibold text-[#1c1d1f] tracking-tight">
-              {contactToEdit ? 'Edit Contact' : 'Add New Contact'}
+              {contactToEdit ? 'Edit Client' : 'Add Client'}
             </h2>
           </div>
           <button
@@ -138,39 +130,6 @@ export function NewContactModal({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-[#505967] mb-1.5">
-                Role in company (Optional)
-              </label>
-              <input
-                type="text"
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                placeholder="e.g. Creative Director"
-                className="w-full h-10 px-3 border border-[#e4e7ec] rounded-[10px] text-[13px] text-[#1c1d1f] placeholder:text-[#9fa1a7] focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-[#505967] mb-1.5">
-                Company
-              </label>
-              <Combobox
-                value={company}
-                onChange={setCompany}
-                options={companies.map((c) => ({
-                  id: c.id,
-                  label: c.name,
-                  value: c.name,
-                  sublabel: c.type,
-                }))}
-                placeholder="Select or enter company"
-                maxLength={100}
-              />
-            </div>
-          </div>
-
           <div>
             <label className="block text-[11px] font-bold uppercase tracking-wider text-[#505967] mb-1.5">
               Email Address
@@ -197,9 +156,23 @@ export function NewContactModal({
             />
           </div>
 
+          <div>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-[#505967] mb-1.5">
+              Notes (Optional)
+            </label>
+            <textarea
+              rows={3}
+              maxLength={5000}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="How you met, preferences, anything worth remembering..."
+              className="w-full p-3 border border-[#e4e7ec] rounded-[10px] text-[12px] text-[#1c1d1f] placeholder:text-[#9fa1a7] focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15 resize-none"
+            />
+          </div>
+
           <div className="pt-2 flex items-center justify-between">
             <span className="text-[11px] text-[#9fa1a7] font-mono">
-              Press <kbd className="px-1 bg-[#f4f5f6] border border-[#e4e7ec] rounded-[5px] text-[10px]">⌘</kbd> +{' '}
+              Press <kbd className="px-1 bg-[#f4f5f6] border border-[#e4e7ec] rounded-[5px] text-[10px]">{modKey}</kbd> +{' '}
               <kbd className="px-1 bg-[#f4f5f6] border border-[#e4e7ec] rounded-[5px] text-[10px]">↵</kbd>
             </span>
             <div className="flex items-center gap-2">
@@ -216,7 +189,7 @@ export function NewContactModal({
                 className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#232529] hover:bg-[#101113] text-white text-[12px] font-medium rounded-[10px] shadow-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 <UserPlus size={15} />
-                <span>{contactToEdit ? 'Save Changes' : 'Save Contact'}</span>
+                <span>{contactToEdit ? 'Save Changes' : 'Save Client'}</span>
               </button>
             </div>
           </div>

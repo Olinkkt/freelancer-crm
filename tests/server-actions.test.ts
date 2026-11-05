@@ -14,7 +14,6 @@ import {
   updateDealAction,
   deleteDealAction,
   moveDealStageAction,
-  createCompanyAction,
   createContactAction,
   logActivityAction,
   toggleFollowUpAction,
@@ -33,7 +32,6 @@ describe('Server Actions Integration', () => {
     await db.deleteFrom('follow_ups').execute()
     await db.deleteFrom('deals').execute()
     await db.deleteFrom('contacts').execute()
-    await db.deleteFrom('companies').execute()
   })
 
   beforeEach(async () => {
@@ -41,7 +39,6 @@ describe('Server Actions Integration', () => {
     await db.deleteFrom('follow_ups').execute()
     await db.deleteFrom('deals').execute()
     await db.deleteFrom('contacts').execute()
-    await db.deleteFrom('companies').execute()
   })
 
   afterEach(() => {
@@ -75,27 +72,11 @@ describe('Server Actions Integration', () => {
         () =>
           createDealAction({
             title: 'Hacked Deal',
-            company: 'EvilCorp',
+            contactName: 'EvilCorp',
             value: '1000 Kč',
             rawAmount: 1000,
             stage: 'Lead',
-            probability: '10%',
             next: 'Call',
-            color: 'blue',
-          }),
-        /Unauthorized: Please authenticate to access workspace/
-      )
-
-      await assert.rejects(
-        () =>
-          createCompanyAction({
-            name: 'EvilCorp',
-            type: 'Client',
-            contact: 'None',
-            email: 'none@evil.com',
-            deals: 0,
-            value: '0 Kč',
-            status: 'Active',
             color: 'blue',
           }),
         /Unauthorized: Please authenticate to access workspace/
@@ -123,11 +104,10 @@ describe('Server Actions Integration', () => {
       // 1. Create deal action
       const deal = await createDealAction({
         title: 'Ecommerce Redesign',
-        company: 'RetailHub',
+        contactName: 'RetailHub',
         value: '120 000 Kč',
         rawAmount: 120000,
         stage: 'Lead',
-        probability: '40%',
         next: 'Demo call',
         color: 'blue',
       })
@@ -137,13 +117,11 @@ describe('Server Actions Integration', () => {
       // 2. Fetch workspace action
       const workspace = await fetchWorkspaceData()
       assert.equal(workspace.deals.length, 1)
-      assert.equal(workspace.companies.length, 1)
 
       // 3. Move stage action
       const moved = await moveDealStageAction(deal.id, 'Won')
       assert.ok(moved)
       assert.equal(moved.stage, 'Won')
-      assert.equal(moved.probability, '100%')
 
       // 4. Update deal action
       const updated = await updateDealAction({
@@ -156,8 +134,6 @@ describe('Server Actions Integration', () => {
       // 5. Create contact action
       const contact = await createContactAction({
         name: 'George Retail',
-        company: 'RetailHub',
-        role: 'COO',
         email: 'george@retailhub.com',
         deals: 1,
         lastTouch: 'Today',

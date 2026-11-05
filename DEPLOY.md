@@ -175,6 +175,11 @@ When integrating authentication in Phase 2:
 - In Coolify, open your application and click the **Logs** tab.
 - Live stdout/stderr from `node server.js` will stream in real time.
 
+### Calendar Feed (.ics)
+- Settings → Calendar gives each workspace a private `.ics` feed URL (`/api/calendar/feed/<token>`). No API keys or OAuth are involved.
+- Google Calendar fetches subscribed feeds from Google's servers, so the app must be reachable on a public HTTPS domain for that to work. Apple Calendar on the same network can subscribe to a local URL.
+- If your proxy rewrites the host, make sure it forwards `X-Forwarded-Host` and `X-Forwarded-Proto` so the feed URL shown in Settings is correct.
+
 ### Rollbacks
 - Coolify keeps previous image versions. If an update introduces an unexpected issue, click **Deployments** -> select the last successful deployment -> click **Rollback**.
 

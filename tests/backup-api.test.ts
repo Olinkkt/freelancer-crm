@@ -36,7 +36,7 @@ test('Backup & Restore API (/api/backup)', async (t) => {
     const data = await res.json()
     assert.equal(data.version, '1.0')
     assert.ok(Array.isArray(data.deals))
-    assert.ok(Array.isArray(data.companies))
+    assert.equal(data.companies, undefined)
     assert.ok(Array.isArray(data.contacts))
     assert.ok(Array.isArray(data.activities))
     assert.ok(Array.isArray(data.followUps))
@@ -50,11 +50,10 @@ test('Backup & Restore API (/api/backup)', async (t) => {
         {
           id: 'deal-backup-1',
           title: 'Restored Test Deal',
-          company: 'Backup Corp',
+          contactName: 'Backup Corp',
           value: '45 000 Kč',
           rawAmount: 45000,
           stage: 'Won',
-          probability: '100%',
           next: 'Begin kickoff',
           color: 'blue',
           deliverables: [
@@ -62,6 +61,7 @@ test('Backup & Restore API (/api/backup)', async (t) => {
           ],
         },
       ],
+      // Legacy key from pre-v5 backups: must be accepted and ignored
       companies: [
         {
           id: 'comp-backup-1',
@@ -95,7 +95,8 @@ test('Backup & Restore API (/api/backup)', async (t) => {
     const workspace = await repo.getWorkspaceData()
     const restored = workspace.deals.find((d) => d.id === 'deal-backup-1')
     assert.ok(restored)
-    assert.equal(restored.company, 'Backup Corp')
+    assert.equal(restored.contactName, 'Backup Corp')
+    assert.ok(restored.contactId)
     assert.equal(restored.stage, 'Won')
     assert.equal(restored.deliverables?.[0]?.title, 'Audit Scope')
   })

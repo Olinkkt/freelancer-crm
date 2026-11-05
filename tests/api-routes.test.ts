@@ -13,21 +13,11 @@ import {
   DELETE as deleteDeal,
 } from '@/app/api/deals/route'
 import {
-  GET as getCompanies,
-  POST as postCompany,
-  PUT as putCompany,
-  DELETE as deleteCompany,
-} from '@/app/api/companies/route'
-import {
   GET as getContacts,
   POST as postContact,
   PUT as putContact,
   DELETE as deleteContact,
 } from '@/app/api/contacts/route'
-import {
-  GET as getActivities,
-  POST as postActivity,
-} from '@/app/api/activities/route'
 import {
   GET as getFollowUps,
   PATCH as patchFollowUp,
@@ -51,7 +41,6 @@ describe('API Route Handlers', () => {
     await db.deleteFrom('follow_ups').execute()
     await db.deleteFrom('deals').execute()
     await db.deleteFrom('contacts').execute()
-    await db.deleteFrom('companies').execute()
   })
 
   beforeEach(async () => {
@@ -59,7 +48,6 @@ describe('API Route Handlers', () => {
     await db.deleteFrom('follow_ups').execute()
     await db.deleteFrom('deals').execute()
     await db.deleteFrom('contacts').execute()
-    await db.deleteFrom('companies').execute()
   })
 
   function createAuthedRequest(url: string, method: string = 'GET', body?: any): Request {
@@ -115,11 +103,10 @@ describe('API Route Handlers', () => {
       // 1. CREATE (POST)
       const postReq = createAuthedRequest('http://localhost:3000/api/deals', 'POST', {
         title: 'New Portal',
-        company: 'PortalCorp',
+        contactName: 'PortalCorp',
         value: '75 000 Kč',
         rawAmount: 75000,
         stage: 'Lead',
-        probability: '30%',
         color: 'blue',
       })
       const postRes = await postDeal(postReq)
@@ -171,11 +158,18 @@ describe('API Route Handlers', () => {
       assert.equal(data.error, 'Deal not found')
     })
 
+    it('rejects a deal without a client', async () => {
+      const res = await postDeal(
+        createAuthedRequest('http://localhost:3000/api/deals', 'POST', { title: 'No Client', stage: 'Lead' })
+      )
+      assert.equal(res.status, 400)
+    })
+
     it('rejects a negative deal value on creation and update', async () => {
       // 1. Negative value string "-500"
       const postReq1 = createAuthedRequest('http://localhost:3000/api/deals', 'POST', {
         title: 'Negative Deal',
-        company: 'Acme',
+        contactName: 'Acme',
         stage: 'Lead',
         value: '-500',
       })
@@ -185,7 +179,7 @@ describe('API Route Handlers', () => {
       // 2. Negative rawAmount -500
       const postReq2 = createAuthedRequest('http://localhost:3000/api/deals', 'POST', {
         title: 'Negative Amount Deal',
-        company: 'Acme',
+        contactName: 'Acme',
         stage: 'Lead',
         rawAmount: -500,
       })
@@ -195,11 +189,10 @@ describe('API Route Handlers', () => {
       // 3. Create a valid deal first, then attempt updating to -500
       const validDeal = await repo.createDeal({
         title: 'Valid Deal',
-        company: 'Acme Corp',
+        contactName: 'Acme Corp',
         value: '$1,000',
         rawAmount: 1000,
         stage: 'Lead',
-        probability: '20%',
         next: '',
         color: 'blue',
       })
@@ -220,52 +213,6 @@ describe('API Route Handlers', () => {
     })
   })
 
-  describe('Companies API (/api/companies)', () => {
-    it('returns 401 when unauthenticated', async () => {
-      const getRes = await getCompanies(createUnauthedRequest('http://localhost:3000/api/companies'))
-      assert.equal(getRes.status, 401)
-    })
-
-    it('performs full CRUD when authenticated', async () => {
-      // CREATE
-      const postReq = createAuthedRequest('http://localhost:3000/api/companies', 'POST', {
-        name: 'Nexus Tech',
-        type: 'Client',
-        contact: 'Nexus Admin',
-        email: 'admin@nexustech.io',
-        deals: 0,
-        value: '0 Kč',
-        status: 'Active',
-        color: 'green',
-      })
-      const postRes = await postCompany(postReq)
-      assert.equal(postRes.status, 201)
-      const company = await postRes.json()
-      assert.ok(company.id)
-
-      // READ
-      const getRes = await getCompanies(createAuthedRequest('http://localhost:3000/api/companies'))
-      assert.equal(getRes.status, 200)
-      const list = await getRes.json()
-      assert.equal(list.length, 1)
-
-      // UPDATE
-      const putReq = createAuthedRequest('http://localhost:3000/api/companies', 'PUT', {
-        ...company,
-        status: 'Inactive',
-      })
-      const putRes = await putCompany(putReq)
-      assert.equal(putRes.status, 200)
-      const updated = await putRes.json()
-      assert.equal(updated.status, 'Inactive')
-
-      // DELETE
-      const delReq = createAuthedRequest(`http://localhost:3000/api/companies?id=${company.id}`, 'DELETE')
-      const delRes = await deleteCompany(delReq)
-      assert.equal(delRes.status, 200)
-    })
-  })
-
   describe('Contacts API (/api/contacts)', () => {
     it('returns 401 when unauthenticated', async () => {
       const getRes = await getContacts(createUnauthedRequest('http://localhost:3000/api/contacts'))
@@ -276,8 +223,6 @@ describe('API Route Handlers', () => {
       // CREATE
       const postReq = createAuthedRequest('http://localhost:3000/api/contacts', 'POST', {
         name: 'John Miller',
-        role: 'Founder',
-        company: 'Miller Media',
         email: 'john@millermedia.com',
         color: 'blue',
       })
@@ -294,12 +239,12 @@ describe('API Route Handlers', () => {
       // UPDATE
       const putReq = createAuthedRequest('http://localhost:3000/api/contacts', 'PUT', {
         ...contact,
-        role: 'CEO',
+        notes: 'Pays on time',
       })
       const putRes = await putContact(putReq)
       assert.equal(putRes.status, 200)
       const updated = await putRes.json()
-      assert.equal(updated.role, 'CEO')
+      assert.equal(updated.notes, 'Pays on time')
 
       // DELETE
       const delReq = createAuthedRequest(`http://localhost:3000/api/contacts?id=${contact.id}`, 'DELETE')
@@ -308,33 +253,28 @@ describe('API Route Handlers', () => {
     })
   })
 
-  describe('Activities & Follow-ups API', () => {
-    it('logs activity via POST /api/activities and toggles follow-up via PATCH /api/follow-ups', async () => {
-      const actReq = createAuthedRequest('http://localhost:3000/api/activities', 'POST', {
-        activity: {
+  describe('Follow-ups API', () => {
+    it('lists and toggles a follow-up via /api/follow-ups', async () => {
+      const actBody = await repo.logActivity(
+        {
           type: 'Meeting',
           title: 'Quarterly Review',
           person: 'Alice',
           company: 'Acme',
           date: '2026-09-25',
-          status: 'Done',
+          status: 'Completed',
           color: 'blue',
         },
-        followUp: {
+        {
           day: 'Tomorrow',
           company: 'Acme',
           action: 'Send presentation summary',
           time: '10:00',
           tone: 'urgent',
           completed: false,
-        },
-      })
-
-      const actRes = await postActivity(actReq)
-      assert.equal(actRes.status, 201)
-      const actBody = await actRes.json()
-      assert.ok(actBody.activity.id)
-      assert.ok(actBody.followUp.id)
+        }
+      )
+      assert.ok(actBody.followUp?.id)
 
       // Verify follow-up in GET /api/follow-ups
       const fuGet = await getFollowUps(createAuthedRequest('http://localhost:3000/api/follow-ups'))
@@ -343,7 +283,7 @@ describe('API Route Handlers', () => {
 
       // Toggle follow-up
       const patchReq = createAuthedRequest('http://localhost:3000/api/follow-ups', 'PATCH', {
-        id: actBody.followUp.id,
+        id: actBody.followUp!.id,
       })
       const patchRes = await patchFollowUp(patchReq)
       assert.equal(patchRes.status, 200)

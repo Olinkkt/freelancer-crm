@@ -1,5 +1,5 @@
 import { Activity, Deal } from '@/lib/crm-types'
-import { resolveEventDates } from '@/lib/google-calendar/web-links'
+import { resolveEventDates } from '@/lib/calendar/web-links'
 
 /**
  * Escapes characters with special meaning in iCalendar format per RFC 5545 Section 3.3.11.
@@ -82,19 +82,18 @@ export function generateIcsCalendar(options: IcsCalendarOptions = {}): string {
 
   // 1. Process Deals with upcoming milestones
   for (const deal of deals) {
-    if (deal.stage === 'Paid' || !deal.next || !deal.nextDueDate || deal.nextDueDate === 'Done') {
+    if (!deal.next || !deal.nextDueDate || deal.nextDueDate === 'Done') {
       continue
     }
 
     const { start, end } = resolveEventDates(deal.nextDueDate)
     const uid = `deal-milestone-${deal.id}@freelancercrm.local`
-    const summary = `Milestone: ${deal.next} (${deal.company})`
+    const summary = `Milestone: ${deal.next} (${deal.contactName})`
     const descriptionLines: string[] = [
       `Deal: ${deal.title}`,
-      `Company: ${deal.company}`,
       `Value: ${deal.value}`,
       `Stage: ${deal.stage}`,
-      deal.contactName ? `Contact: ${deal.contactName}` : '',
+      deal.contactName ? `Client: ${deal.contactName}` : '',
       deal.notes ? `\nNotes:\n${deal.notes}` : '',
     ].filter(Boolean)
 

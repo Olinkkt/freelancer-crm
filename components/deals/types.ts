@@ -1,19 +1,14 @@
-export type DealStage =
-  | 'Lead'
-  | 'Qualified'
-  | 'Proposal'
-  | 'Won'
-  | 'Paid'
+export type { DealStage } from '@/lib/crm-types'
+import type { DealStage } from '@/lib/crm-types'
 
 export type DealColor = 'blue' | 'violet' | 'amber' | 'green'
 
 export interface Deal {
   id: string
   title: string
-  company: string
+  contactName: string
   value: string
   stage: DealStage
-  probability: string
   color: DealColor
   nextAction: string | null
   nextDueDate: string | null

@@ -26,7 +26,6 @@ describe('Calendar Subscription Feed (iCal / RFC 5545)', () => {
     await db.deleteFrom('activities').execute()
     await db.deleteFrom('follow_ups').execute()
     await db.deleteFrom('deals').execute()
-    await db.deleteFrom('companies').execute()
     await db.deleteFrom('workspace_settings').execute()
 
     // Seed workspace
@@ -48,7 +47,6 @@ describe('Calendar Subscription Feed (iCal / RFC 5545)', () => {
     await db.deleteFrom('activities').execute()
     await db.deleteFrom('follow_ups').execute()
     await db.deleteFrom('deals').execute()
-    await db.deleteFrom('companies').execute()
     await db.deleteFrom('workspace_settings').execute()
   })
 
@@ -94,11 +92,10 @@ describe('Calendar Subscription Feed (iCal / RFC 5545)', () => {
       // Seed an active deal with milestone
       await createDeal({
         title: 'Platform Redesign',
-        company: 'Apex Labs',
+        contactName: 'Apex Labs',
         value: '$15,000',
         rawAmount: 15000,
         stage: 'Proposal',
-        probability: '70%',
         next: 'Client design review',
         nextDueDate: '2026-10-30',
         color: 'blue',

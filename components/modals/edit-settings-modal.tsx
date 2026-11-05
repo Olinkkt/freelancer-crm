@@ -19,32 +19,24 @@ import {
   Sparkles,
   CheckCircle2,
   ChevronRight,
-  KeyRound,
   Copy,
   Rss,
   CalendarPlus,
 } from 'lucide-react'
 import { updateWorkspaceSettingsAction } from '@/app/actions/auth'
 import {
-  getGoogleCalendarStatusAction,
-  disconnectGoogleCalendarAction,
-  triggerGoogleCalendarSyncAction,
-  updateGoogleCalendarSettingsAction,
-} from '@/app/actions/google-calendar'
-import {
   getCalendarFeedInfoAction,
   regenerateCalendarFeedTokenAction,
   CalendarFeedInfo,
 } from '@/app/actions/calendar-feed'
 import { WorkspaceSettings } from '@/lib/crm-types'
-import { GoogleCalendarStatusResponse } from '@/lib/google-calendar/types'
 
 interface EditSettingsModalProps {
   isOpen: boolean
   onClose: () => void
   currentSettings: WorkspaceSettings
   onSettingsUpdated: (updated: WorkspaceSettings) => void
-  initialTab?: 'profile' | 'integrations'
+  initialTab?: 'profile' | 'calendar'
   onToast?: (message: string, shortcut?: string, type?: 'success' | 'warning' | 'info') => void
 }
 
@@ -79,7 +71,7 @@ export function EditSettingsModal({
   onToast,
 }: EditSettingsModalProps) {
   // Tab state
-  const [activeTab, setActiveTab] = useState<'profile' | 'integrations'>(initialTab)
+  const [activeTab, setActiveTab] = useState<'profile' | 'calendar'>(initialTab)
 
   // Profile Form state
   const [name, setName] = useState(currentSettings.operatorName)
@@ -94,33 +86,12 @@ export function EditSettingsModal({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Google Calendar Integration state
-  const [gcalStatus, setGcalStatus] = useState<GoogleCalendarStatusResponse | null>(null)
-  const [loadingGcal, setLoadingGcal] = useState(false)
-  const [connecting, setConnecting] = useState(false)
-  const [syncing, setSyncing] = useState(false)
-  const [disconnecting, setDisconnecting] = useState(false)
-  const [togglingAutoSync, setTogglingAutoSync] = useState(false)
-  const [gcalError, setGcalError] = useState<string | null>(null)
-  const [gcalSuccess, setGcalSuccess] = useState<string | null>(null)
-
   // Calendar Subscription Feed (.ics) state
   const [feedInfo, setFeedInfo] = useState<CalendarFeedInfo | null>(null)
   const [loadingFeed, setLoadingFeed] = useState(false)
   const [feedCopied, setFeedCopied] = useState(false)
   const [rotatingFeed, setRotatingFeed] = useState(false)
-
-  const fetchGcalStatus = async () => {
-    setLoadingGcal(true)
-    try {
-      const status = await getGoogleCalendarStatusAction()
-      setGcalStatus(status)
-    } catch (err: any) {
-      console.error('Failed to load Google Calendar status:', err)
-    } finally {
-      setLoadingGcal(false)
-    }
-  }
+  const [feedError, setFeedError] = useState<string | null>(null)
 
   const fetchCalendarFeedInfo = async () => {
     setLoadingFeed(true)
@@ -162,7 +133,7 @@ export function EditSettingsModal({
       onToast?.('Calendar feed secret rotated successfully', undefined, 'success')
     } catch (err: any) {
       const msg = err?.message || 'Failed to rotate feed secret'
-      setGcalError(msg)
+      setFeedError(msg)
       onToast?.(msg, undefined, 'warning')
     } finally {
       setRotatingFeed(false)
@@ -181,13 +152,20 @@ export function EditSettingsModal({
       setNewPasscode('')
       setConfirmPasscode('')
       setError(null)
-      setGcalError(null)
-      setGcalSuccess(null)
+      setFeedError(null)
       setActiveTab(initialTab)
-      fetchGcalStatus()
       fetchCalendarFeedInfo()
     }
   }, [isOpen, currentSettings, initialTab])
+
+  useEffect(() => {
+    if (!isOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [isOpen, onClose])
 
   if (!isOpen) return null
 
@@ -232,93 +210,6 @@ export function EditSettingsModal({
     }
   }
 
-  // Google Calendar: Connect
-  const handleConnectGcal = async () => {
-    setConnecting(true)
-    setGcalError(null)
-    setGcalSuccess(null)
-    try {
-      const res = await fetch('/api/integrations/google-calendar/auth-url')
-      const data = await res.json()
-      if (!res.ok || !data.url) {
-        throw new Error(data.error || 'Failed to obtain Google OAuth authorization URL')
-      }
-      window.location.href = data.url
-    } catch (err: any) {
-      const msg = err?.message || 'Failed to initiate Google Calendar connection'
-      setGcalError(msg)
-      onToast?.(msg, undefined, 'warning')
-      setConnecting(false)
-    }
-  }
-
-  // Google Calendar: Disconnect
-  const handleDisconnectGcal = async () => {
-    if (!window.confirm('Disconnect Google Calendar? Scheduled events will no longer automatically sync.')) {
-      return
-    }
-    setDisconnecting(true)
-    setGcalError(null)
-    setGcalSuccess(null)
-    try {
-      await disconnectGoogleCalendarAction()
-      await fetchGcalStatus()
-      const msg = 'Google Calendar disconnected successfully'
-      setGcalSuccess(msg)
-      onToast?.(msg, undefined, 'info')
-    } catch (err: any) {
-      const msg = err?.message || 'Failed to disconnect Google Calendar'
-      setGcalError(msg)
-      onToast?.(msg, undefined, 'warning')
-    } finally {
-      setDisconnecting(false)
-    }
-  }
-
-  // Google Calendar: Sync Now
-  const handleSyncNow = async () => {
-    setSyncing(true)
-    setGcalError(null)
-    setGcalSuccess(null)
-    try {
-      const result = await triggerGoogleCalendarSyncAction()
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to sync with Google Calendar')
-      }
-      await fetchGcalStatus()
-      const msg = `Synced ${result.syncedCount} item${result.syncedCount === 1 ? '' : 's'} to Google Calendar`
-      setGcalSuccess(msg)
-      onToast?.(msg, undefined, 'success')
-    } catch (err: any) {
-      const msg = err?.message || 'Sync failed'
-      setGcalError(msg)
-      onToast?.(msg, undefined, 'warning')
-    } finally {
-      setSyncing(false)
-    }
-  }
-
-  // Google Calendar: Toggle Auto-sync
-  const handleToggleAutoSync = async () => {
-    if (!gcalStatus?.connected || togglingAutoSync) return
-    const nextAutoSync = !gcalStatus.autoSync
-    setTogglingAutoSync(true)
-    setGcalError(null)
-    try {
-      const updated = await updateGoogleCalendarSettingsAction({ autoSync: nextAutoSync })
-      setGcalStatus(updated)
-      const msg = `Auto-sync ${nextAutoSync ? 'enabled' : 'disabled'}`
-      setGcalSuccess(msg)
-      onToast?.(msg, undefined, 'success')
-    } catch (err: any) {
-      const msg = err?.message || 'Failed to update auto-sync setting'
-      setGcalError(msg)
-      onToast?.(msg, undefined, 'warning')
-    } finally {
-      setTogglingAutoSync(false)
-    }
-  }
-
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#10141c]/40 backdrop-blur-xs transition-all"
@@ -332,7 +223,7 @@ export function EditSettingsModal({
         <div className="p-5 border-b border-[#edf0f3] flex items-center justify-between bg-[#fafbfc]">
           <div>
             <span className="text-[10px] uppercase font-bold tracking-wider text-[#8f99a8] block">
-              Preferences & Integrations
+              Preferences
             </span>
             <h2 className="text-[15px] font-semibold text-[#1c1d1f]">
               Workspace Settings
@@ -362,20 +253,15 @@ export function EditSettingsModal({
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab('integrations')}
+            onClick={() => setActiveTab('calendar')}
             className={`py-2.5 text-[12px] font-semibold border-b-2 -mb-px transition-colors flex items-center gap-1.5 cursor-pointer ${
-              activeTab === 'integrations'
+              activeTab === 'calendar'
                 ? 'border-[#266df0] text-[#1c1d1f]'
                 : 'border-transparent text-[#6f7988] hover:text-[#1c1d1f]'
             }`}
           >
-            <Calendar size={13} />
-            <span>Integrations</span>
-            {gcalStatus?.connected ? (
-              <span className="w-1.5 h-1.5 rounded-full bg-[#12b76a]" />
-            ) : gcalStatus && !gcalStatus.configured ? (
-              <span className="w-1.5 h-1.5 rounded-full bg-[#f79009]" />
-            ) : null}
+            <Rss size={13} />
+            <span>Calendar feed</span>
           </button>
         </div>
 
@@ -504,32 +390,28 @@ export function EditSettingsModal({
               </div>
             </div>
 
-            {/* Quick Link to Integrations */}
+            {/* Quick link to the calendar feed */}
             <div className="pt-2 border-t border-[#f0f1f3]">
               <div className="p-3 rounded-[10px] bg-[#fafbfc] border border-[#e4e7ec] flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <div className="w-7 h-7 rounded-[7px] bg-[#f0f4fe] border border-[#d6e4fd] flex items-center justify-center text-[#266df0]">
-                    <Calendar size={14} />
+                    <Rss size={14} />
                   </div>
                   <div>
                     <span className="text-[12px] font-semibold text-[#1c1d1f] block">
-                      Google Calendar Integration
+                      Calendar feed (.ics)
                     </span>
                     <span className="text-[11px] text-[#6f7988] block">
-                      {gcalStatus?.connected
-                        ? `Connected (${gcalStatus.calendarName || 'primary'})`
-                        : gcalStatus?.configured
-                        ? 'Ready to connect'
-                        : '1-click web links active'}
+                      Deal next actions in any calendar app
                     </span>
                   </div>
                 </div>
                 <button
                   type="button"
-                  onClick={() => setActiveTab('integrations')}
+                  onClick={() => setActiveTab('calendar')}
                   className="text-[11px] font-semibold text-[#266df0] hover:text-[#1853bf] flex items-center gap-1 cursor-pointer"
                 >
-                  <span>Configure</span>
+                  <span>Manage</span>
                   <ChevronRight size={13} />
                 </button>
               </div>
@@ -559,42 +441,32 @@ export function EditSettingsModal({
           </form>
         )}
 
-        {/* TAB CONTENT: INTEGRATIONS */}
-        {activeTab === 'integrations' && (
+        {/* TAB CONTENT: CALENDAR FEED */}
+        {activeTab === 'calendar' && (
           <div className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
-            {/* Feedback messages */}
-            {gcalError && (
+            {feedError && (
               <div className="flex items-center gap-2 p-3 rounded-[8px] bg-[#fff1f0] border border-[#ffccc7] text-[#cf1322] text-[12px]">
                 <AlertCircle size={14} className="shrink-0" />
-                <span>{gcalError}</span>
-              </div>
-            )}
-            {gcalSuccess && (
-              <div className="flex items-center gap-2 p-3 rounded-[8px] bg-[#ecfdf3] border border-[#d1fadf] text-[#027a48] text-[12px]">
-                <CheckCircle2 size={14} className="shrink-0" />
-                <span>{gcalSuccess}</span>
+                <span>{feedError}</span>
               </div>
             )}
 
             {/* 1. UNIVERSAL ICAL / GOOGLE CALENDAR SUBSCRIPTION FEED (RECOMMENDED ZERO-CONFIG) */}
             <div className="bg-white border-2 border-[#b2ccff] rounded-xl p-5 shadow-[rgba(38,109,240,0.06)_0px_4px_12px_-2px] relative overflow-hidden">
-              <div className="absolute top-0 right-0 bg-[#e9f0ff] border-b border-l border-[#c4dafe] text-[#266df0] text-[10px] font-bold px-2.5 py-0.5 rounded-bl-[8px] uppercase tracking-wider">
-                Recommended • Zero Config
-              </div>
 
               {/* Card Header */}
               <div className="flex items-start gap-3 pb-4 border-b border-[#f0f1f3]">
                 <div className="w-10 h-10 rounded-[10px] bg-[#eef4ff] border border-[#d0e0fd] flex items-center justify-center text-[#266df0] shrink-0">
                   <Rss size={20} />
                 </div>
-                <div className="min-w-0 pr-16">
+                <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <h3 className="text-[14px] font-semibold text-[#1c1d1f]">
                       Calendar Subscription Feed (.ics)
                     </h3>
                   </div>
                   <p className="text-[12px] text-[#6f7988] mt-0.5">
-                    Live feed of all upcoming deal milestones, calls, and meetings. Works out-of-the-box in Google Calendar, Apple Calendar, and phone calendars.
+                    A read-only feed of your deals’ next actions and logged calls and meetings. Subscribe once in Google Calendar, Apple Calendar or your phone; it refreshes on its own.
                   </p>
                 </div>
               </div>
@@ -651,7 +523,7 @@ export function EditSettingsModal({
                 {/* Footer notes & Rotate secret */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-[#f0f1f3] text-[11px] text-[#8f99a8]">
                   <span>
-                    Zero setup required. Google Calendar automatically updates in background.
+                    Calendar apps refresh subscribed feeds every few hours.
                   </span>
                   <button
                     type="button"
@@ -667,196 +539,9 @@ export function EditSettingsModal({
               </div>
             </div>
 
-            {/* 2. GOOGLE CALENDAR OAUTH CARD (ADVANCED) */}
-            <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-[rgba(28,40,64,0.03)_0px_2px_4px_-1px]">
-              {/* Card Header & Status Badge */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#f0f1f3]">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-[10px] bg-[#f0f4fe] border border-[#d6e4fd] flex items-center justify-center text-[#266df0] shrink-0">
-                    <Calendar size={20} />
-                  </div>
-                  <div>
-                    <h3 className="text-[14px] font-semibold text-[#1c1d1f]">
-                      Google Calendar API (Two-Way OAuth)
-                    </h3>
-                    <p className="text-[12px] text-[#6f7988]">
-                      Advanced: Direct push sync into your primary Google Calendar (requires Google Cloud project)
-                    </p>
-                  </div>
-                </div>
-
-                {/* Connection Status Badges */}
-                <div className="shrink-0">
-                  {loadingGcal ? (
-                    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[#6f7988] bg-[#f4f5f6] border border-[#e4e7ec] px-2.5 py-1 rounded-[7px]">
-                      <Loader2 size={11} className="animate-spin text-[#8f99a8]" />
-                      Checking...
-                    </span>
-                  ) : gcalStatus?.connected ? (
-                    <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#027a48] bg-[#ecfdf3] border border-[#d1fadf] px-2.5 py-1 rounded-[7px]">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#12b76a] animate-pulse" />
-                      Connected
-                    </span>
-                  ) : gcalStatus?.configured ? (
-                    <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#505967] bg-[#f4f5f6] border border-[#e4e7ec] px-2.5 py-1 rounded-[7px]">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#9fa1a7]" />
-                      Disconnected
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#b54708] bg-[#fffaeb] border border-[#fedf89] px-2.5 py-1 rounded-[7px]">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#f79009]" />
-                      Setup Needed / Missing API Keys
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Card Body depending on status */}
-              <div className="pt-4 space-y-4">
-                {gcalStatus?.connected ? (
-                  <>
-                    {/* Connection details */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[12px]">
-                      <div className="p-3 rounded-[9px] bg-[#fafbfc] border border-[#e4e7ec]">
-                        <span className="text-[#8f99a8] block text-[10.5px] uppercase font-bold tracking-wider mb-0.5">
-                          Synced Calendar
-                        </span>
-                        <span className="font-semibold text-[#1c1d1f] truncate block">
-                          {gcalStatus.calendarName || 'primary'}
-                        </span>
-                      </div>
-                      <div className="p-3 rounded-[9px] bg-[#fafbfc] border border-[#e4e7ec]">
-                        <span className="text-[#8f99a8] block text-[10.5px] uppercase font-bold tracking-wider mb-0.5">
-                          Last Synchronized
-                        </span>
-                        <span className="font-medium text-[#1c1d1f] block">
-                          {gcalStatus.lastSyncedAt
-                            ? new Date(gcalStatus.lastSyncedAt).toLocaleString(undefined, {
-                                dateStyle: 'medium',
-                                timeStyle: 'short',
-                              })
-                            : 'Not yet synchronized'}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Auto-sync Toggle */}
-                    <div
-                      onClick={handleToggleAutoSync}
-                      className="flex items-center justify-between p-3.5 rounded-[10px] bg-[#fafbfc] border border-[#e4e7ec] cursor-pointer hover:bg-[#f5f7fa] transition-colors select-none"
-                    >
-                      <div className="pr-3">
-                        <span className="text-[12px] font-semibold text-[#1c1d1f] block">
-                          Auto-sync Activities
-                        </span>
-                        <span className="text-[11px] text-[#6f7988] block">
-                          Automatically push scheduled calls, meetings, and follow-ups to Google Calendar as they are logged or modified.
-                        </span>
-                      </div>
-                      <div className="shrink-0">
-                        <button
-                          type="button"
-                          disabled={togglingAutoSync}
-                          aria-label="Toggle Auto-sync"
-                          className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                            gcalStatus.autoSync ? 'bg-[#266df0]' : 'bg-[#d0d5dd]'
-                          }`}
-                        >
-                          <span
-                            className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                              gcalStatus.autoSync ? 'translate-x-4' : 'translate-x-0'
-                            }`}
-                          />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Action buttons: Sync Now + Disconnect */}
-                    <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
-                      <button
-                        type="button"
-                        onClick={handleSyncNow}
-                        disabled={syncing}
-                        className="px-3.5 py-2 bg-[#232529] hover:bg-[#101113] text-white text-[12px] font-semibold rounded-[8px] transition-colors flex items-center gap-1.5 disabled:opacity-50 cursor-pointer shadow-xs"
-                      >
-                        <RefreshCw size={13} className={syncing ? 'animate-spin' : ''} />
-                        <span>{syncing ? 'Syncing...' : 'Sync Now'}</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={handleDisconnectGcal}
-                        disabled={disconnecting}
-                        className="px-3 py-2 text-[12px] font-medium text-[#d92d20] hover:bg-[#fff1f0] border border-[#fda29b]/40 rounded-[8px] transition-colors flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
-                      >
-                        {disconnecting ? (
-                          <Loader2 size={13} className="animate-spin" />
-                        ) : (
-                          <Unlink size={13} />
-                        )}
-                        <span>Disconnect</span>
-                      </button>
-                    </div>
-                  </>
-                ) : gcalStatus?.configured ? (
-                  <>
-                    <p className="text-[12px] text-[#505967] leading-relaxed">
-                      Your Google OAuth credentials are ready. Connect your account to automatically synchronize meetings, appointments, and deal deadlines directly with your Google Calendar.
-                    </p>
-                    <div>
-                      <button
-                        type="button"
-                        onClick={handleConnectGcal}
-                        disabled={connecting}
-                        className="px-4 py-2.5 bg-[#266df0] hover:bg-[#1f5acc] text-white text-[12px] font-semibold rounded-[9px] transition-colors flex items-center gap-2 shadow-xs cursor-pointer disabled:opacity-50"
-                      >
-                        {connecting ? (
-                          <Loader2 size={14} className="animate-spin" />
-                        ) : (
-                          <Calendar size={14} />
-                        )}
-                        <span>Connect Google Calendar</span>
-                      </button>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-[12px] text-[#505967] leading-relaxed">
-                      To enable automated two-way synchronization, configure your Google OAuth 2.0 API credentials in your CRM environment.
-                    </p>
-
-                    {/* Setup Environment Variables Help Box */}
-                    <div className="p-3.5 rounded-[9px] bg-[#fafbfc] border border-[#e4e7ec] space-y-2">
-                      <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-[#505967]">
-                        <KeyRound size={13} className="text-[#8f99a8]" />
-                        <span>Required Environment Variables (.env)</span>
-                      </div>
-                      <div className="font-mono text-[11px] bg-[#1c1d1f] text-[#d6e4fd] p-2.5 rounded-[7px] overflow-x-auto space-y-1">
-                        <div><span className="text-[#85b7eb]">GOOGLE_CLIENT_ID</span>=&quot;your-client-id.apps.googleusercontent.com&quot;</div>
-                        <div><span className="text-[#85b7eb]">GOOGLE_CLIENT_SECRET</span>=&quot;your-client-secret&quot;</div>
-                      </div>
-                      <p className="text-[11px] text-[#8f99a8] leading-normal">
-                        Create credentials in Google Cloud Console with authorized redirect URI:{' '}
-                        <code className="text-[#1c1d1f] font-mono font-medium">/api/integrations/google-calendar/callback</code>
-                      </p>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* 1-CLICK INSTANT FALLBACK HIGHLIGHT BANNER */}
-            <div className="p-4 rounded-[12px] bg-[#f0f9ff] border border-[#b9e6fe] text-[#026aa2] space-y-1.5">
-              <div className="flex items-center gap-2">
-                <Sparkles size={15} className="text-[#0284c7] shrink-0" />
-                <h4 className="text-[12.5px] font-bold text-[#0c4a6e] tracking-tight">
-                  Instant 1-Click Calendar Links (Zero Setup Required)
-                </h4>
-              </div>
-              <p className="text-[11.5px] text-[#0369a1] leading-relaxed">
-                Even without Google OAuth API keys or configuration, <strong>1-click fallback Google Calendar links work immediately</strong>! Whenever you view or schedule an activity or deal follow-up, click the <span className="font-semibold">&quot;Add to Google Calendar&quot;</span> button to instantly create a pre-filled event in your browser with title, notes, and dates.
-              </p>
-            </div>
+            <p className="text-[12px] text-[#6f7988] leading-relaxed">
+              Need a single event instead? Each deal page has an <span className="font-semibold text-[#1c1d1f]">Add to Google Calendar</span> link for its next action.
+            </p>
 
             {/* MODAL FOOTER */}
             <div className="pt-2 flex items-center justify-end border-t border-[#f0f1f3]">

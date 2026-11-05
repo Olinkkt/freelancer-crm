@@ -1,14 +1,14 @@
-import { sql } from 'kysely'
+import { Kysely } from 'kysely'
+import { normalizeDueDate } from '@/lib/due-date'
 import { db } from './client'
+import { Database } from './schema'
 import { ensureDbInitialized } from './init'
 import {
   Deal,
   Contact,
-  Company,
   Activity,
   FollowUpItem,
   DealStage,
-  STAGE_DEFAULT_PROBABILITIES,
   WorkspaceData,
   DeliverableItem,
   InvoiceMilestone,
@@ -30,24 +30,71 @@ function generateId(prefix: string): string {
   return `${prefix}-${Date.now()}-${rand}`
 }
 
+const normalize = (v: string | null | undefined) => (v ? v.trim().toLowerCase() : '')
+
+/**
+ * Every deal belongs to a client (person). Resolves the client by id, then by
+ * email, then by name; creates the client when none matches.
+ */
+async function resolveDealClient(
+  executor: Kysely<Database>,
+  input: { contactId?: string | null; contactName?: string | null; contactEmail?: string | null }
+): Promise<{ id: string; name: string; email: string }> {
+  if (input.contactId) {
+    const byId = await executor
+      .selectFrom('contacts')
+      .select(['id', 'name', 'email'])
+      .where('id', '=', input.contactId)
+      .executeTakeFirst()
+    if (byId) return byId
+  }
+
+  const name = input.contactName?.trim() || ''
+  const email = input.contactEmail?.trim() || ''
+  if (!name && !email) {
+    throw new Error('Client is required')
+  }
+
+  const all = await executor.selectFrom('contacts').select(['id', 'name', 'email']).execute()
+  const match =
+    (email && all.find((c) => normalize(c.email) === normalize(email))) ||
+    (name && all.find((c) => normalize(c.name) === normalize(name)))
+  if (match) return match
+
+  const now = new Date().toISOString()
+  const created = { id: generateId('cont'), name: name || email, email }
+  await executor
+    .insertInto('contacts')
+    .values({
+      id: created.id,
+      name: created.name,
+      email: created.email,
+      phone: null,
+      notes: null,
+      deals: 0,
+      last_touch: 'Today',
+      color: 'blue',
+      created_at: now,
+      updated_at: now,
+    })
+    .execute()
+  return created
+}
+
 export function mapDealRow(r: any): Deal {
   const stage = (r.stage as DealStage) || 'Lead'
-  const probability = (r.probability === '20%' && stage !== 'Lead')
-    ? (STAGE_DEFAULT_PROBABILITIES[stage] || r.probability)
-    : (r.probability || STAGE_DEFAULT_PROBABILITIES[stage] || '20%')
 
   return {
     id: r.id,
     title: r.title,
-    company: r.company,
     value: r.value,
     rawAmount: Number(r.raw_amount) || 0,
     stage,
-    probability,
     next: r.next,
     nextDueDate: r.next_due_date ?? undefined,
     color: (r.color as Deal['color']) || 'blue',
-    contactName: r.contact_name ?? undefined,
+    contactId: r.contact_id ?? undefined,
+    contactName: r.contact_name ?? '',
     contactEmail: r.contact_email ?? undefined,
     notes: r.notes ?? undefined,
     startDate: r.start_date ?? undefined,
@@ -64,9 +111,8 @@ export function mapDealRow(r: any): Deal {
 export async function getWorkspaceData(): Promise<WorkspaceData> {
   await ensureDbInitialized()
 
-  const [dealRows, companyRows, contactRows, activityRows, followUpRows, settingsRow] = await Promise.all([
+  const [dealRows, contactRows, activityRows, followUpRows, settingsRow] = await Promise.all([
     db.selectFrom('deals').selectAll().orderBy('created_at', 'desc').execute(),
-    db.selectFrom('companies').selectAll().orderBy('name', 'asc').execute(),
     db.selectFrom('contacts').selectAll().orderBy('name', 'asc').execute(),
     db.selectFrom('activities').selectAll().orderBy('created_at', 'desc').execute(),
     db.selectFrom('follow_ups').selectAll().orderBy('created_at', 'desc').execute(),
@@ -75,25 +121,12 @@ export async function getWorkspaceData(): Promise<WorkspaceData> {
 
   const deals: Deal[] = dealRows.map(mapDealRow)
 
-  const companies: Company[] = companyRows.map((r) => ({
-    id: r.id,
-    name: r.name,
-    type: r.type,
-    contact: r.contact,
-    email: r.email,
-    deals: Number(r.deals) || 0,
-    value: r.value,
-    status: r.status as Company['status'],
-    color: r.color as Company['color'],
-  }))
-
   const contacts: Contact[] = contactRows.map((r) => ({
     id: r.id,
     name: r.name,
-    role: r.role && r.role.trim() !== '' ? r.role : null,
-    company: r.company,
     email: r.email,
     phone: r.phone ?? undefined,
+    notes: r.notes ?? undefined,
     deals: Number(r.deals) || 0,
     lastTouch: r.last_touch,
     color: r.color as Contact['color'],
@@ -122,29 +155,6 @@ export async function getWorkspaceData(): Promise<WorkspaceData> {
     completed: Boolean(r.completed),
   }))
 
-  // Ensure that if a company has only one contact, that contact is primary
-  for (const comp of companies) {
-    const compContacts = contacts.filter(
-      (c) => c.company.trim().toLowerCase() === comp.name.trim().toLowerCase()
-    )
-    if (compContacts.length === 1) {
-      const single = compContacts[0]
-      if (comp.contact !== single.name || comp.email !== single.email) {
-        comp.contact = single.name
-        comp.email = single.email || ''
-        db.updateTable('companies')
-          .set({
-            contact: single.name,
-            email: single.email || '',
-            updated_at: new Date().toISOString(),
-          })
-          .where('id', '=', comp.id)
-          .execute()
-          .catch(() => {})
-      }
-    }
-  }
-
   const settings: WorkspaceSettings | undefined = settingsRow
     ? {
         operatorName: settingsRow.operator_name,
@@ -160,213 +170,10 @@ export async function getWorkspaceData(): Promise<WorkspaceData> {
 
   return {
     deals,
-    companies,
     contacts,
     activities,
     followUps,
     settings,
-  }
-}
-
-// -------------------------------------------------------------
-// COMPANY METRICS & PRIMARY CONTACT SYNC
-// -------------------------------------------------------------
-export async function syncCompanyPrimaryContact(companyName: string): Promise<void> {
-  const name = companyName.trim()
-  if (!name) return
-
-  const contacts = await db
-    .selectFrom('contacts')
-    .select(['id', 'name', 'email'])
-    .where((eb) =>
-      eb.or([
-        eb('company', '=', name),
-        eb(sql`lower(company)`, '=', name.toLowerCase()),
-      ])
-    )
-    .execute()
-
-  if (contacts.length === 1) {
-    // Exactly one contact in company -> make this one the primary!
-    const single = contacts[0]
-    await db
-      .updateTable('companies')
-      .set({
-        contact: single.name,
-        email: single.email || '',
-        updated_at: new Date().toISOString(),
-      })
-      .where((eb) =>
-        eb.or([
-          eb('name', '=', name),
-          eb(sql`lower(name)`, '=', name.toLowerCase()),
-        ])
-      )
-      .execute()
-  } else if (contacts.length === 0) {
-    // 0 contacts exist -> clear primary contact
-    await db
-      .updateTable('companies')
-      .set({
-        contact: '',
-        email: '',
-        updated_at: new Date().toISOString(),
-      })
-      .where((eb) =>
-        eb.or([
-          eb('name', '=', name),
-          eb(sql`lower(name)`, '=', name.toLowerCase()),
-        ])
-      )
-      .execute()
-  } else {
-    // 2 or more contacts: check if current company.contact is still a valid contact
-    const comp = await db
-      .selectFrom('companies')
-      .select(['contact'])
-      .where((eb) =>
-        eb.or([
-          eb('name', '=', name),
-          eb(sql`lower(name)`, '=', name.toLowerCase()),
-        ])
-      )
-      .executeTakeFirst()
-
-    const hasValidPrimary = comp && contacts.some((c) => c.name === comp.contact)
-    if (!hasValidPrimary) {
-      // Default to first contact if current primary was deleted or not set
-      await db
-        .updateTable('companies')
-        .set({
-          contact: contacts[0].name,
-          email: contacts[0].email || '',
-          updated_at: new Date().toISOString(),
-        })
-        .where((eb) =>
-          eb.or([
-            eb('name', '=', name),
-            eb(sql`lower(name)`, '=', name.toLowerCase()),
-          ])
-        )
-        .execute()
-    }
-  }
-}
-
-export async function setPrimaryContact(
-  companyName: string,
-  contactId: string
-): Promise<Company | null> {
-  await ensureDbInitialized()
-  const name = companyName.trim()
-  const contact = await db
-    .selectFrom('contacts')
-    .select(['id', 'name', 'email'])
-    .where('id', '=', contactId)
-    .executeTakeFirst()
-
-  if (!contact) return null
-
-  await db
-    .updateTable('companies')
-    .set({
-      contact: contact.name,
-      email: contact.email || '',
-      updated_at: new Date().toISOString(),
-    })
-    .where((eb) =>
-      eb.or([
-        eb('name', '=', name),
-        eb(sql`lower(name)`, '=', name.toLowerCase()),
-      ])
-    )
-    .execute()
-
-  const updated = await db
-    .selectFrom('companies')
-    .selectAll()
-    .where((eb) =>
-      eb.or([
-        eb('name', '=', name),
-        eb(sql`lower(name)`, '=', name.toLowerCase()),
-      ])
-    )
-    .executeTakeFirst()
-
-  if (!updated) return null
-
-  return {
-    id: updated.id,
-    name: updated.name,
-    type: updated.type,
-    contact: updated.contact,
-    email: updated.email,
-    deals: Number(updated.deals) || 0,
-    value: updated.value,
-    status: updated.status as Company['status'],
-    color: updated.color as Company['color'],
-  }
-}
-
-export async function syncCompanyMetrics(companyName: string): Promise<void> {
-  if (!companyName.trim()) return
-
-  const deals = await db
-    .selectFrom('deals')
-    .select(['raw_amount', 'value'])
-    .where('company', '=', companyName.trim())
-    .execute()
-
-  const dealsCount = deals.length
-  const totalAmount = deals.reduce((sum, d) => sum + (Number(d.raw_amount) || 0), 0)
-  const settings = await getWorkspaceSettings()
-  const fallback = settings || OPERATOR_CONFIG
-  const formattedValue = formatMoney(totalAmount, fallback)
-
-  await db
-    .updateTable('companies')
-    .set({
-      deals: dealsCount,
-      value: formattedValue,
-      updated_at: new Date().toISOString(),
-    })
-    .where('name', '=', companyName.trim())
-    .execute()
-}
-
-// Auto-register company if not exists
-export async function ensureCompanyExists(companyName: string, contactName?: string, contactEmail?: string): Promise<void> {
-  const name = companyName.trim()
-  if (!name) return
-
-  const existing = await db
-    .selectFrom('companies')
-    .select('id')
-    .where('name', '=', name)
-    .executeTakeFirst()
-
-  if (!existing) {
-    const now = new Date().toISOString()
-    const settings = await getWorkspaceSettings()
-    const fallback = settings || OPERATOR_CONFIG
-    const zeroVal = formatMoney(0, fallback)
-
-    await db
-      .insertInto('companies')
-      .values({
-        id: generateId('comp'),
-        name,
-        type: 'Client',
-        contact: contactName || '',
-        email: contactEmail || '',
-        deals: 0,
-        value: zeroVal,
-        status: 'Active',
-        color: 'blue',
-        created_at: now,
-        updated_at: now,
-      })
-      .execute()
   }
 }
 
@@ -398,42 +205,25 @@ export async function createDeal(dealData: Omit<Deal, 'id'>): Promise<Deal> {
   const fallback = settings || OPERATOR_CONFIG
   const defaultValue = formatMoney(rawAmount, fallback)
 
-  const isPaid = dealData.stage === 'Paid'
-  const nextAction = isPaid ? '' : (dealData.next || '')
-  const nextDueDate = isPaid ? null : (dealData.nextDueDate || null)
+  const nextAction = dealData.next || ''
+  const nextDueDate = normalizeDueDate(dealData.nextDueDate)
 
-  let contactName = dealData.contactName || null
-  let contactEmail = dealData.contactEmail || null
-
-  if (!contactName || !contactEmail) {
-    const existingContact = await db
-      .selectFrom('contacts')
-      .select(['name', 'email'])
-      .where('company', '=', dealData.company.trim())
-      .executeTakeFirst()
-
-    if (existingContact) {
-      if (!contactName) contactName = existingContact.name
-      if (!contactEmail) contactEmail = existingContact.email || null
-    }
-  }
-
-  await ensureCompanyExists(dealData.company, contactName || undefined, contactEmail || undefined)
+  const client = await resolveDealClient(db, dealData)
+  const contactName = client.name
+  const contactEmail = client.email || null
 
   await db
     .insertInto('deals')
     .values({
       id,
       title: dealData.title,
-      company: dealData.company,
-      company_id: null,
       value: dealData.value || defaultValue,
       raw_amount: rawAmount,
       stage: dealData.stage,
-      probability: dealData.probability || '30%',
       next: nextAction,
       next_due_date: nextDueDate,
       color: dealData.color || 'blue',
+      contact_id: client.id,
       contact_name: contactName,
       contact_email: contactEmail,
       notes: dealData.notes || null,
@@ -446,16 +236,16 @@ export async function createDeal(dealData: Omit<Deal, 'id'>): Promise<Deal> {
     })
     .execute()
 
-  await syncCompanyMetrics(dealData.company)
 
   return {
     ...dealData,
     id,
     value: dealData.value || defaultValue,
-    contactName: contactName || undefined,
+    contactId: client.id,
+    contactName,
     contactEmail: contactEmail || undefined,
     next: nextAction,
-    nextDueDate: isPaid ? undefined : dealData.nextDueDate,
+    nextDueDate: dealData.nextDueDate,
     createdAt: now,
     deliverables: dealData.deliverables || [],
     invoices: dealData.invoices || [],
@@ -481,7 +271,7 @@ export async function updateDeal(deal: Deal): Promise<Deal | null> {
 
   const oldDeal = await db
     .selectFrom('deals')
-    .select('company')
+    .select(['id', 'contact_id', 'contact_name', 'contact_email'])
     .where('id', '=', deal.id)
     .executeTakeFirst()
 
@@ -492,24 +282,29 @@ export async function updateDeal(deal: Deal): Promise<Deal | null> {
   const now = new Date().toISOString()
   const rawAmount = Number(deal.rawAmount) || 0
 
-  const isPaid = deal.stage === 'Paid'
-  const nextAction = isPaid ? '' : (deal.next || '')
-  const nextDueDate = isPaid ? null : (deal.nextDueDate || null)
+  const nextAction = deal.next || ''
+  const nextDueDate = normalizeDueDate(deal.nextDueDate)
+  const clientGiven = !!(deal.contactId || deal.contactName?.trim() || deal.contactEmail?.trim())
+  const client = await resolveDealClient(
+    db,
+    clientGiven
+      ? deal
+      : { contactId: oldDeal.contact_id, contactName: oldDeal.contact_name, contactEmail: oldDeal.contact_email }
+  )
 
   await db
     .updateTable('deals')
     .set({
       title: deal.title,
-      company: deal.company,
       value: deal.value,
       raw_amount: rawAmount,
       stage: deal.stage,
-      probability: deal.probability,
       next: nextAction,
       next_due_date: nextDueDate,
       color: deal.color,
-      contact_name: deal.contactName || null,
-      contact_email: deal.contactEmail || null,
+      contact_id: client.id,
+      contact_name: client.name,
+      contact_email: client.email || null,
       notes: deal.notes || null,
       start_date: deal.startDate || null,
       end_date: deal.endDate || null,
@@ -520,15 +315,13 @@ export async function updateDeal(deal: Deal): Promise<Deal | null> {
     .where('id', '=', deal.id)
     .execute()
 
-  await syncCompanyMetrics(deal.company)
-  if (oldDeal && oldDeal.company && oldDeal.company !== deal.company) {
-    await syncCompanyMetrics(oldDeal.company)
-  }
-
   return {
     ...deal,
+    contactId: client.id,
+    contactName: client.name,
+    contactEmail: client.email || undefined,
     next: nextAction,
-    nextDueDate: isPaid ? undefined : deal.nextDueDate,
+    nextDueDate: deal.nextDueDate,
   }
 }
 
@@ -545,15 +338,16 @@ export async function getDealById(idOrSlug: string): Promise<Deal | null> {
     return mapDealRow(row)
   }
 
-  // Fallback: match by title or company, or slugified match
+  // Fallback: match by title or client name, or slugified match
   const allDeals = await db.selectFrom('deals').selectAll().execute()
   const normalizedSlug = idOrSlug.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
   const match = allDeals.find((d) => {
     if (d.title.toLowerCase() === idOrSlug.toLowerCase()) return true
-    if (d.company.toLowerCase() === idOrSlug.toLowerCase()) return true
+    const clientName = (d.contact_name || '').toLowerCase()
+    if (clientName && clientName === idOrSlug.toLowerCase()) return true
     const titleSlug = d.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-    const companySlug = d.company.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-    return titleSlug === normalizedSlug || companySlug === normalizedSlug
+    const clientSlug = clientName.replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+    return titleSlug === normalizedSlug || (!!clientSlug && clientSlug === normalizedSlug)
   })
 
   if (!match) return null
@@ -591,7 +385,7 @@ export async function deleteDeal(id: string): Promise<boolean> {
 
   const existing = await db
     .selectFrom('deals')
-    .select('company')
+    .select('id')
     .where('id', '=', id)
     .executeTakeFirst()
 
@@ -604,12 +398,9 @@ export async function deleteDeal(id: string): Promise<boolean> {
   await db.updateTable('activities').set({ deal_id: null }).where('deal_id', '=', id).execute()
   await db.updateTable('follow_ups').set({ deal_id: null }).where('deal_id', '=', id).execute()
 
-  await syncCompanyMetrics(existing.company)
-
   return true
 }
 
-export { STAGE_DEFAULT_PROBABILITIES }
 
 export async function moveDealStage(dealId: string, stage: DealStage): Promise<Deal | null> {
   await ensureDbInitialized()
@@ -622,38 +413,16 @@ export async function moveDealStage(dealId: string, stage: DealStage): Promise<D
 
   if (!existing) return null
 
-  const isClosedWon = stage === 'Won' || stage === 'Paid'
-  const isPaid = stage === 'Paid'
-  const newProbability = STAGE_DEFAULT_PROBABILITIES[stage] || (isClosedWon ? '100%' : existing.probability)
+  // Moving stages only changes the stage. Won = contract signed; the next
+  // action and deliverables carry over into project work untouched.
   const now = new Date().toISOString()
   const dealColor = (existing.color as Deal['color']) || 'blue'
-  const nextAction = isPaid ? '' : existing.next
-  const nextDueDate = isPaid ? null : existing.next_due_date
-
-  // Sync deliverables and invoices when advancing to Won or Paid
-  let currentInvoices = safeParseJson<InvoiceMilestone[]>(existing.invoices, [])
-  let currentDeliverables = safeParseJson<DeliverableItem[]>(existing.deliverables, [])
-
-  if (isClosedWon) {
-    if (isPaid && currentDeliverables.length > 0) {
-      currentDeliverables = currentDeliverables.map((d) => ({
-        ...d,
-        status: 'Done',
-        clientSignOff: true,
-      }))
-    }
-  }
 
   await db
     .updateTable('deals')
     .set({
       stage,
-      probability: newProbability,
       color: dealColor,
-      next: nextAction,
-      next_due_date: nextDueDate,
-      deliverables: currentDeliverables.length > 0 ? JSON.stringify(currentDeliverables) : existing.deliverables,
-      invoices: currentInvoices.length > 0 ? JSON.stringify(currentInvoices) : existing.invoices,
       updated_at: now,
     })
     .where('id', '=', dealId)
@@ -662,21 +431,20 @@ export async function moveDealStage(dealId: string, stage: DealStage): Promise<D
   return {
     id: existing.id,
     title: existing.title,
-    company: existing.company,
     value: existing.value,
     rawAmount: Number(existing.raw_amount) || 0,
     stage,
-    probability: newProbability,
-    next: nextAction,
-    nextDueDate: isPaid ? undefined : (existing.next_due_date ?? undefined),
+    next: existing.next,
+    nextDueDate: existing.next_due_date ?? undefined,
     color: dealColor,
-    contactName: existing.contact_name ?? undefined,
+    contactId: existing.contact_id ?? undefined,
+    contactName: existing.contact_name ?? '',
     contactEmail: existing.contact_email ?? undefined,
     notes: existing.notes ?? undefined,
     startDate: existing.start_date ?? undefined,
     endDate: existing.end_date ?? undefined,
     deliverables: safeParseJson<DeliverableItem[]>(existing.deliverables, []),
-    invoices: currentInvoices,
+    invoices: safeParseJson<InvoiceMilestone[]>(existing.invoices, []),
     createdAt: existing.created_at,
   }
 }
@@ -690,18 +458,14 @@ export async function createContact(contactData: Omit<Contact, 'id'>): Promise<C
   const id = generateId('cont')
   const now = new Date().toISOString()
 
-  await ensureCompanyExists(contactData.company, contactData.name, contactData.email)
-
   await db
     .insertInto('contacts')
     .values({
       id,
       name: contactData.name,
-      role: contactData.role || '',
-      company: contactData.company,
-      company_id: null,
       email: contactData.email || '',
       phone: contactData.phone || null,
+      notes: contactData.notes || null,
       deals: contactData.deals || 0,
       last_touch: contactData.lastTouch || 'Recently',
       color: contactData.color || 'blue',
@@ -710,12 +474,9 @@ export async function createContact(contactData: Omit<Contact, 'id'>): Promise<C
     })
     .execute()
 
-  await syncCompanyPrimaryContact(contactData.company)
-
   return {
     ...contactData,
     id,
-    role: contactData.role && contactData.role.trim() !== '' ? contactData.role : null,
   }
 }
 
@@ -724,7 +485,7 @@ export async function updateContact(contact: Contact): Promise<Contact | null> {
 
   const existing = await db
     .selectFrom('contacts')
-    .select(['company', 'name', 'email'])
+    .select('id')
     .where('id', '=', contact.id)
     .executeTakeFirst()
 
@@ -738,10 +499,9 @@ export async function updateContact(contact: Contact): Promise<Contact | null> {
     .updateTable('contacts')
     .set({
       name: contact.name,
-      role: contact.role || '',
-      company: contact.company,
       email: contact.email,
       phone: contact.phone || null,
+      notes: contact.notes || null,
       deals: contact.deals,
       last_touch: contact.lastTouch,
       color: contact.color,
@@ -750,111 +510,32 @@ export async function updateContact(contact: Contact): Promise<Contact | null> {
     .where('id', '=', contact.id)
     .execute()
 
-  await syncCompanyPrimaryContact(contact.company)
-  if (existing?.company && existing.company.trim().toLowerCase() !== contact.company.trim().toLowerCase()) {
-    await syncCompanyPrimaryContact(existing.company)
-  }
+  // Keep denormalized client name/email on the client's deals in sync
+  await db
+    .updateTable('deals')
+    .set({ contact_name: contact.name, contact_email: contact.email || null, updated_at: now })
+    .where('contact_id', '=', contact.id)
+    .execute()
 
-  return {
-    ...contact,
-    role: contact.role && contact.role.trim() !== '' ? contact.role : null,
-  }
+  return contact
 }
 
 export async function deleteContact(id: string): Promise<boolean> {
   await ensureDbInitialized()
 
-  const existing = await db
-    .selectFrom('contacts')
-    .select(['company'])
-    .where('id', '=', id)
+  const linkedDeal = await db
+    .selectFrom('deals')
+    .select('id')
+    .where('contact_id', '=', id)
     .executeTakeFirst()
+  if (linkedDeal) {
+    throw new Error('This client still has deals. Delete or reassign them first.')
+  }
 
   const result = await db.deleteFrom('contacts').where('id', '=', id).execute()
 
-  if (existing?.company) {
-    await syncCompanyPrimaryContact(existing.company)
-  }
-
   return Number(result[0]?.numDeletedRows ?? 0) > 0
 }
-
-// -------------------------------------------------------------
-// COMPANIES REPOSITORY
-// -------------------------------------------------------------
-export async function createCompany(companyData: Omit<Company, 'id'>): Promise<Company> {
-  await ensureDbInitialized()
-
-  const id = generateId('comp')
-  const now = new Date().toISOString()
-  const settings = await getWorkspaceSettings()
-  const fallback = settings || OPERATOR_CONFIG
-  const zeroVal = formatMoney(0, fallback)
-
-  await db
-    .insertInto('companies')
-    .values({
-      id,
-      name: companyData.name,
-      type: companyData.type || 'Client',
-      contact: companyData.contact || '',
-      email: companyData.email || '',
-      deals: companyData.deals || 0,
-      value: companyData.value || zeroVal,
-      status: companyData.status || 'Active',
-      color: companyData.color || 'blue',
-      created_at: now,
-      updated_at: now,
-    })
-    .execute()
-
-  return {
-    ...companyData,
-    id,
-  }
-}
-
-export async function updateCompany(company: Company): Promise<Company | null> {
-  await ensureDbInitialized()
-
-  const existing = await db
-    .selectFrom('companies')
-    .select('id')
-    .where('id', '=', company.id)
-    .executeTakeFirst()
-
-  if (!existing) {
-    return null
-  }
-
-  const now = new Date().toISOString()
-
-  await db
-    .updateTable('companies')
-    .set({
-      name: company.name,
-      type: company.type,
-      contact: company.contact,
-      email: company.email,
-      status: company.status,
-      color: company.color,
-      updated_at: now,
-    })
-    .where('id', '=', company.id)
-    .execute()
-
-  return company
-}
-
-export async function deleteCompany(id: string): Promise<boolean> {
-  await ensureDbInitialized()
-  // Unlink company from any deals and contacts
-  await db.updateTable('deals').set({ company_id: null }).where('company_id', '=', id).execute()
-  await db.updateTable('contacts').set({ company_id: null }).where('company_id', '=', id).execute()
-  const result = await db.deleteFrom('companies').where('id', '=', id).execute()
-  return Number(result[0]?.numDeletedRows ?? 0) > 0
-}
-
 
 // -------------------------------------------------------------
 // ACTIVITIES & FOLLOW-UPS REPOSITORY
@@ -959,7 +640,7 @@ export async function logActivity(
         : noteContent
 
       const newNext = followUpData?.action || existingDealRow.next
-      const newNextDueDate = followUpData?.time || existingDealRow.next_due_date
+      const newNextDueDate = normalizeDueDate(followUpData?.time) || existingDealRow.next_due_date
 
       await db
         .updateTable('deals')
@@ -975,15 +656,14 @@ export async function logActivity(
       updatedDeal = {
         id: existingDealRow.id,
         title: existingDealRow.title,
-        company: existingDealRow.company,
         value: existingDealRow.value,
         rawAmount: Number(existingDealRow.raw_amount) || 0,
         stage: existingDealRow.stage as DealStage,
-        probability: existingDealRow.probability,
         next: newNext,
         nextDueDate: newNextDueDate ?? undefined,
         color: (existingDealRow.color as Deal['color']) || 'blue',
-        contactName: existingDealRow.contact_name ?? undefined,
+        contactId: existingDealRow.contact_id ?? undefined,
+        contactName: existingDealRow.contact_name ?? '',
         contactEmail: existingDealRow.contact_email ?? undefined,
         notes: newNotes,
         startDate: existingDealRow.start_date ?? undefined,
@@ -1364,14 +1044,12 @@ export async function regenerateCalendarFeedToken(): Promise<string> {
 // -------------------------------------------------------------
 export async function restoreWorkspaceData(snapshot: {
   deals?: Deal[]
-  companies?: Company[]
   contacts?: Contact[]
   activities?: Activity[]
   followUps?: FollowUpItem[]
   settings?: WorkspaceSettings
 }): Promise<{
   dealsCount: number
-  companiesCount: number
   contactsCount: number
   activitiesCount: number
   followUpsCount: number
@@ -1379,7 +1057,6 @@ export async function restoreWorkspaceData(snapshot: {
   await ensureDbInitialized()
 
   const totalItems =
-    (snapshot.companies?.length ?? 0) +
     (snapshot.contacts?.length ?? 0) +
     (snapshot.deals?.length ?? 0) +
     (snapshot.activities?.length ?? 0) +
@@ -1390,9 +1067,6 @@ export async function restoreWorkspaceData(snapshot: {
   }
 
   const now = new Date().toISOString()
-  const settings = await getWorkspaceSettings()
-  const fallback = snapshot.settings || settings || OPERATOR_CONFIG
-  const zeroVal = formatMoney(0, fallback)
 
   return await db.transaction().execute(async (trx) => {
     // 1. Wipe existing tables cleanly inside transaction
@@ -1400,31 +1074,8 @@ export async function restoreWorkspaceData(snapshot: {
     await trx.deleteFrom('activities').execute()
     await trx.deleteFrom('deals').execute()
     await trx.deleteFrom('contacts').execute()
-    await trx.deleteFrom('companies').execute()
 
-    // 2. Insert companies
-    if (snapshot.companies && snapshot.companies.length > 0) {
-      for (const c of snapshot.companies) {
-        await trx
-          .insertInto('companies')
-          .values({
-            id: c.id,
-            name: c.name,
-            type: c.type || 'Direct Client',
-            contact: c.contact || '',
-            email: c.email || '',
-            deals: (c as any).deals ?? (c as any).dealsCount ?? 0,
-            value: (c as any).value || (c as any).pipelineVal || zeroVal,
-            status: c.status || 'Active',
-            color: (c.color as any) || 'blue',
-            created_at: now,
-            updated_at: now,
-          })
-          .execute()
-      }
-    }
-
-    // 3. Insert contacts
+    // 2. Insert contacts
     if (snapshot.contacts && snapshot.contacts.length > 0) {
       for (const ct of snapshot.contacts) {
         await trx
@@ -1432,11 +1083,9 @@ export async function restoreWorkspaceData(snapshot: {
           .values({
             id: ct.id,
             name: ct.name,
-            company: ct.company,
-            company_id: (ct as any).companyId ?? null,
-            role: ct.role ?? null,
             email: ct.email || '',
             phone: ct.phone ?? null,
+            notes: ct.notes ?? null,
             deals: ct.deals || 0,
             last_touch: ct.lastTouch || 'Today',
             color: (ct.color as any) || 'blue',
@@ -1447,25 +1096,24 @@ export async function restoreWorkspaceData(snapshot: {
       }
     }
 
-    // 4. Insert deals
+    // 3. Insert deals
     if (snapshot.deals && snapshot.deals.length > 0) {
       for (const d of snapshot.deals) {
+        const client = await resolveDealClient(trx, d)
         await trx
           .insertInto('deals')
           .values({
             id: d.id,
             title: d.title,
-            company: d.company,
-            company_id: (d as any).companyId ?? null,
             value: d.value,
             raw_amount: d.rawAmount ?? 0,
             stage: d.stage,
-            probability: d.probability,
             next: d.next,
             next_due_date: d.nextDueDate ?? null,
             color: d.color ?? 'blue',
-            contact_name: d.contactName ?? null,
-            contact_email: d.contactEmail ?? null,
+            contact_id: client.id,
+            contact_name: client.name,
+            contact_email: client.email || null,
             notes: d.notes ?? null,
             start_date: d.startDate ?? null,
             end_date: (d as any).endDate ?? null,
@@ -1478,7 +1126,7 @@ export async function restoreWorkspaceData(snapshot: {
       }
     }
 
-    // 5. Insert activities
+    // 4. Insert activities
     if (snapshot.activities && snapshot.activities.length > 0) {
       for (const a of snapshot.activities) {
         await trx
@@ -1500,7 +1148,7 @@ export async function restoreWorkspaceData(snapshot: {
       }
     }
 
-    // 6. Insert follow_ups
+    // 5. Insert follow_ups
     if (snapshot.followUps && snapshot.followUps.length > 0) {
       for (const f of snapshot.followUps) {
         await trx
@@ -1520,14 +1168,13 @@ export async function restoreWorkspaceData(snapshot: {
       }
     }
 
-    // 7. Update workspace settings if provided
+    // 6. Update workspace settings if provided
     if (snapshot.settings) {
       await updateWorkspaceSettings(snapshot.settings)
     }
 
     return {
       dealsCount: snapshot.deals?.length || 0,
-      companiesCount: snapshot.companies?.length || 0,
       contactsCount: snapshot.contacts?.length || 0,
       activitiesCount: snapshot.activities?.length || 0,
       followUpsCount: snapshot.followUps?.length || 0,

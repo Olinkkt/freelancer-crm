@@ -3,14 +3,24 @@ export type DealStage =
   | 'Qualified'
   | 'Proposal'
   | 'Won'
-  | 'Paid'
 
-export const STAGE_DEFAULT_PROBABILITIES: Record<DealStage, string> = {
-  Lead: '20%',
-  Qualified: '40%',
-  Proposal: '70%',
-  Won: '100%',
-  Paid: '100%',
+/**
+ * Pipeline stages in order — the single source for types, validation, filters,
+ * pickers and counts.
+ * Lead = first contact · Qualified = call + scope · Proposal = contract sent ·
+ * Won = contract signed (handoff to project work).
+ */
+export const DEAL_STAGES = ['Lead', 'Qualified', 'Proposal', 'Won'] as const satisfies readonly DealStage[]
+
+/** Stages a deal is still being won in (everything before Won) */
+export const OPEN_DEAL_STAGES: DealStage[] = DEAL_STAGES.filter((s) => s !== 'Won')
+
+/** One-line meaning of each stage, for helper copy */
+export const DEAL_STAGE_HINTS: Record<DealStage, string> = {
+  Lead: 'First contact',
+  Qualified: 'Call done, scope agreed',
+  Proposal: 'Contract sent',
+  Won: 'Contract signed, ready to start',
 }
 
 export interface DeliverableItem {
@@ -37,15 +47,15 @@ export interface InvoiceMilestone {
 export interface Deal {
   id: string
   title: string
-  company: string
   value: string
   rawAmount: number
   stage: DealStage
-  probability: string
   next: string
   nextDueDate?: string
   color: 'blue' | 'violet' | 'amber' | 'green'
-  contactName?: string
+  /** The client (person) this deal belongs to */
+  contactId?: string
+  contactName: string
   contactEmail?: string
   notes?: string
   createdAt?: string
@@ -58,24 +68,11 @@ export interface Deal {
 export interface Contact {
   id: string
   name: string
-  role?: string | null
-  company: string
   email: string
   phone?: string
+  notes?: string
   deals: number
   lastTouch: string
-  color: 'blue' | 'violet' | 'amber' | 'green'
-}
-
-export interface Company {
-  id: string
-  name: string
-  type: string
-  contact: string
-  email: string
-  deals: number
-  value: string
-  status: 'Active' | 'Prospect' | 'Inactive'
   color: 'blue' | 'violet' | 'amber' | 'green'
 }
 
@@ -119,7 +116,6 @@ export interface WorkspaceSettings {
 
 export interface WorkspaceData {
   deals: Deal[]
-  companies: Company[]
   contacts: Contact[]
   activities: Activity[]
   followUps: FollowUpItem[]

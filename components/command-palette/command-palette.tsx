@@ -8,9 +8,7 @@ import {
   PhoneCall,
   LayoutDashboard,
   WalletCards,
-  Building2,
   Users,
-  CalendarDays,
   Settings2,
   FileText,
   ArrowRight,
@@ -19,7 +17,6 @@ import {
   Command,
   CornerDownLeft,
   X,
-  Kanban,
   Keyboard,
   Clock,
   CheckCircle2,
@@ -27,9 +24,8 @@ import {
   Calculator,
   CheckSquare,
   Save,
-  ExternalLink,
 } from 'lucide-react'
-import { Deal, Contact, Company, Activity } from '@/lib/crm-types'
+import { Deal, Contact, Activity } from '@/lib/crm-types'
 import { ScratchpadEditor } from '../drawers/scratchpad-editor'
 import { formatMoney, OPERATOR_CONFIG } from '@/lib/config'
 
@@ -37,18 +33,15 @@ export type PaletteActionType =
   | 'navigate'
   | 'new_deal'
   | 'new_contact'
-  | 'log_call'
   | 'open_deal'
-  | 'open_project_workspace'
-  | 'open_company'
   | 'open_contact'
-  | 'toggle_kanban'
   | 'show_shortcuts'
   | 'open_scratchpad'
+  | 'open_deal_notes'
 
 export interface PaletteItem {
   id: string
-  category: 'Actions' | 'Notes' | 'Deals' | 'Contacts' | 'Companies' | 'Navigation'
+  category: 'Actions' | 'Notes' | 'Deals' | 'Clients' | 'Navigation'
   title: string
   subtitle?: string
   badge?: string
@@ -65,10 +58,10 @@ interface CommandPaletteProps {
   onSelectAction: (actionType: PaletteActionType, payload?: any) => void
   deals: Deal[]
   contacts: Contact[]
-  companies: Company[]
   onUpdateDeal?: (deal: Deal) => void
-  onSyncTodos?: (todos: string[], companyName?: string) => void
   onAddActivity?: (activity: Omit<Activity, 'id'>) => void
+  /** Open straight into the notes editor for this deal */
+  notesDealId?: string | null
 }
 
 export function CommandPalette({
@@ -77,10 +70,9 @@ export function CommandPalette({
   onSelectAction,
   deals,
   contacts,
-  companies,
   onUpdateDeal,
-  onSyncTodos,
   onAddActivity,
+  notesDealId,
 }: CommandPaletteProps) {
   const [query, setQuery] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
@@ -92,14 +84,20 @@ export function CommandPalette({
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
 
+  // Read deals through a ref so saving notes (which updates deals) doesn't
+  // reset the palette back to the main page mid-edit.
+  const dealsRef = useRef(deals)
+  dealsRef.current = deals
+
   // Focus input when opened and reset query
   useEffect(() => {
     if (isOpen) {
       setQuery('')
       setSelectedIndex(0)
       setSelectedCategory('All')
-      setSubpage('main')
-      const initialDeal = deals[0]
+      const notesDeal = notesDealId ? dealsRef.current.find((d) => d.id === notesDealId) : undefined
+      const initialDeal = notesDeal || dealsRef.current[0]
+      setSubpage(notesDeal ? 'scratchpad' : 'main')
       setTargetDealId(initialDeal?.id || 'general')
       setScratchpadNotes(initialDeal?.notes || '')
       setIsSavedToast(false)
@@ -108,7 +106,7 @@ export function CommandPalette({
       }, 30)
       return () => clearTimeout(timer)
     }
-  }, [isOpen, deals])
+  }, [isOpen, notesDealId])
 
   // Build searchable items
   const allItems: PaletteItem[] = useMemo(() => {
@@ -117,47 +115,10 @@ export function CommandPalette({
       {
         id: 'action-scratchpad',
         category: 'Notes',
-        title: 'Open Scratchpad & Meeting Notes',
-        subtitle: 'Fast slash-command notes, /call, /scope, /quote, /todo',
-        shortcut: 'Ctrl+N',
+        title: 'Open Scratchpad',
+        subtitle: 'Notes for a deal, or a general workspace note',
         icon: <FileText size={15} className="text-[#266df0]" />,
         actionType: 'open_scratchpad',
-      },
-      {
-        id: 'action-slash-call',
-        category: 'Notes',
-        title: '/call — Client Call Log',
-        subtitle: 'Insert timestamped call notes & decisions template',
-        icon: <PhoneCall size={15} className="text-[#266df0]" />,
-        actionType: 'open_scratchpad',
-        payload: { command: '/call' },
-      },
-      {
-        id: 'action-slash-scope',
-        category: 'Notes',
-        title: '/scope — Deliverables & Scope Checklist',
-        subtitle: 'Insert structured deliverables milestone checklist',
-        icon: <ListTodo size={15} className="text-[#805ad5]" />,
-        actionType: 'open_scratchpad',
-        payload: { command: '/scope' },
-      },
-      {
-        id: 'action-slash-quote',
-        category: 'Notes',
-        title: '/quote — Commercial Quote Calculation',
-        subtitle: 'Insert 50% deposit and commercial terms breakdown',
-        icon: <Calculator size={15} className="text-[#43a878]" />,
-        actionType: 'open_scratchpad',
-        payload: { command: '/quote' },
-      },
-      {
-        id: 'action-slash-todo',
-        category: 'Notes',
-        title: '/todo — Next Action Item',
-        subtitle: 'Insert action item that syncs directly to dashboard follow-ups',
-        icon: <CheckSquare size={15} className="text-[#c4882b]" />,
-        actionType: 'open_scratchpad',
-        payload: { command: '/todo' },
       },
 
       // Quick Actions
@@ -165,7 +126,7 @@ export function CommandPalette({
         id: 'action-new-deal',
         category: 'Actions',
         title: 'Create new deal',
-        subtitle: 'Quick capture pipeline opportunity',
+        subtitle: 'Add a deal to a client',
         shortcut: 'N',
         icon: <PlusCircle size={15} className="text-[#266df0]" />,
         actionType: 'new_deal',
@@ -173,20 +134,11 @@ export function CommandPalette({
       {
         id: 'action-new-contact',
         category: 'Actions',
-        title: 'Add new contact',
+        title: 'Add new client',
         subtitle: 'Create a stakeholder or lead in directory',
         shortcut: 'C',
         icon: <UserPlus size={15} className="text-[#6f7988]" />,
         actionType: 'new_contact',
-      },
-      {
-        id: 'action-log-call',
-        category: 'Actions',
-        title: 'Log call or meeting note',
-        subtitle: 'Fast interaction & next action scratchpad',
-        shortcut: 'L',
-        icon: <PhoneCall size={15} className="text-[#6f7988]" />,
-        actionType: 'log_call',
       },
       {
         id: 'action-shortcuts',
@@ -197,76 +149,37 @@ export function CommandPalette({
         icon: <Keyboard size={15} className="text-[#6f7988]" />,
         actionType: 'show_shortcuts',
       },
-      {
-        id: 'action-switch-kanban',
-        category: 'Actions',
-        title: 'Open Deals & Pipeline (Kanban)',
-        subtitle: 'Visual stage columns with hotkey navigation',
-        shortcut: 'G P',
-        icon: <Kanban size={15} className="text-[#266df0]" />,
-        actionType: 'toggle_kanban',
-      },
 
       // Navigation
       {
         id: 'nav-dashboard',
         category: 'Navigation',
-        title: 'Go to Dashboard',
+        title: 'Go to Home',
         subtitle: 'Overview, today’s follow-ups & metrics',
         shortcut: 'G D',
         icon: <LayoutDashboard size={15} className="text-[#6f7988]" />,
         actionType: 'navigate',
-        payload: 'Dashboard',
+        payload: 'Home',
       },
       {
         id: 'nav-deals',
         category: 'Navigation',
-        title: 'Go to Deals & Pipeline',
-        subtitle: 'Active opportunities, Kanban board & values',
+        title: 'Go to Deals',
+        subtitle: 'All deals, filterable by stage',
         shortcut: 'G P',
         icon: <WalletCards size={15} className="text-[#266df0]" />,
         actionType: 'navigate',
         payload: 'Deals',
       },
       {
-        id: 'nav-companies',
+        id: 'nav-clients',
         category: 'Navigation',
-        title: 'Go to Companies',
-        subtitle: 'Client accounts, industry types & accounts',
-        shortcut: 'G C',
-        icon: <Building2 size={15} className="text-[#6f7988]" />,
-        actionType: 'navigate',
-        payload: 'Companies',
-      },
-      {
-        id: 'nav-contacts',
-        category: 'Navigation',
-        title: 'Go to Contacts',
+        title: 'Go to Clients',
         subtitle: 'Client stakeholders, founders & emails',
         shortcut: 'G U',
         icon: <Users size={15} className="text-[#6f7988]" />,
         actionType: 'navigate',
-        payload: 'Contacts',
-      },
-      {
-        id: 'nav-calendar',
-        category: 'Navigation',
-        title: 'Go to Calendar',
-        subtitle: 'Weekly schedule, meetings & milestone timeline',
-        shortcut: 'G K',
-        icon: <CalendarDays size={15} className="text-[#266df0]" />,
-        actionType: 'navigate',
-        payload: 'Calendar',
-      },
-      {
-        id: 'nav-activities',
-        category: 'Navigation',
-        title: 'Go to Activities',
-        subtitle: 'Call logs, touch history & timeline',
-        shortcut: 'G A',
-        icon: <FileText size={15} className="text-[#6f7988]" />,
-        actionType: 'navigate',
-        payload: 'Activities',
+        payload: 'Clients',
       },
       {
         id: 'nav-settings',
@@ -287,62 +200,42 @@ export function CommandPalette({
         category: 'Deals',
         title: deal.title,
         subtitle:
-          deal.stage === 'Paid' || !deal.next
-            ? `${deal.company} • ${deal.stage}`
-            : `${deal.company} • ${deal.stage} • Next: ${deal.next}`,
+          !deal.next
+            ? `${deal.contactName} • ${deal.stage}`
+            : `${deal.contactName} • ${deal.stage} • Next: ${deal.next}`,
         badge: deal.value,
         color: deal.color,
         icon: (
           <span className="w-5 h-5 rounded-[6px] flex items-center justify-center text-[10px] font-semibold bg-[#e9f0ff] text-[#266df0] shrink-0">
-            {deal.company.charAt(0)}
+            {deal.contactName.charAt(0)}
           </span>
         ),
         actionType: 'open_deal',
         payload: deal,
       })
+    })
 
-      // Full workspace subpage jump
+    // Deal notes: type a deal or client name to jump straight into its notes
+    deals.forEach((deal) => {
+      const firstLine = deal.notes?.trim().split('\n')[0]
       items.push({
-        id: `deal-workspace-${deal.id}`,
-        category: 'Deals',
-        title: `${deal.title} — Full Project Workspace`,
-        subtitle: `Deliverables, milestones & billing for ${deal.company}`,
-        badge: 'Workspace ↗',
-        color: deal.color,
-        icon: <ExternalLink size={14} className="text-[#266df0] shrink-0" />,
-        actionType: 'open_project_workspace',
-        payload: deal,
+        id: `deal-notes-${deal.id}`,
+        category: 'Notes',
+        title: `Notes: ${deal.title}`,
+        subtitle: `${deal.contactName} • ${firstLine || 'No notes yet'}`,
+        icon: <FileText size={15} className="text-[#6f7988]" />,
+        actionType: 'open_deal_notes',
+        payload: deal.id,
       })
     })
 
-    // Add Companies
-    companies.forEach((comp) => {
-      items.push({
-        id: `comp-${comp.id}`,
-        category: 'Companies',
-        title: comp.name,
-        subtitle: `${comp.type} • Contact: ${comp.contact} (${comp.deals} deal${comp.deals !== 1 ? 's' : ''})`,
-        badge: comp.status,
-        color: comp.color,
-        icon: (
-          <span className="w-5 h-5 rounded-[6px] flex items-center justify-center text-[10px] font-semibold bg-[#f0f2f5] text-[#232529] shrink-0">
-            {comp.name.charAt(0)}
-          </span>
-        ),
-        actionType: 'open_company',
-        payload: comp,
-      })
-    })
-
-    // Add Contacts
+    // Add Clients
     contacts.forEach((contact) => {
       items.push({
         id: `contact-${contact.id}`,
-        category: 'Contacts',
+        category: 'Clients',
         title: contact.name,
-        subtitle: contact.role
-          ? `${contact.role} at ${contact.company} • ${contact.email}`
-          : `${contact.company} • ${contact.email}`,
+        subtitle: [contact.email, contact.phone].filter(Boolean).join(' • '),
         badge: contact.lastTouch,
         color: contact.color,
         icon: (
@@ -356,7 +249,7 @@ export function CommandPalette({
     })
 
     return items
-  }, [deals, companies, contacts])
+  }, [deals, contacts])
 
   // Filter items by query and category
   const filteredItems = useMemo(() => {
@@ -376,7 +269,7 @@ export function CommandPalette({
       targetCategory = 'Actions'
       searchTerm = cleanQuery.slice(1).trim()
     } else if (cleanQuery.startsWith('@')) {
-      targetCategory = 'Contacts'
+      targetCategory = 'Clients'
       searchTerm = cleanQuery.slice(1).trim()
     } else if (cleanQuery.startsWith('#')) {
       targetCategory = 'Deals'
@@ -422,32 +315,18 @@ export function CommandPalette({
   }
 
   const handleSaveNotes = () => {
-    if (!scratchpadNotes.trim()) return
 
     const now = new Date()
     const timeStr = 'Today, ' + now.toLocaleTimeString(OPERATOR_CONFIG.locale || 'en-US', { hour: '2-digit', minute: '2-digit' })
 
     if (targetDealId && targetDealId !== 'general') {
       const d = deals.find((x) => x.id === targetDealId)
-      if (d) {
-        if (onUpdateDeal) {
-          onUpdateDeal({ ...d, notes: scratchpadNotes })
-        }
-        if (onAddActivity) {
-          onAddActivity({
-            dealId: d.id,
-            type: 'Meeting',
-            title: `${d.company} Meeting Note`,
-            person: d.contactName || d.company,
-            company: d.company,
-            date: timeStr,
-            status: 'Completed',
-            color: d.color || 'blue',
-            summary: scratchpadNotes.trim(),
-          })
-        }
+      // Deal notes live on the deal itself; saving doesn't log an activity
+      if (d && onUpdateDeal) {
+        onUpdateDeal({ ...d, notes: scratchpadNotes })
       }
     } else if (targetDealId === 'general') {
+      if (!scratchpadNotes.trim()) return
       if (onAddActivity) {
         onAddActivity({
           type: 'Note',
@@ -464,13 +343,6 @@ export function CommandPalette({
 
     setIsSavedToast(true)
     setTimeout(() => setIsSavedToast(false), 2500)
-  }
-
-  const handleSyncTodosFromScratchpad = (todos: string[]) => {
-    if (onSyncTodos) {
-      const targetDeal = deals.find((d) => d.id === targetDealId)
-      onSyncTodos(todos, targetDeal?.company || 'Workspace')
-    }
   }
 
   // Keyboard navigation within the palette
@@ -505,7 +377,7 @@ export function CommandPalette({
     } else if (e.key === 'Tab') {
       // Cycle through categories
       e.preventDefault()
-      const categories = ['All', 'Notes', 'Actions', 'Deals', 'Contacts', 'Companies', 'Navigation']
+      const categories = ['All', 'Notes', 'Actions', 'Deals', 'Clients', 'Navigation']
       const currentIndex = categories.indexOf(selectedCategory)
       const nextIndex = e.shiftKey
         ? (currentIndex - 1 + categories.length) % categories.length
@@ -517,27 +389,11 @@ export function CommandPalette({
   const executeItem = (item: PaletteItem) => {
     if (item.actionType === 'open_scratchpad') {
       setSubpage('scratchpad')
-      if (item.payload?.command) {
-        const cmd = item.payload.command
-        const targetDeal = deals.find((d) => d.id === targetDealId)
-        let snippet = ''
-        if (cmd === '/call') {
-          const nowStr = new Date().toLocaleDateString(OPERATOR_CONFIG.locale || 'en-US', {
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-          })
-          snippet = `### 📞 Client Call — ${nowStr}\n- **Client:** ${targetDeal?.contactName || targetDeal?.company || 'Client'}\n- **Key Decisions:**\n  • `
-        } else if (cmd === '/scope') {
-          snippet = `### 📋 Project Scope: ${targetDeal?.title || 'Scope'}\n- [ ] Phase 1: Wireframes\n- [ ] Phase 2: Design\n- [ ] Phase 3: Build`
-        } else if (cmd === '/quote') {
-          snippet = `### 💰 Commercial Quote\n- **Project Fee:** ${targetDeal?.value || formatMoney(30000)}\n- **Deposit (50%):** Due upon kickoff\n- **Balance (50%):** Due upon delivery`
-        } else if (cmd === '/todo') {
-          snippet = `- [ ] Follow up on next milestone with ${targetDeal?.contactName || targetDeal?.company || 'client'} tomorrow`
-        }
-        setScratchpadNotes((prev) => (prev ? `${prev}\n\n${snippet}` : snippet))
-      }
+      return
+    }
+    if (item.actionType === 'open_deal_notes') {
+      handleSelectTargetDeal(item.payload)
+      setSubpage('scratchpad')
       return
     }
     onClose()
@@ -547,7 +403,7 @@ export function CommandPalette({
   if (!isOpen) return null
 
   // Group items by category for rendering headers
-  const categories = ['Notes', 'Actions', 'Navigation', 'Deals', 'Companies', 'Contacts'] as const
+  const categories = ['Notes', 'Actions', 'Navigation', 'Deals', 'Clients'] as const
   const activeDeal = deals.find((d) => d.id === targetDealId)
 
   return (
@@ -592,7 +448,7 @@ export function CommandPalette({
                   <option value="general">Workspace General Note</option>
                   {deals.map((d) => (
                     <option key={d.id} value={d.id}>
-                      {d.company}: {d.title}
+                      {d.contactName}: {d.title}
                     </option>
                   ))}
                 </select>
@@ -610,17 +466,6 @@ export function CommandPalette({
               <ScratchpadEditor
                 notes={scratchpadNotes}
                 onChangeNotes={setScratchpadNotes}
-                onSyncTodos={handleSyncTodosFromScratchpad}
-                dealContext={
-                  activeDeal
-                    ? {
-                        title: activeDeal.title,
-                        company: activeDeal.company,
-                        contactName: activeDeal.contactName,
-                        value: activeDeal.value,
-                      }
-                    : undefined
-                }
               />
             </div>
 
@@ -684,7 +529,7 @@ export function CommandPalette({
 
             {/* Filter Category Chips */}
             <div className="flex items-center gap-1.5 px-4 py-2 border-b border-[#f0f1f3] bg-[#fafbfc] overflow-x-auto text-[11px] scrollbar-none">
-              {['All', 'Notes', 'Actions', 'Deals', 'Contacts', 'Companies', 'Navigation'].map((cat) => (
+              {['All', 'Notes', 'Actions', 'Deals', 'Clients', 'Navigation'].map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
@@ -849,7 +694,7 @@ export function CommandPalette({
               <kbd className="px-1 bg-white border border-[#e4e7ec] rounded font-bold">C</kbd> contact
             </span>
             <span className="flex items-center gap-1">
-              <kbd className="px-1 bg-white border border-[#e4e7ec] rounded font-bold">L</kbd> log
+              <kbd className="px-1 bg-white border border-[#e4e7ec] rounded font-bold">?</kbd> help
             </span>
           </div>
         </div>

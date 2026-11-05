@@ -1,4 +1,10 @@
-import { DayColumn } from '@/components/calendar/types'
+export interface DayColumn {
+  dayNumber: string // "21"
+  dayName: string // "MON"
+  fullDate: Date
+  isToday?: boolean
+  isBlockedAfterHour?: number // e.g. 12 for hatched pattern
+}
 
 /**
  * Returns date in YYYY-MM-DD format based on local time
@@ -100,6 +106,8 @@ export function stripDiacritics(str: string): string {
  */
 export function isDueToday(dueDate?: string | null): boolean {
   if (!dueDate) return false
+  const iso = dueDate.match(/^(\d{4}-\d{2}-\d{2})/)
+  if (iso) return iso[1] === getDateString(new Date())
   const norm = stripDiacritics(dueDate.toLowerCase())
   return /\b(today|dnes|dneska)\b/i.test(norm)
 }

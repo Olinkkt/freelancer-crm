@@ -142,7 +142,7 @@ export function NextActionModal({
             <span
               className="w-7 h-7 rounded-[7px] flex items-center justify-center text-[11px] font-semibold bg-[#e9f0ff] text-[#266df0] shrink-0"
             >
-              {deal.company.charAt(0)}
+              {deal.contactName.charAt(0)}
             </span>
             <div style={{ minWidth: 0, overflow: 'hidden' }}>
               <strong
@@ -158,7 +158,7 @@ export function NextActionModal({
               >
                 {deal.title}
               </strong>
-              <span style={{ fontSize: '11px', color: '#9fa1a7' }}>{deal.company}</span>
+              <span style={{ fontSize: '11px', color: '#9fa1a7' }}>{deal.contactName}</span>
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>

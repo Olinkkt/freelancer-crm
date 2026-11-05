@@ -5,18 +5,13 @@ import * as repo from '@/lib/db/repository'
 import {
   Deal,
   Contact,
-  Company,
   Activity,
   FollowUpItem,
   DealStage,
   WorkspaceData,
+  WorkspaceSettings,
 } from '@/lib/crm-types'
 import { sanitizeErrorMessage } from '@/lib/errors'
-import { getGoogleCalendarIntegration } from '@/lib/db/google-calendar-repository'
-import {
-  syncActivityToGoogleCalendar,
-  deleteActivityFromGoogleCalendar,
-} from '@/lib/google-calendar/service'
 
 async function assertAuth() {
   const isAuthed = await checkIsAuthenticated()
@@ -32,6 +27,19 @@ export async function fetchWorkspaceData(): Promise<WorkspaceData> {
     return await repo.getWorkspaceData()
   } catch (err: any) {
     throw new Error(sanitizeErrorMessage(err, 'Failed to fetch workspace data'))
+  }
+}
+
+// Currency/locale for formatting money outside the main workspace view
+export async function fetchWorkspaceSettingsAction(): Promise<WorkspaceSettings | null> {
+  await assertAuth()
+  try {
+    const settings = await repo.getWorkspaceSettings()
+    if (!settings) return null
+    const { passcodeHash: _omit, ...publicSettings } = settings
+    return publicSettings
+  } catch (err: any) {
+    throw new Error(sanitizeErrorMessage(err, 'Failed to fetch workspace settings'))
   }
 }
 
@@ -134,55 +142,7 @@ export async function deleteContactAction(id: string): Promise<boolean> {
   }
 }
 
-export async function setPrimaryContactAction(
-  companyName: string,
-  contactId: string
-): Promise<Company | null> {
-  await assertAuth()
-  try {
-    return await repo.setPrimaryContact(companyName, contactId)
-  } catch (err: any) {
-    throw new Error(sanitizeErrorMessage(err, 'Failed to set primary contact'))
-  }
-}
-
-// 4. Companies actions
-export async function createCompanyAction(companyData: Omit<Company, 'id'>): Promise<Company> {
-  await assertAuth()
-  try {
-    return await repo.createCompany(companyData)
-  } catch (err: any) {
-    throw new Error(sanitizeErrorMessage(err, 'Failed to create company'))
-  }
-}
-
-export async function updateCompanyAction(company: Company): Promise<Company> {
-  await assertAuth()
-  try {
-    const updated = await repo.updateCompany(company)
-    if (!updated) {
-      throw new Error('Company not found')
-    }
-    return updated
-  } catch (err: any) {
-    throw new Error(sanitizeErrorMessage(err, 'Failed to update company'))
-  }
-}
-
-export async function deleteCompanyAction(id: string): Promise<boolean> {
-  await assertAuth()
-  try {
-    const success = await repo.deleteCompany(id)
-    if (!success) {
-      throw new Error('Company not found')
-    }
-    return success
-  } catch (err: any) {
-    throw new Error(sanitizeErrorMessage(err, 'Failed to delete company'))
-  }
-}
-
-// 5. Activities & Follow-ups actions
+// 4. Activities & Follow-ups actions
 export async function logActivityAction(
   activityData: Omit<Activity, 'id'>,
   followUpData?: Omit<FollowUpItem, 'id'>,
@@ -194,19 +154,7 @@ export async function logActivityAction(
 }> {
   await assertAuth()
   try {
-    const result = await repo.logActivity(activityData, followUpData, dealId)
-
-    // Hook activity creation to Google Calendar auto-sync
-    try {
-      const integration = await getGoogleCalendarIntegration()
-      if (integration?.access_token && integration.auto_sync) {
-        await syncActivityToGoogleCalendar(result.activity.id)
-      }
-    } catch (gcalErr) {
-      console.warn('Google Calendar auto-sync skipped or failed:', gcalErr)
-    }
-
-    return result
+    return await repo.logActivity(activityData, followUpData, dealId)
   } catch (err: any) {
     throw new Error(sanitizeErrorMessage(err, 'Failed to log activity'))
   }
@@ -255,12 +203,6 @@ export async function updateFollowUpAction(followUp: FollowUpItem): Promise<Foll
 export async function deleteActivityAction(id: string): Promise<boolean> {
   await assertAuth()
   try {
-    try {
-      await deleteActivityFromGoogleCalendar(id)
-    } catch (gcalErr) {
-      console.warn('Google Calendar activity deletion skipped or failed:', gcalErr)
-    }
-
     const success = await repo.deleteActivity(id)
     if (!success) {
       throw new Error('Activity not found')

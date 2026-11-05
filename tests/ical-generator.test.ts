@@ -67,29 +67,26 @@ describe('iCalendar (RFC 5545) Generator', () => {
       assert.ok(!ics.includes('BEGIN:VEVENT'))
     })
 
-    it('includes active deal milestones and omits Paid deals or completed milestones', () => {
+    it('includes deal next actions and omits deals with no due date or a completed one', () => {
       const deals: Deal[] = [
         {
           id: 'deal-1',
           title: 'Design System Overhaul',
-          company: 'Acme Corp',
           contactName: 'Jane Doe',
           value: '$12,000',
           rawAmount: 12000,
           stage: 'Proposal',
-          probability: '60%',
           next: 'Submit Phase 1 wireframes',
           nextDueDate: '2026-11-05',
           color: 'blue',
         },
         {
-          id: 'deal-paid',
+          id: 'deal-done',
           title: 'Old Contract',
-          company: 'Finished Corp',
+          contactName: 'Finished Corp',
           value: '$5,000',
           rawAmount: 5000,
-          stage: 'Paid',
-          probability: '100%',
+          stage: 'Won',
           next: 'Invoice settlement',
           nextDueDate: 'Done',
           color: 'green',
@@ -103,13 +100,13 @@ describe('iCalendar (RFC 5545) Generator', () => {
 
       assert.ok(ics.includes('BEGIN:VEVENT\r\n'))
       assert.ok(ics.includes('UID:deal-milestone-deal-1@freelancercrm.local\r\n'))
-      assert.ok(ics.includes('SUMMARY:Milestone: Submit Phase 1 wireframes (Acme Corp)\r\n'))
+      assert.ok(ics.includes('SUMMARY:Milestone: Submit Phase 1 wireframes (Jane Doe)\r\n'))
       assert.ok(ics.includes('DTSTART;VALUE=DATE:20261105\r\n'))
       assert.ok(ics.includes('DTEND;VALUE=DATE:20261106\r\n'))
       assert.ok(ics.includes('CATEGORIES:Milestone,Freelancer CRM\r\n'))
 
-      // Paid deal should be excluded
-      assert.ok(!ics.includes('deal-paid'))
+      // A next action marked Done should be excluded
+      assert.ok(!ics.includes('deal-done'))
       assert.ok(!ics.includes('Finished Corp'))
     })
 

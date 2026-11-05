@@ -19,7 +19,6 @@ import {
   Sparkles,
   CheckCircle2,
   ChevronRight,
-  KeyRound,
   Copy,
   Rss,
   CalendarPlus,
@@ -520,7 +519,7 @@ export function EditSettingsModal({
                         ? `Connected (${gcalStatus.calendarName || 'primary'})`
                         : gcalStatus?.configured
                         ? 'Ready to connect'
-                        : '1-click web links active'}
+                        : 'Setup needed'}
                     </span>
                   </div>
                 </div>
@@ -529,7 +528,7 @@ export function EditSettingsModal({
                   onClick={() => setActiveTab('integrations')}
                   className="text-[11px] font-semibold text-[#266df0] hover:text-[#1853bf] flex items-center gap-1 cursor-pointer"
                 >
-                  <span>Configure</span>
+                  <span>Manage</span>
                   <ChevronRight size={13} />
                 </button>
               </div>
@@ -705,7 +704,7 @@ export function EditSettingsModal({
                   ) : (
                     <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#b54708] bg-[#fffaeb] border border-[#fedf89] px-2.5 py-1 rounded-[7px]">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#f79009]" />
-                      Setup Needed / Missing API Keys
+                      Setup Needed
                     </span>
                   )}
                 </div>
@@ -822,24 +821,9 @@ export function EditSettingsModal({
                 ) : (
                   <>
                     <p className="text-[12px] text-[#505967] leading-relaxed">
-                      To enable automated two-way synchronization, configure your Google OAuth 2.0 API credentials in your CRM environment.
+                      Two-way sync isn’t set up on this server yet. Whoever hosts this workspace can finish it from Settings → System &amp; Deployment.
                     </p>
 
-                    {/* Setup Environment Variables Help Box */}
-                    <div className="p-3.5 rounded-[9px] bg-[#fafbfc] border border-[#e4e7ec] space-y-2">
-                      <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-[#505967]">
-                        <KeyRound size={13} className="text-[#8f99a8]" />
-                        <span>Required Environment Variables (.env)</span>
-                      </div>
-                      <div className="font-mono text-[11px] bg-[#1c1d1f] text-[#d6e4fd] p-2.5 rounded-[7px] overflow-x-auto space-y-1">
-                        <div><span className="text-[#85b7eb]">GOOGLE_CLIENT_ID</span>=&quot;your-client-id.apps.googleusercontent.com&quot;</div>
-                        <div><span className="text-[#85b7eb]">GOOGLE_CLIENT_SECRET</span>=&quot;your-client-secret&quot;</div>
-                      </div>
-                      <p className="text-[11px] text-[#8f99a8] leading-normal">
-                        Create credentials in Google Cloud Console with authorized redirect URI:{' '}
-                        <code className="text-[#1c1d1f] font-mono font-medium">/api/integrations/google-calendar/callback</code>
-                      </p>
-                    </div>
                   </>
                 )}
               </div>

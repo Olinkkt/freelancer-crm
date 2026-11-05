@@ -28,9 +28,11 @@ import {
   DealStage,
   STAGE_DEFAULT_PROBABILITIES,
   Activity,
+  WorkspaceSettings,
 } from '@/lib/crm-types'
 import {
   fetchDealByIdAction,
+  fetchWorkspaceSettingsAction,
   updateDealAction,
   deleteDealAction,
   moveDealStageAction,
@@ -59,6 +61,7 @@ export default function DealProjectPage() {
   const dealIdOrSlug = Array.isArray(params?.id) ? params.id[0] : (params?.id as string)
 
   const [deal, setDeal] = useState<Deal | null>(null)
+  const [settings, setSettings] = useState<WorkspaceSettings | undefined>(undefined)
   const [activities, setActivities] = useState<Activity[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
@@ -110,8 +113,12 @@ export default function DealProjectPage() {
       setNextActionText(data.next || '')
       setNextActionDate(data.nextDueDate || 'Tomorrow, 10:00')
 
-      const acts = await fetchDealActivitiesAction(data.id)
+      const [acts, workspaceSettings] = await Promise.all([
+        fetchDealActivitiesAction(data.id),
+        fetchWorkspaceSettingsAction(),
+      ])
       setActivities(acts)
+      setSettings(workspaceSettings ?? undefined)
     } catch (err: any) {
       console.error('Failed to load deal project:', err)
       addToast(err?.message || 'Error loading project', undefined, 'warning')
@@ -279,7 +286,7 @@ export default function DealProjectPage() {
         </div>
         <h2 className="text-[16px] font-bold text-[#1c1d1f] mb-1">Project Not Found</h2>
         <p className="text-[12px] text-[#6f7988] max-w-sm mx-auto mb-4">
-          This deal or project workspace may have been removed or moved to another account.
+          This deal may have been deleted.
         </p>
         <Link
           href="/"
@@ -374,7 +381,7 @@ export default function DealProjectPage() {
             <div className="flex items-baseline md:items-end flex-col gap-1">
               <div className="flex items-baseline gap-3">
                 <span className="text-[28px] sm:text-[32px] font-bold font-mono tabular-nums text-[#1c1d1f] tracking-tight">
-                  {formatDealValue(deal.value)}
+                  {formatDealValue(deal.value, settings)}
                 </span>
                 <span className="px-2.5 py-0.5 text-[12px] font-mono font-medium rounded-[7px] bg-[#e9f0ff] text-[#266df0]">
                   {deal.probability} win prob.
@@ -479,6 +486,7 @@ export default function DealProjectPage() {
               <div className="bg-white border border-[#e4e7ec] rounded-[14px] p-6 shadow-2xs space-y-6">
                 <DeliverablesTracker
                   dealTitle={deal.title}
+                  settings={settings}
                   dealValue={deal.value}
                   rawAmount={deal.rawAmount || parseInt(deal.value.replace(/[^0-9]/g, '')) || 0}
                   deliverables={deal.deliverables || []}

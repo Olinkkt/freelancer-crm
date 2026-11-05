@@ -1,8 +1,9 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
+import { useModKey } from '@/lib/use-mod-key'
 import { X, CirclePlus, ArrowUpRight, Calendar, AlertCircle } from 'lucide-react'
-import { Contact, Deal, DealStage, STAGE_DEFAULT_PROBABILITIES, WorkspaceSettings } from '@/lib/crm-types'
+import { Contact, Deal, DealStage, DEAL_STAGES, STAGE_DEFAULT_PROBABILITIES, WorkspaceSettings } from '@/lib/crm-types'
 import { formatMoney, OPERATOR_CONFIG } from '@/lib/config'
 import { Combobox } from '@/components/ui/combobox'
 
@@ -18,13 +19,7 @@ interface NewDealModalProps {
   settings?: WorkspaceSettings
 }
 
-const STAGES: DealStage[] = [
-  'Lead',
-  'Qualified',
-  'Proposal',
-  'Won',
-  'Paid',
-]
+const STAGES = DEAL_STAGES
 
 export function NewDealModal({
   isOpen,
@@ -36,6 +31,7 @@ export function NewDealModal({
   onUpdateDeal,
   settings,
 }: NewDealModalProps) {
+  const modKey = useModKey()
   const [mode, setMode] = useState<'quick' | 'detailed'>('quick')
   const [title, setTitle] = useState('')
   const [clientName, setClientName] = useState('')
@@ -175,7 +171,7 @@ export function NewDealModal({
               Hotkey: N
             </span>
             <h2 className="text-[15px] font-semibold text-[#1c1d1f] tracking-tight">
-              {dealToEdit ? 'Edit Deal' : 'Capture Opportunity'}
+              {dealToEdit ? 'Edit deal' : 'New deal'}
             </h2>
           </div>
 
@@ -253,7 +249,7 @@ export function NewDealModal({
                   value: c.name,
                   sublabel: c.email || undefined,
                 }))}
-                placeholder="Select or type a new client"
+                placeholder="Choose or add a client"
                 required
                 maxLength={100}
               />
@@ -364,7 +360,7 @@ export function NewDealModal({
 
           <div className="pt-2 flex items-center justify-between">
             <span className="text-[11px] text-[#9fa1a7] font-mono">
-              Press <kbd className="px-1 bg-[#f4f5f6] border border-[#e4e7ec] rounded-[5px] text-[10px]">⌘</kbd> +{' '}
+              Press <kbd className="px-1 bg-[#f4f5f6] border border-[#e4e7ec] rounded-[5px] text-[10px]">{modKey}</kbd> +{' '}
               <kbd className="px-1 bg-[#f4f5f6] border border-[#e4e7ec] rounded-[5px] text-[10px]">↵</kbd> to save
             </span>
             <div className="flex items-center gap-2">

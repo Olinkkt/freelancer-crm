@@ -23,7 +23,7 @@ import {
   Edit3,
   ExternalLink,
 } from 'lucide-react'
-import { Deal, DealStage } from '@/lib/crm-types'
+import { Deal, DealStage, DEAL_STAGES } from '@/lib/crm-types'
 import { RowActionMenu } from '@/components/ui/row-action-menu'
 import { formatDealValue, formatMoney } from '@/lib/config'
 import { WorkspaceSettings } from '@/lib/crm-types'
@@ -38,13 +38,7 @@ interface DealKanbanProps {
   settings?: WorkspaceSettings
 }
 
-const STAGES: DealStage[] = [
-  'Lead',
-  'Qualified',
-  'Proposal',
-  'Won',
-  'Paid',
-]
+const STAGES = DEAL_STAGES
 
 export function DealKanban({
   deals,
@@ -448,7 +442,7 @@ export function DealKanban({
                     }`}
                   />
                   <h3 className="text-[12px] font-semibold text-[#1c1d1f] tracking-tight whitespace-nowrap truncate">
-                    {stage === 'Won' ? 'Won • Active Work' : stage === 'Paid' ? 'Paid • Delivered' : stage}
+                    {stage}
                   </h3>
                   <span className="w-4 h-4 rounded-full bg-[#e9ebef] text-[#6f7988] text-[10px] font-mono font-medium flex items-center justify-center shrink-0">
                     {stageDeals.length}

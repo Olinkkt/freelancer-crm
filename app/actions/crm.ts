@@ -9,6 +9,7 @@ import {
   FollowUpItem,
   DealStage,
   WorkspaceData,
+  WorkspaceSettings,
 } from '@/lib/crm-types'
 import { sanitizeErrorMessage } from '@/lib/errors'
 import { getGoogleCalendarIntegration } from '@/lib/db/google-calendar-repository'
@@ -31,6 +32,19 @@ export async function fetchWorkspaceData(): Promise<WorkspaceData> {
     return await repo.getWorkspaceData()
   } catch (err: any) {
     throw new Error(sanitizeErrorMessage(err, 'Failed to fetch workspace data'))
+  }
+}
+
+// Currency/locale for formatting money outside the main workspace view
+export async function fetchWorkspaceSettingsAction(): Promise<WorkspaceSettings | null> {
+  await assertAuth()
+  try {
+    const settings = await repo.getWorkspaceSettings()
+    if (!settings) return null
+    const { passcodeHash: _omit, ...publicSettings } = settings
+    return publicSettings
+  } catch (err: any) {
+    throw new Error(sanitizeErrorMessage(err, 'Failed to fetch workspace settings'))
   }
 }
 

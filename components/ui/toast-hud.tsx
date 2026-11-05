@@ -63,7 +63,7 @@ export function ToastHUD({ toasts, onDismiss }: ToastHUDProps) {
   const visibleToasts = toasts.slice(-2)
 
   return (
-    <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2 pointer-events-none max-w-full px-4 sm:px-0">
+    <div className="fixed bottom-[84px] min-[761px]:bottom-6 right-6 z-[100] flex flex-col gap-2 pointer-events-none max-w-full px-4 sm:px-0">
       {visibleToasts.map((toast) => (
         <ToastItem key={toast.id} toast={toast} onDismiss={onDismiss} />
       ))}

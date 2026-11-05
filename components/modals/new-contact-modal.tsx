@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
+import { useModKey } from '@/lib/use-mod-key'
 import { X, UserPlus } from 'lucide-react'
 import { Contact } from '@/lib/crm-types'
 
@@ -19,6 +20,7 @@ export function NewContactModal({
   contactToEdit,
   onUpdateContact,
 }: NewContactModalProps) {
+  const modKey = useModKey()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -170,7 +172,7 @@ export function NewContactModal({
 
           <div className="pt-2 flex items-center justify-between">
             <span className="text-[11px] text-[#9fa1a7] font-mono">
-              Press <kbd className="px-1 bg-[#f4f5f6] border border-[#e4e7ec] rounded-[5px] text-[10px]">⌘</kbd> +{' '}
+              Press <kbd className="px-1 bg-[#f4f5f6] border border-[#e4e7ec] rounded-[5px] text-[10px]">{modKey}</kbd> +{' '}
               <kbd className="px-1 bg-[#f4f5f6] border border-[#e4e7ec] rounded-[5px] text-[10px]">↵</kbd>
             </span>
             <div className="flex items-center gap-2">

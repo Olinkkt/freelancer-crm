@@ -5,6 +5,12 @@ export type DealStage =
   | 'Won'
   | 'Paid'
 
+/** Pipeline stages in board order — the single source for columns, pickers and counts */
+export const DEAL_STAGES: DealStage[] = ['Lead', 'Qualified', 'Proposal', 'Won', 'Paid']
+
+/** Stages a deal is still being won in (Won/Paid are closed) */
+export const OPEN_DEAL_STAGES: DealStage[] = DEAL_STAGES.filter((s) => s !== 'Won' && s !== 'Paid')
+
 export const STAGE_DEFAULT_PROBABILITIES: Record<DealStage, string> = {
   Lead: '20%',
   Qualified: '40%',

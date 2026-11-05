@@ -36,7 +36,8 @@ import {
 } from '@/lib/csv-export'
 import { getFormattedToday, getDynamicGreeting } from '@/lib/date-utils'
 import { OPERATOR_CONFIG, formatMoney, formatDealValue, getOperatorInitials } from '@/lib/config'
-import { Deal, Contact, Activity, FollowUpItem, DealStage, STAGE_DEFAULT_PROBABILITIES } from '@/lib/crm-types'
+import { Deal, Contact, Activity, FollowUpItem, DealStage, OPEN_DEAL_STAGES, STAGE_DEFAULT_PROBABILITIES } from '@/lib/crm-types'
+import { useModKey } from '@/lib/use-mod-key'
 import {
   INITIAL_CONTACTS,
   INITIAL_DEALS,
@@ -112,6 +113,7 @@ function NavItem({
 
 export default function Page() {
   const router = useRouter()
+  const modKey = useModKey()
   // Navigation & View State
   const [activeView, setActiveView] = useState<string>('Home')
   const [activeTab, setActiveTab] = useState<string>('Overview')
@@ -658,7 +660,7 @@ export default function Page() {
 
 
   // Compute metrics
-  const openDeals = deals.filter((d) => d.stage !== 'Won' && d.stage !== 'Paid')
+  const openDeals = deals.filter((d) => OPEN_DEAL_STAGES.includes(d.stage))
   const openDealsCount = openDeals.length
   const totalPipelineAmount = openDeals.reduce(
     (sum, d) => sum + (d.rawAmount || parseInt(d.value.replace(/[^0-9]/g, '')) || 0),
@@ -795,6 +797,27 @@ export default function Page() {
         </div>
       </aside>
 
+      {/* MOBILE NAV (sidebar is hidden below 760px) */}
+      <nav className="mobile-nav" aria-label="Primary navigation (mobile)">
+        {[
+          { label: 'Home', icon: LayoutDashboard },
+          { label: 'Clients', icon: Users },
+          { label: 'Deals', icon: WalletCards },
+          { label: 'Settings', icon: Settings2 },
+        ].map(({ label, icon: Icon }) => (
+          <button
+            key={label}
+            type="button"
+            className={activeView === label ? 'active' : ''}
+            aria-current={activeView === label ? 'page' : undefined}
+            onClick={() => setActiveView(label)}
+          >
+            <Icon size={19} strokeWidth={1.8} />
+            <span>{label}</span>
+          </button>
+        ))}
+      </nav>
+
       {/* MAIN CONTENT AREA */}
       <main className="main-content">
         {/* TOPBAR */}
@@ -810,11 +833,11 @@ export default function Page() {
               type="button"
               onClick={() => setIsPaletteOpen(true)}
               className="topbar-search"
-              title="Search workspace (Ctrl+K)"
+              title={`Search workspace (${modKey}+K)`}
             >
               <Search size={14} />
               <span>Search workspace...</span>
-              <span className="search-shortcut">Ctrl+K</span>
+              <span className="search-shortcut">{modKey}+K</span>
             </button>
 
             <button className="avatar" title={currentSettings.operatorName}>
@@ -830,10 +853,9 @@ export default function Page() {
             <>
               <section className="page-heading">
                 <div>
-                  <p className="eyebrow">Sales workspace</p>
-                  <h1>Deals & Pipeline</h1>
+                  <h1>Deals</h1>
                   <p className="subcopy">
-                    Visual stage progression and keyboard navigation across your active opportunities.
+                    Move deals through stages by dragging cards or pressing [ and ].
                   </p>
                 </div>
               </section>
@@ -843,7 +865,7 @@ export default function Page() {
                 <div>
                   <span className="metric-label">Open deals</span>
                   <strong>{openDealsCount}</strong>
-                  <small>Across 6 active stages</small>
+                  <small>Across {OPEN_DEAL_STAGES.length} open stages</small>
                 </div>
                 <div>
                   <span className="metric-label">Pipeline value</span>
@@ -851,7 +873,7 @@ export default function Page() {
                     {formatMoney(totalPipelineAmount, currentSettings)}
                   </strong>
                   <small>
-                    {deals.length === 0 ? 'No active pipeline' : `Across ${deals.length} total opportunities`}
+                    {deals.length === 0 ? 'No active pipeline' : `Across ${deals.length} deal${deals.length === 1 ? '' : 's'} in total`}
                   </small>
                 </div>
                 <div>
@@ -889,10 +911,9 @@ export default function Page() {
             <>
               <section className="page-heading">
                 <div>
-                  <p className="eyebrow">Workspace directory</p>
                   <h1>Clients</h1>
                   <p className="subcopy">
-                    Stay close to the people who move every opportunity forward.
+                    Everyone you work with. Click a client to edit their details.
                   </p>
                 </div>
                 <button
@@ -918,10 +939,10 @@ export default function Page() {
                   <strong>
                     {contacts.filter((c) => getContactOpenDealsCount(c) > 0).length}
                   </strong>
-                  <small>Tied to active opportunities</small>
+                  <small>With at least one open deal</small>
                 </div>
                 <div>
-                  <span className="metric-label">Open opportunities</span>
+                  <span className="metric-label">Open deals</span>
                   <strong>{openDealsCount}</strong>
                   <small className="font-mono">
                     {formatMoney(totalPipelineAmount, currentSettings)} in pipeline
@@ -987,7 +1008,25 @@ export default function Page() {
                       )
                       .map((contact) => {
                         return (
-                          <div className="company-row" key={contact.id}>
+                          <div
+                            className="company-row cursor-pointer hover:bg-[#fafbfc] transition-colors"
+                            key={contact.id}
+                            role="button"
+                            tabIndex={0}
+                            aria-label={`Edit ${contact.name}`}
+                            onClick={() => {
+                              setEditingContact(contact)
+                              setIsNewContactOpen(true)
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.target !== e.currentTarget) return
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault()
+                                setEditingContact(contact)
+                                setIsNewContactOpen(true)
+                              }
+                            }}
+                          >
                             <div className="company-name min-w-0">
                               <span className={`company-avatar shrink-0 ${contact.color}`}>
                                 {contact.name.charAt(0)}
@@ -998,7 +1037,7 @@ export default function Page() {
                             </div>
                             <div className="company-contact">
                               {contact.phone ? (
-                                <a href={`tel:${contact.phone}`} className="text-[12px] text-[#1c1d1f] hover:underline font-mono">
+                                <a href={`tel:${contact.phone}`} onClick={(e) => e.stopPropagation()} className="text-[12px] text-[#1c1d1f] hover:underline font-mono">
                                   {contact.phone}
                                 </a>
                               ) : (
@@ -1011,6 +1050,7 @@ export default function Page() {
                               {contact.email ? (
                                 <a
                                   href={`mailto:${contact.email}`}
+                                  onClick={(e) => e.stopPropagation()}
                                   className="text-[#266df0] hover:underline font-mono text-[11px] truncate block"
                                   title={contact.email}
                                 >
@@ -1020,7 +1060,7 @@ export default function Page() {
                                 <span className="text-[#8f99a8] text-[11px]">—</span>
                               )}
                             </div>
-                            <div className="flex justify-end">
+                            <div className="flex justify-end" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
                               <RowActionMenu
                                 triggerLabel={`More options for ${contact.name}`}
                                 items={[
@@ -1089,10 +1129,9 @@ export default function Page() {
             <>
               <section className="page-heading">
                 <div>
-                  <p className="eyebrow">Workspace preferences</p>
-                  <h1>Settings & System</h1>
+                  <h1>Settings</h1>
                   <p className="subcopy">
-                    Manage your workspace preferences, security, backups, and display options.
+                    Profile, shortcuts, data export and system status.
                   </p>
                 </div>
               </section>
@@ -1281,7 +1320,11 @@ export default function Page() {
                     <div className="md:col-span-4">
                       <h3 className="text-[15px] font-semibold text-[#1c1d1f] tracking-tight">Integrations & Sync</h3>
                       <p className="text-[13px] text-[#6f7988] mt-1 leading-relaxed">
-                        Connect Google Calendar for real-time synchronization of client calls, meetings, and deal milestones.
+                        {gcalStatus?.connected
+                          ? 'Client calls, meetings and deal milestones sync to Google Calendar.'
+                          : gcalStatus?.configured
+                          ? 'Connect Google Calendar to sync client calls, meetings and deal milestones.'
+                          : 'Google Calendar sync needs setup on this server. Add-to-calendar links work without it.'}
                       </p>
                     </div>
                     <div className="md:col-span-8">
@@ -1318,7 +1361,7 @@ export default function Page() {
                                   ? `Synced with ${gcalStatus.calendarName || 'primary'} calendar. Auto-sync is ${gcalStatus.autoSync ? 'enabled' : 'disabled'}.`
                                   : gcalStatus?.configured
                                   ? 'OAuth credentials configured. Ready to connect your Google account.'
-                                  : '1-click fallback links active everywhere. Add OAuth credentials in .env to enable two-way sync.'}
+                                  : 'Two-way sync isn’t set up on this server yet. Add-to-calendar links still work on every deal and follow-up.'}
                               </p>
                               {gcalStatus?.connected && gcalStatus.lastSyncedAt && (
                                 <span className="block text-[11px] text-[#8f99a8] mt-1">
@@ -1401,7 +1444,7 @@ export default function Page() {
                     {
                       category: 'Global & Quick Capture',
                       items: [
-                        { label: 'Universal Command Palette', keys: ['Ctrl+K'], note: 'Search deals, contacts, views' },
+                        { label: 'Universal Command Palette', keys: [modKey, 'K'], note: 'Search deals, clients, views' },
                         { label: 'Quick-add new deal drawer', keys: ['N'], note: 'Instant lead capture slide-over' },
                         { label: 'Quick-add new client', keys: ['C'], note: 'Register a new client' },
                         { label: 'Keyboard shortcut cheat-sheet', keys: ['?'], note: 'Open floating shortcut modal' },
@@ -1676,6 +1719,18 @@ export default function Page() {
                       <strong className="text-[14px] text-[#1c1d1f] font-semibold block">AGPL-3.0 Open Source</strong>
                       <p className="text-[12px] text-[#8f99a8] mt-1">Freelancer CRM v1.0.4 • Personal Workspace.</p>
                     </div>
+
+                    <div className="sm:col-span-2 bg-white border border-[#e4e7ec] rounded-xl p-4 shadow-[rgba(28,40,64,0.04)_0px_2px_4px_-1px]">
+                      <span className="text-[11px] font-medium text-[#6f7988] block mb-1">Google Calendar sync (server setup)</span>
+                      <strong className="text-[14px] text-[#1c1d1f] font-semibold block">
+                        {gcalStatus?.configured ? 'OAuth credentials configured' : 'OAuth credentials missing'}
+                      </strong>
+                      <p className="text-[12px] text-[#8f99a8] mt-1">
+                        Set <code className="font-mono text-[#1c1d1f]">GOOGLE_CLIENT_ID</code> and{' '}
+                        <code className="font-mono text-[#1c1d1f]">GOOGLE_CLIENT_SECRET</code> in the server environment, with redirect URI{' '}
+                        <code className="font-mono text-[#1c1d1f]">/api/integrations/google-calendar/callback</code>. See <code className="font-mono">.env.example</code>.
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}
@@ -1688,7 +1743,7 @@ export default function Page() {
                 <div>
                   <p className="eyebrow" suppressHydrationWarning>{formattedToday || getFormattedToday()}</p>
                   <h1 suppressHydrationWarning>{greeting}</h1>
-                  <p className="subcopy">Here&apos;s what needs your attention today.</p>
+                  <p className="subcopy">Follow-ups due and deals in progress.</p>
                 </div>
               </section>
 
@@ -2016,7 +2071,7 @@ export default function Page() {
                               </span>
                             )}
                           </div>
-                          <strong className="font-mono tabular-nums">{formatDealValue(deal.value)}</strong>
+                          <strong className="font-mono tabular-nums">{formatDealValue(deal.value, currentSettings)}</strong>
                           <span className="probability font-mono">{deal.probability}</span>
                           <span className="next-action flex items-center gap-1">
                             {deal.stage === 'Paid' ? (

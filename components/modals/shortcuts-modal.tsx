@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect } from 'react'
+import { useModKey } from '@/lib/use-mod-key'
 import { X, Keyboard, Zap, Navigation, LayoutGrid, Sparkles } from 'lucide-react'
 
 interface ShortcutsModalProps {
@@ -9,6 +10,7 @@ interface ShortcutsModalProps {
 }
 
 export function ShortcutsModal({ isOpen, onClose }: ShortcutsModalProps) {
+  const modKey = useModKey()
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
@@ -26,7 +28,7 @@ export function ShortcutsModal({ isOpen, onClose }: ShortcutsModalProps) {
       title: 'Global & Command Palette',
       icon: <Zap size={15} className="text-[#266df0]" />,
       items: [
-        { keys: ['Ctrl', 'K'], label: 'Open Command Palette' },
+        { keys: [modKey, 'K'], label: 'Open Command Palette' },
         { keys: ['?'], label: 'Show this keyboard cheatsheet' },
         { keys: ['Esc'], label: 'Dismiss modal or palette' },
       ],
@@ -37,7 +39,7 @@ export function ShortcutsModal({ isOpen, onClose }: ShortcutsModalProps) {
       items: [
         { keys: ['N'], label: 'Quick-add new deal' },
         { keys: ['C'], label: 'Quick-add new client' },
-        { keys: ['⌘', '↵'], label: 'Submit form in quick capture' },
+        { keys: [modKey, '↵'], label: 'Submit form in quick capture' },
       ],
     },
     {

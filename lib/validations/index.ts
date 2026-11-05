@@ -45,6 +45,7 @@ export const DealBackupSchema = z.object({
   stage: z.preprocess((v) => (typeof v === 'string' && LEGACY_STAGES[v]) || v, z.enum(DEAL_STAGES)),
   next: z.string().default(''),
   nextDueDate: z.string().nullable().optional(),
+  waiting: z.boolean().optional(),
   color: z.string().optional(),
   contactId: z.string().nullable().optional(),
   contactName: z.string().min(1),
@@ -139,6 +140,7 @@ const DealInputBaseSchema = z.object({
   stage: z.enum(DEAL_STAGES),
   next: z.string().optional(),
   nextDueDate: z.string().nullable().optional(),
+  waiting: z.boolean().optional(),
   color: z.string().optional(),
   /** The client (person) this deal belongs to; or pass contactName to match/create one */
   contactId: z.string().nullable().optional(),

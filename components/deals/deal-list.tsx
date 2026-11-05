@@ -205,7 +205,7 @@ export function DealList({
                         }`}
                       >
                         <Clock size={11} />
-                        <span className="truncate">{formatDue(deal.nextDueDate)}</span>
+                        <span className="truncate">{deal.waiting ? 'Chase ' : ''}{formatDue(deal.nextDueDate)}</span>
                       </span>
                     )}
                   </>

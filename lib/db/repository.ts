@@ -92,6 +92,7 @@ export function mapDealRow(r: any): Deal {
     stage,
     next: r.next,
     nextDueDate: r.next_due_date ?? undefined,
+    waiting: Number(r.waiting) === 1,
     color: (r.color as Deal['color']) || 'blue',
     contactId: r.contact_id ?? undefined,
     contactName: r.contact_name ?? '',
@@ -222,6 +223,7 @@ export async function createDeal(dealData: Omit<Deal, 'id'>): Promise<Deal> {
       stage: dealData.stage,
       next: nextAction,
       next_due_date: nextDueDate,
+      waiting: dealData.waiting ? 1 : 0,
       color: dealData.color || 'blue',
       contact_id: client.id,
       contact_name: contactName,
@@ -246,6 +248,7 @@ export async function createDeal(dealData: Omit<Deal, 'id'>): Promise<Deal> {
     contactEmail: contactEmail || undefined,
     next: nextAction,
     nextDueDate: dealData.nextDueDate,
+    waiting: !!dealData.waiting,
     createdAt: now,
     deliverables: dealData.deliverables || [],
     invoices: dealData.invoices || [],
@@ -301,6 +304,7 @@ export async function updateDeal(deal: Deal): Promise<Deal | null> {
       stage: deal.stage,
       next: nextAction,
       next_due_date: nextDueDate,
+      waiting: deal.waiting ? 1 : 0,
       color: deal.color,
       contact_id: client.id,
       contact_name: client.name,
@@ -322,6 +326,7 @@ export async function updateDeal(deal: Deal): Promise<Deal | null> {
     contactEmail: client.email || undefined,
     next: nextAction,
     nextDueDate: deal.nextDueDate,
+    waiting: !!deal.waiting,
   }
 }
 
@@ -436,6 +441,7 @@ export async function moveDealStage(dealId: string, stage: DealStage): Promise<D
     stage,
     next: existing.next,
     nextDueDate: existing.next_due_date ?? undefined,
+    waiting: Number(existing.waiting) === 1,
     color: dealColor,
     contactId: existing.contact_id ?? undefined,
     contactName: existing.contact_name ?? '',
@@ -656,6 +662,8 @@ export async function logActivity(
 
       const newNext = followUpData?.action || existingDealRow.next
       const newNextDueDate = normalizeDueDate(followUpData?.time) || existingDealRow.next_due_date
+      // A fresh next action means the ball is back with you
+      const newWaiting = followUpData?.action ? 0 : Number(existingDealRow.waiting) || 0
 
       await db
         .updateTable('deals')
@@ -663,6 +671,7 @@ export async function logActivity(
           notes: newNotes,
           next: newNext,
           next_due_date: newNextDueDate,
+          waiting: newWaiting,
           updated_at: now,
         })
         .where('id', '=', targetDealId)
@@ -676,6 +685,7 @@ export async function logActivity(
         stage: existingDealRow.stage as DealStage,
         next: newNext,
         nextDueDate: newNextDueDate ?? undefined,
+        waiting: newWaiting === 1,
         color: (existingDealRow.color as Deal['color']) || 'blue',
         contactId: existingDealRow.contact_id ?? undefined,
         contactName: existingDealRow.contact_name ?? '',
@@ -1125,6 +1135,7 @@ export async function restoreWorkspaceData(snapshot: {
             stage: d.stage,
             next: d.next,
             next_due_date: d.nextDueDate ?? null,
+            waiting: d.waiting ? 1 : 0,
             color: d.color ?? 'blue',
             contact_id: client.id,
             contact_name: client.name,

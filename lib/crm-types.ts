@@ -94,6 +94,8 @@ export interface Deal {
   stage: DealStage
   next: string
   nextDueDate?: string
+  /** Ball is in the client's court: next action is a chase date, not a to-do */
+  waiting?: boolean
   color: 'blue' | 'violet' | 'amber' | 'green'
   /** The client (person) this deal belongs to */
   contactId?: string

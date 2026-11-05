@@ -31,7 +31,7 @@ Single-operator, local-first CRM: Next.js App Router, React 19, Kysely, SQLite v
 - Clients are people. There are no companies, teams or roles (solo-tenancy only).
 - Deal stages are **Lead · Qualified · Proposal · Won**. Won means contract signed, i.e. handoff to project work. There is no Paid and no Lost stage. Payment and project tracking belong to a later PM stage.
 - Deals are a list or table with stage filters. Don't bring back Kanban.
-- Every deal is expected to have a next action and due date (GTD rule from `CONTRIBUTING.md`).
+- Every deal is expected to have a next action and due date (GTD rule from `CONTRIBUTING.md`). A deal can instead be **waiting on client** (`deal.waiting`): then the due date is the day to chase, there's no warning, and it shows in Today's waiting group until that date.
 - Deal notes are `deal.notes`, edited in the ⌘K scratchpad. Open it on a specific deal through `notesDealId` / "Notes" in the row menu. Activities attach to a deal, and there is no global feed.
 - Keyboard-first: core actions get a shortcut. The shortcut list is in `components/modals/shortcuts-modal.tsx`.
 

@@ -21,6 +21,7 @@ export interface DealTable {
   stage: string
   next: string
   next_due_date: string | null
+  waiting: number
   color: string
   contact_id: string | null
   contact_name: string | null

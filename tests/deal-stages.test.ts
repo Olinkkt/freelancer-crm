@@ -94,6 +94,16 @@ describe('Today home', () => {
     assert.deepEqual(g.needsYou.map((i) => (i.kind === 'deal' ? i.deal.title : '')), ['No next'])
   })
 
+  it('a waiting deal is calm until its chase date, then shows as a chase', () => {
+    const waitingLater = deal({ title: 'Contract', stage: 'Proposal', next: 'Waiting on client', waiting: true, nextDueDate: '2026-11-20' })
+    const waitingNoDate = deal({ title: 'Quiet', next: 'Waiting on client', waiting: true, nextDueDate: undefined })
+    const chaseToday = deal({ title: 'Chase me', next: 'Waiting on client', waiting: true, nextDueDate: '2026-11-05' })
+    const g = buildToday([waitingLater, waitingNoDate, chaseToday], [], [], now)
+    assert.deepEqual(g.due.map((i) => i.title), ['Chase: Chase me'])
+    assert.deepEqual(g.waiting.map((i) => (i.kind === 'deal' ? i.deal.title : '')), ['Contract', 'Quiet'])
+    assert.equal(g.needsYou.length, 0)
+  })
+
   it('a deal in Materials waits on the client even with an empty checklist', () => {
     const g = buildToday([deal({ stage: 'Materials' })], [], [], now)
     assert.equal(g.waiting.length, 1)

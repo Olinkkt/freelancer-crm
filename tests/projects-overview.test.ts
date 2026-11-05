@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { buildProjects, buildAxis, barSpan } from '@/components/home/projects-overview'
+import { buildProjects } from '@/components/home/projects-overview'
 import type { Deal } from '@/lib/crm-types'
 
 describe('Projects overview', () => {
@@ -56,15 +56,5 @@ describe('Projects overview', () => {
       invoices: [{ id: 'i', type: 'Final', label: 'Final', amount: 1, formattedAmount: '1', percentage: 50, status: 'Sent', dueDate: '2026-11-01' }],
     })
     assert.equal(buildProjects([d], now)[0].flag, 'invoice')
-  })
-
-  it('draws bars on one shared axis that includes today', () => {
-    const rows = buildProjects([deal({ startDate: '2026-10-20', endDate: '2026-12-01' }), deal({})], now)
-    const axis = buildAxis(rows, now)
-    assert.ok(axis.from <= new Date(2026, 9, 20).getTime())
-    assert.ok(axis.to >= new Date(2026, 11, 1).getTime())
-    const bar = barSpan(rows.find((r) => r.end)!, axis)!
-    assert.ok(bar.left >= 0 && bar.left + bar.width <= 100.001)
-    assert.equal(barSpan(rows.find((r) => !r.end && !r.start)!, axis), null)
   })
 })

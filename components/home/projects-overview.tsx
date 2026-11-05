@@ -17,11 +17,8 @@ export interface ProjectRow {
   flagLabel: string
   /** Soonest date that matters (next action, else end date), ISO */
   due: string | null
-  start: string | null
-  end: string | null
 }
 
-const DAY = 86400000
 const toMs = (iso: string) => {
   const [y, m, d] = iso.split('-').map(Number)
   return new Date(y, m - 1, d).getTime()
@@ -46,7 +43,6 @@ export function buildProjects(deals: Deal[], now = new Date()): ProjectRow[] {
       return d !== null && d < 0
     }).length
 
-    const start = normalizeDueDate(deal.startDate, now) ?? normalizeDueDate(deal.createdAt, now)
     const end = normalizeDueDate(deal.endDate, now)
     const nextDue = deal.waiting ? null : normalizeDueDate(deal.nextDueDate, now)
     const due = nextDue ?? end
@@ -69,7 +65,7 @@ export function buildProjects(deals: Deal[], now = new Date()): ProjectRow[] {
       flagLabel = 'Waiting on client'
     }
 
-    rows.push({ deal, stageIndex, tasksDone, tasksTotal: tasks.length, flag, flagLabel, due, start, end })
+    rows.push({ deal, stageIndex, tasksDone, tasksTotal: tasks.length, flag, flagLabel, due })
   }
 
   // Needs attention first, waiting-on-client last, soonest date first inside each group.
@@ -85,44 +81,12 @@ export function buildProjects(deals: Deal[], now = new Date()): ProjectRow[] {
   return rows
 }
 
-interface Axis {
-  from: number
-  to: number
-  today: number
-}
-
-/** One shared time axis so bars are comparable across projects. */
-export function buildAxis(rows: ProjectRow[], now = new Date()): Axis {
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
-  let from = today - 7 * DAY
-  let to = today + 21 * DAY
-  for (const r of rows) {
-    if (r.start) from = Math.min(from, toMs(r.start))
-    if (r.end) to = Math.max(to, toMs(r.end))
-  }
-  return { from, to, today }
-}
-
-/** Bar position in % of the axis. Without an end date the bar runs start → today. */
-export function barSpan(row: ProjectRow, axis: Axis): { left: number; width: number; open: boolean } | null {
-  if (!row.start && !row.end) return null
-  const span = axis.to - axis.from
-  const startMs = row.start ? toMs(row.start) : toMs(row.end!) - 7 * DAY
-  const endMs = row.end ? toMs(row.end) : axis.today
-  const left = ((startMs - axis.from) / span) * 100
-  const width = Math.max(((Math.max(endMs, startMs) - startMs) / span) * 100, 1.5)
-  return { left, width, open: !row.end }
-}
-
 interface ProjectsOverviewProps {
   rows: ProjectRow[]
   onOpenDeal: (deal: Deal) => void
 }
 
 export function ProjectsOverview({ rows, onOpenDeal }: ProjectsOverviewProps) {
-  const axis = buildAxis(rows)
-  const todayLeft = ((axis.today - axis.from) / (axis.to - axis.from)) * 100
-
   return (
     <section className="panel projects-panel" aria-label="Active projects">
       <div className="today-group-head">
@@ -136,7 +100,6 @@ export function ProjectsOverview({ rows, onOpenDeal }: ProjectsOverviewProps) {
       <ul>
         {rows.map((row) => {
           const { deal } = row
-          const bar = barSpan(row, axis)
           const pct = row.tasksTotal ? Math.round((row.tasksDone / row.tasksTotal) * 100) : 0
           return (
             <li key={deal.id} className="project-row">
@@ -170,20 +133,6 @@ export function ProjectsOverview({ rows, onOpenDeal }: ProjectsOverviewProps) {
                   </>
                 ) : (
                   <span className="project-none">No tasks</span>
-                )}
-              </div>
-
-              <div className="project-timeline" aria-hidden={!bar}>
-                {bar ? (
-                  <>
-                    <span
-                      className={`project-bar${bar.open ? ' open' : ''}${row.flag === 'late' || row.flag === 'blocked' || row.flag === 'invoice' ? ' alert' : ''}`}
-                      style={{ left: `${bar.left}%`, width: `${bar.width}%` }}
-                    />
-                    <span className="project-today" style={{ left: `${todayLeft}%` }} />
-                  </>
-                ) : (
-                  <span className="project-none">No dates</span>
                 )}
               </div>
 

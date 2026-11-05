@@ -61,7 +61,6 @@ export function ShortcutsModal({ isOpen, onClose }: ShortcutsModalProps) {
         { keys: ['G', 'D'], label: 'Go to Home' },
         { keys: ['G', 'P'], label: 'Go to Deals & Pipeline' },
         { keys: ['G', 'U'], label: 'Go to Clients' },
-        { keys: ['G', 'K'], label: 'Go to Calendar' },
         { keys: ['G', 'S'], label: 'Go to Settings' },
       ],
     },

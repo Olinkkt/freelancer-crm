@@ -50,7 +50,7 @@ test('Backup & Restore API (/api/backup)', async (t) => {
         {
           id: 'deal-backup-1',
           title: 'Restored Test Deal',
-          company: 'Backup Corp',
+          contactName: 'Backup Corp',
           value: '45 000 Kč',
           rawAmount: 45000,
           stage: 'Won',
@@ -96,7 +96,8 @@ test('Backup & Restore API (/api/backup)', async (t) => {
     const workspace = await repo.getWorkspaceData()
     const restored = workspace.deals.find((d) => d.id === 'deal-backup-1')
     assert.ok(restored)
-    assert.equal(restored.company, 'Backup Corp')
+    assert.equal(restored.contactName, 'Backup Corp')
+    assert.ok(restored.contactId)
     assert.equal(restored.stage, 'Won')
     assert.equal(restored.deliverables?.[0]?.title, 'Audit Scope')
   })

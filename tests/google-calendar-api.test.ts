@@ -387,7 +387,7 @@ describe('Google Calendar API Endpoints & Server Actions', () => {
 
       const deal = await repo.createDeal({
         title: 'Cloud Migration',
-        company: 'Cyberdyne Systems',
+        contactName: 'Cyberdyne Systems',
         value: '$25,000',
         rawAmount: 25000,
         stage: 'Proposal',

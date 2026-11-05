@@ -42,7 +42,6 @@ describe('CRM Database Repository', () => {
     it('creates a deal with deliverables and invoices', async () => {
       const deal = await repo.createDeal({
         title: 'Brand Redesign 2026',
-        company: 'Stark Industries',
         value: '150 000 Kč',
         rawAmount: 150000,
         stage: 'Lead',
@@ -74,12 +73,65 @@ describe('CRM Database Repository', () => {
       assert.equal(deal.deliverables?.length, 1)
       assert.equal(deal.invoices?.length, 1)
 
+      // A deal without an existing client creates and links one
+      assert.ok(deal.contactId)
+      const data = await repo.getWorkspaceData()
+      const client = data.contacts.find((c) => c.id === deal.contactId)
+      assert.ok(client)
+      assert.equal(client.name, 'Tony Stark')
+      assert.equal(client.email, 'tony@stark.com')
+    })
+
+    it('links a deal to an existing client by id and rejects deals without a client', async () => {
+      const client = await repo.createContact({
+        name: 'Pepper Potts',
+        email: 'pepper@example.com',
+        deals: 0,
+        lastTouch: 'Today',
+        color: 'blue',
+      })
+      const deal = await repo.createDeal({
+        title: 'Retainer',
+        contactId: client.id,
+        contactName: '',
+        value: '10 000 Kč',
+        rawAmount: 10000,
+        stage: 'Lead',
+        probability: '20%',
+        next: '',
+        color: 'blue',
+      })
+      assert.equal(deal.contactId, client.id)
+      assert.equal(deal.contactName, 'Pepper Potts')
+
+      // Renaming the client updates the deal's client name
+      await repo.updateContact({ ...client, name: 'Virginia Potts' })
+      const renamed = await repo.getDealById(deal.id)
+      assert.equal(renamed?.contactName, 'Virginia Potts')
+
+      // Clients with deals cannot be deleted
+      await assert.rejects(() => repo.deleteContact(client.id), /still has deals/)
+
+      await assert.rejects(
+        () =>
+          repo.createDeal({
+            title: 'Orphan',
+            contactName: '',
+            value: '0',
+            rawAmount: 0,
+            stage: 'Lead',
+            probability: '20%',
+            next: '',
+            color: 'blue',
+          }),
+        /Client is required/
+      )
     })
 
     it('moveDealStage sets 100% on Won and preserves custom color', async () => {
       const deal = await repo.createDeal({
         title: 'Mobile App',
-        company: 'Innovatech',
+        contactName: 'Innovatech',
         value: '80 000 Kč',
         rawAmount: 80000,
         stage: 'Proposal',
@@ -103,7 +155,7 @@ describe('CRM Database Repository', () => {
     it('moveDealStage sets 100% and clears next on Paid stage', async () => {
       const deal = await repo.createDeal({
         title: 'API Integration',
-        company: 'Fintech Co',
+        contactName: 'Fintech Co',
         value: '60 000 Kč',
         rawAmount: 60000,
         stage: 'Won',
@@ -136,7 +188,7 @@ describe('CRM Database Repository', () => {
     it('deleteDeal unlinks activities and follow-ups', async () => {
       const deal = await repo.createDeal({
         title: 'SEO Audit',
-        company: 'Omega Corp',
+        contactName: 'Omega Corp',
         value: '20 000 Kč',
         rawAmount: 20000,
         stage: 'Lead',
@@ -188,7 +240,7 @@ describe('CRM Database Repository', () => {
     it('retrieves a deal by ID or slug and fetches linked activities', async () => {
       const deal = await repo.createDeal({
         title: 'Full Stack App Development',
-        company: 'Stripe Europe',
+        contactName: 'Stripe Europe',
         value: '180 000 Kč',
         rawAmount: 180000,
         stage: 'Qualified',
@@ -232,8 +284,6 @@ describe('CRM Database Repository', () => {
     it('creates, updates, and deletes a contact', async () => {
       const contact = await repo.createContact({
         name: 'Sarah Connor',
-        role: 'CTO',
-        company: 'Cyberdyne',
         email: 'sarah@cyberdyne.io',
         phone: '+420 777 888 999',
         deals: 0,
@@ -247,11 +297,11 @@ describe('CRM Database Repository', () => {
       // Update contact
       const updated = await repo.updateContact({
         ...contact,
-        role: 'VP of Engineering',
+        notes: 'Prefers async updates',
         phone: '+420 111 222 333',
       })
       assert.ok(updated)
-      assert.equal(updated.role, 'VP of Engineering')
+      assert.equal(updated.notes, 'Prefers async updates')
       assert.equal(updated.phone, '+420 111 222 333')
 
       // Delete contact
@@ -262,22 +312,22 @@ describe('CRM Database Repository', () => {
       assert.equal(finalData.contacts.length, 0)
     })
 
-    it('creates contact without role and defaults role to null', async () => {
+    it('creates a client without notes and persists notes on update', async () => {
       const contact = await repo.createContact({
         name: 'Kyle Reese',
-        company: 'Resistance',
         email: 'kyle@resistance.org',
         deals: 0,
         lastTouch: 'Today',
         color: 'blue',
       })
 
-      assert.equal(contact.role, null)
+      await repo.updateContact({ ...contact, notes: 'Met at a meetup' })
 
       const data = await repo.getWorkspaceData()
       const found = data.contacts.find((c) => c.id === contact.id)
       assert.ok(found)
-      assert.equal(found.role, null)
+      assert.equal(found.notes, 'Met at a meetup')
+      assert.equal('company' in found, false)
 
       await repo.deleteContact(contact.id)
     })
@@ -287,7 +337,7 @@ describe('CRM Database Repository', () => {
     it('logActivity updates linked deal notes and next action', async () => {
       const deal = await repo.createDeal({
         title: 'App Design',
-        company: 'DesignHub',
+        contactName: 'DesignHub',
         value: '30 000 Kč',
         rawAmount: 30000,
         stage: 'Lead',

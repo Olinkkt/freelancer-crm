@@ -187,9 +187,9 @@ export function CalendarView({ deals = [], followUps = [], onOpenDeal }: Calenda
         return {
           id: `deal-ms-${d.id}`,
           title: `Milestone: ${d.next}`,
-          subtitle: `${d.company} • ${d.title}`,
-          company: d.company,
-          person: d.contactName || d.company,
+          subtitle: `${d.contactName} • ${d.title}`,
+          company: d.contactName,
+          person: d.contactName,
           dayIndex: matched.dayIndex,
           dateString: matched.dateString,
           startHour: matched.startHour,
@@ -204,8 +204,8 @@ export function CalendarView({ deals = [], followUps = [], onOpenDeal }: Calenda
           attendees: [
             {
               id: `att-${d.id}`,
-              name: d.contactName || d.company,
-              initials: (d.contactName || d.company)
+              name: d.contactName,
+              initials: d.contactName
                 .split(' ')
                 .map((n) => n[0])
                 .join('')
@@ -747,8 +747,8 @@ export function CalendarView({ deals = [], followUps = [], onOpenDeal }: Calenda
         id: `feat-${d.id}`,
         title: d.next,
         subtitle: `${d.title} • ${d.stage}`,
-        company: d.company,
-        person: d.contactName || d.company,
+        company: d.contactName,
+        person: d.contactName,
         time: d.nextDueDate || 'Scheduled',
         colorTheme: d.color || ('blue' as const),
         category: 'milestone' as const,
@@ -757,8 +757,8 @@ export function CalendarView({ deals = [], followUps = [], onOpenDeal }: Calenda
         attendees: [
           {
             id: `att-${d.id}`,
-            name: d.contactName || d.company,
-            initials: (d.contactName || d.company)
+            name: d.contactName,
+            initials: d.contactName
               .split(' ')
               .map((n) => n[0])
               .join('')

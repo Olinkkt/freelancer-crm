@@ -36,7 +36,6 @@ import {
 } from '@/lib/csv-export'
 import { getFormattedToday, getDynamicGreeting } from '@/lib/date-utils'
 import { OPERATOR_CONFIG, formatMoney, formatDealValue, getOperatorInitials } from '@/lib/config'
-import { CalendarView } from '@/components/calendar/calendar-view'
 import { Deal, Contact, Activity, FollowUpItem, DealStage, STAGE_DEFAULT_PROBABILITIES } from '@/lib/crm-types'
 import {
   INITIAL_CONTACTS,
@@ -141,7 +140,7 @@ export default function Page() {
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false)
   const [isNewDealOpen, setIsNewDealOpen] = useState(false)
   const [isNewContactOpen, setIsNewContactOpen] = useState(false)
-  const [prefilledCompany, setPrefilledCompany] = useState<string | undefined>(undefined)
+  const [prefilledClient, setPrefilledClient] = useState<string | undefined>(undefined)
 
   // Editing state for entities
   const [editingDeal, setEditingDeal] = useState<Deal | null>(null)
@@ -345,11 +344,6 @@ export default function Page() {
           setActiveView('Clients')
           addToast('Navigated to Clients', 'G U')
           return
-        } else if (key === 'k') {
-          e.preventDefault()
-          setActiveView('Calendar')
-          addToast('Navigated to Calendar', 'G K')
-          return
         } else if (key === 's') {
           e.preventDefault()
           setActiveView('Settings')
@@ -378,7 +372,7 @@ export default function Page() {
       if (key === 'c' && !e.metaKey && !e.ctrlKey) {
         e.preventDefault()
         setIsNewContactOpen(true)
-        addToast('Quick Capture Contact', 'C')
+        addToast('Quick Capture Client', 'C')
         return
       }
     }
@@ -452,9 +446,9 @@ export default function Page() {
     try {
       const newContact = await createContactAction(contactData)
       setContacts((prev) => [newContact, ...prev])
-      addToast(`Added contact "${newContact.name}"`, 'C')
+      addToast(`Added client "${newContact.name}"`, 'C')
     } catch (err: any) {
-      addToast(err?.message || 'Failed to create contact', undefined, 'warning')
+      addToast(err?.message || 'Failed to create client', undefined, 'warning')
     }
   }
 
@@ -503,9 +497,9 @@ export default function Page() {
     try {
       const saved = await updateContactAction(updated)
       setContacts((prev) => prev.map((c) => (c.id === saved.id ? saved : c)))
-      addToast(`Contact "${saved.name}" updated`)
+      addToast(`Client "${saved.name}" updated`)
     } catch (err: any) {
-      addToast(err?.message || 'Failed to update contact', undefined, 'warning')
+      addToast(err?.message || 'Failed to update client', undefined, 'warning')
     }
   }
 
@@ -543,14 +537,23 @@ export default function Page() {
     }
   }
 
-  // Delete Contact
+  // Delete Client (server first: a client with deals can't be deleted)
   const handleDeleteContact = async (id: string, name: string) => {
-    setContacts((prev) => prev.filter((c) => c.id !== id))
-    addToast(`Contact "${name}" deleted`)
+    const linkedDeals = deals.filter((d) => d.contactId === id).length
+    if (linkedDeals > 0) {
+      addToast(
+        `"${name}" still has ${linkedDeals} deal${linkedDeals === 1 ? '' : 's'}. Delete or reassign them first.`,
+        undefined,
+        'warning'
+      )
+      return
+    }
     try {
       await deleteContactAction(id)
+      setContacts((prev) => prev.filter((c) => c.id !== id))
+      addToast(`Client "${name}" deleted`)
     } catch (err: any) {
-      addToast(err?.message || 'Failed to delete contact', undefined, 'warning')
+      addToast(err?.message || 'Failed to delete client', undefined, 'warning')
     }
   }
 
@@ -611,7 +614,7 @@ export default function Page() {
       const deal = deals.find((d) => d.id === dealId)
       if (deal) {
         const toComplete = followUps
-          .filter((f) => f.company === deal.company && !completedFollowUps.includes(f.id))
+          .filter((f) => f.company === deal.contactName && !completedFollowUps.includes(f.id))
           .map((f) => f.id)
         if (toComplete.length > 0) {
           setCompletedFollowUps((prev) => [...new Set([...prev, ...toComplete])])
@@ -661,41 +664,8 @@ export default function Page() {
     (sum, d) => sum + (d.rawAmount || parseInt(d.value.replace(/[^0-9]/g, '')) || 0),
     0
   )
-  const getContactOpenDealsCount = (contact: Contact) => {
-    const contactNameNorm = contact.name.trim().toLowerCase()
-    const contactEmailNorm = contact.email ? contact.email.trim().toLowerCase() : ''
-    const contactCompanyNorm = contact.company ? contact.company.trim().toLowerCase() : ''
-    // A deal with no contact info is attributed to its company's only contact
-    const isSoleCompanyContact =
-      !!contactCompanyNorm &&
-      contacts.filter((c) => c.company.trim().toLowerCase() === contactCompanyNorm).length === 1
-
-    return openDeals.filter((d) => {
-      const dealContactNorm = d.contactName ? d.contactName.trim().toLowerCase() : ''
-      const dealEmailNorm = d.contactEmail ? d.contactEmail.trim().toLowerCase() : ''
-      const dealCompanyNorm = d.company ? d.company.trim().toLowerCase() : ''
-
-      if (dealContactNorm && dealContactNorm === contactNameNorm) return true
-      if (dealEmailNorm && contactEmailNorm && dealEmailNorm === contactEmailNorm) return true
-
-      if (!dealContactNorm && !dealEmailNorm && isSoleCompanyContact && dealCompanyNorm === contactCompanyNorm) {
-        return true
-      }
-
-      return false
-    }).length
-  }
-  const companyNames = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          [...deals.map((d) => d.company), ...contacts.map((c) => c.company)]
-            .map((name) => name?.trim())
-            .filter((name): name is string => !!name)
-        )
-      ).sort((a, b) => a.localeCompare(b)),
-    [deals, contacts]
-  )
+  const getContactOpenDealsCount = (contact: Contact) =>
+    openDeals.filter((d) => d.contactId === contact.id).length
 
   const closingDeals = deals.filter((d) => d.stage === 'Proposal')
   const expectedCloseAmount = closingDeals.reduce(
@@ -794,26 +764,20 @@ export default function Page() {
             onClick={() => setActiveView('Home')}
           />
           <NavItem
-            icon={WalletCards}
-            label="Deals"
-            badge={String(deals.length)}
-            active={activeView === 'Deals'}
-            onClick={() => setActiveView('Deals')}
-          />
-          <NavItem
             icon={Users}
             label="Clients"
             badge={String(contacts.length)}
             active={activeView === 'Clients'}
             onClick={() => setActiveView('Clients')}
           />
-          <p className="nav-label second">Manage</p>
           <NavItem
-            icon={CalendarDays}
-            label="Calendar"
-            active={activeView === 'Calendar'}
-            onClick={() => setActiveView('Calendar')}
+            icon={WalletCards}
+            label="Deals"
+            badge={String(deals.length)}
+            active={activeView === 'Deals'}
+            onClick={() => setActiveView('Deals')}
           />
+          <p className="nav-label second">Manage</p>
           <NavItem
             icon={Settings2}
             label="Settings"
@@ -920,13 +884,6 @@ export default function Page() {
                 onDeleteDeal={handleDeleteDeal}
               />
             </>
-          ) : activeView === 'Calendar' ? (
-            /* CALENDAR VIEW */
-            <CalendarView
-              deals={deals}
-              followUps={followUps}
-              onOpenDeal={openDeal}
-            />
           ) : activeView === 'Clients' ? (
             /* CLIENTS VIEW */
             <>
@@ -954,7 +911,7 @@ export default function Page() {
                 <div>
                   <span className="metric-label">Total clients</span>
                   <strong>{contacts.length}</strong>
-                  <small>Across {new Set(contacts.map((c) => c.company.trim().toLowerCase())).size} companies</small>
+                  <small>People you work with</small>
                 </div>
                 <div>
                   <span className="metric-label">Active pipeline</span>
@@ -992,8 +949,8 @@ export default function Page() {
 
                 <div className="company-table contacts-table">
                   <div className="company-table-head">
-                    <span>Contact</span>
-                    <span>Company</span>
+                    <span>Client</span>
+                    <span>Phone</span>
                     <span>Open deals</span>
                     <span>Last touch</span>
                     <span>Email</span>
@@ -1025,7 +982,7 @@ export default function Page() {
                       .filter(
                         (c) =>
                           c.name.toLowerCase().includes(contactSearch.toLowerCase()) ||
-                          c.company.toLowerCase().includes(contactSearch.toLowerCase()) ||
+                          (c.phone || '').toLowerCase().includes(contactSearch.toLowerCase()) ||
                           c.email.toLowerCase().includes(contactSearch.toLowerCase())
                       )
                       .map((contact) => {
@@ -1037,12 +994,16 @@ export default function Page() {
                               </span>
                               <div className="min-w-0">
                                 <strong className="truncate block" title={contact.name}>{contact.name}</strong>
-                                {' '}
-                                {contact.role && <span className="truncate block">{contact.role}</span>}
                               </div>
                             </div>
                             <div className="company-contact">
-                              <strong className="text-[13px] font-semibold text-[#1c1d1f]">{contact.company}</strong>
+                              {contact.phone ? (
+                                <a href={`tel:${contact.phone}`} className="text-[12px] text-[#1c1d1f] hover:underline font-mono">
+                                  {contact.phone}
+                                </a>
+                              ) : (
+                                <span className="text-[#8f99a8] text-[11px]">—</span>
+                              )}
                             </div>
                             <strong>{getContactOpenDealsCount(contact)}</strong>
                             <span className="last-touch">{contact.lastTouch}</span>
@@ -1064,7 +1025,7 @@ export default function Page() {
                                 triggerLabel={`More options for ${contact.name}`}
                                 items={[
                                   {
-                                    label: 'Edit contact',
+                                    label: 'Edit client',
                                     icon: Edit3,
                                     onClick: () => {
                                       setEditingContact(contact)
@@ -1083,20 +1044,20 @@ export default function Page() {
                                       ]
                                     : []),
                                   {
-                                    label: 'Create deal for contact',
+                                    label: 'Create deal for client',
                                     icon: CirclePlus,
                                     onClick: () => {
-                                      setPrefilledCompany(contact.company)
+                                      setPrefilledClient(contact.name)
                                       setIsNewDealOpen(true)
                                     },
                                   },
                                   {
-                                    label: 'Delete contact',
+                                    label: 'Delete client',
                                     icon: Trash2,
                                     destructive: true,
                                     divider: true,
                                     onClick: () => {
-                                      if (window.confirm(`Are you sure you want to delete contact "${contact.name}"?`)) {
+                                      if (window.confirm(`Are you sure you want to delete client "${contact.name}"?`)) {
                                         handleDeleteContact(contact.id, contact.name)
                                       }
                                     },
@@ -1113,7 +1074,7 @@ export default function Page() {
                     contacts.filter(
                       (c) =>
                         c.name.toLowerCase().includes(contactSearch.toLowerCase()) ||
-                        c.company.toLowerCase().includes(contactSearch.toLowerCase()) ||
+                        (c.phone || '').toLowerCase().includes(contactSearch.toLowerCase()) ||
                         c.email.toLowerCase().includes(contactSearch.toLowerCase())
                     ).length === 0 && (
                       <div className="py-8 text-center text-[#8f99a8] text-[12px]">
@@ -1442,7 +1403,7 @@ export default function Page() {
                       items: [
                         { label: 'Universal Command Palette', keys: ['Ctrl+K'], note: 'Search deals, contacts, views' },
                         { label: 'Quick-add new deal drawer', keys: ['N'], note: 'Instant lead capture slide-over' },
-                        { label: 'Quick-add new client', keys: ['C'], note: 'Register new client contact' },
+                        { label: 'Quick-add new client', keys: ['C'], note: 'Register a new client' },
                         { label: 'Keyboard shortcut cheat-sheet', keys: ['?'], note: 'Open floating shortcut modal' },
                       ],
                     },
@@ -1461,8 +1422,7 @@ export default function Page() {
                       items: [
                         { label: 'Jump to Home', keys: ['G', 'D'], note: 'Daily overview' },
                         { label: 'Jump to Deals pipeline', keys: ['G', 'P'], note: 'Kanban stages and values' },
-                        { label: 'Jump to Clients', keys: ['G', 'U'], note: 'People and companies' },
-                        { label: 'Jump to Calendar', keys: ['G', 'K'], note: 'Schedule and milestones' },
+                        { label: 'Jump to Clients', keys: ['G', 'U'], note: 'The people you work with' },
                         { label: 'Jump to Settings view', keys: ['G', 'S'], note: 'Workspace preferences' },
                       ],
                     },
@@ -1547,7 +1507,7 @@ export default function Page() {
                         },
                         {
                           title: 'People Directory',
-                          desc: 'Contact names, email addresses, phone numbers, roles, touch timestamps',
+                          desc: 'Client names, email addresses, phone numbers, notes, touch timestamps',
                           count: contacts.length,
                           action: () => {
                             exportContactsCSV(contacts)
@@ -1804,12 +1764,6 @@ export default function Page() {
                       <p className="section-kicker">Your next actions</p>
                       <h2>Follow-ups</h2>
                     </div>
-                    <button
-                      className="text-button"
-                      onClick={() => setActiveView('Calendar')}
-                    >
-                      View calendar <ArrowUpRight size={14} />
-                    </button>
                   </div>
 
                   <div className="followup-list">
@@ -2022,7 +1976,7 @@ export default function Page() {
                           const q = dealSearch.toLowerCase().trim()
                           const matches =
                             deal.title.toLowerCase().includes(q) ||
-                            deal.company.toLowerCase().includes(q) ||
+                            deal.contactName.toLowerCase().includes(q) ||
                             deal.stage.toLowerCase().includes(q) ||
                             (deal.next && deal.next.toLowerCase().includes(q)) ||
                             deal.value.toLowerCase().includes(q)
@@ -2047,11 +2001,11 @@ export default function Page() {
                         >
                           <div className="deal-title min-w-0">
                             <span className={`deal-avatar shrink-0 ${deal.color}`}>
-                              {deal.company.charAt(0)}
+                              {deal.contactName.charAt(0)}
                             </span>
                             <div className="min-w-0">
                               <strong className="truncate block" title={deal.title}>{deal.title}</strong>
-                              <span className="truncate block" title={deal.company}>{deal.company}</span>
+                              <span className="truncate block" title={deal.contactName}>{deal.contactName}</span>
                             </div>
                           </div>
                           <div className="flex items-center gap-1.5 flex-wrap">
@@ -2131,7 +2085,7 @@ export default function Page() {
                       const q = dealSearch.toLowerCase().trim()
                       return (
                         deal.title.toLowerCase().includes(q) ||
-                        deal.company.toLowerCase().includes(q) ||
+                        deal.contactName.toLowerCase().includes(q) ||
                         deal.stage.toLowerCase().includes(q) ||
                         (deal.next && deal.next.toLowerCase().includes(q)) ||
                         deal.value.toLowerCase().includes(q)
@@ -2172,11 +2126,11 @@ export default function Page() {
         onClose={() => {
           setIsNewDealOpen(false)
           setEditingDeal(null)
-          setPrefilledCompany(undefined)
+          setPrefilledClient(undefined)
         }}
         onAddDeal={handleAddDeal}
-        companies={companyNames}
-        initialCompany={prefilledCompany}
+        clients={contacts}
+        initialClientName={prefilledClient}
         dealToEdit={editingDeal}
         onUpdateDeal={handleUpdateDeal}
         settings={currentSettings}
@@ -2188,11 +2142,8 @@ export default function Page() {
         onClose={() => {
           setIsNewContactOpen(false)
           setEditingContact(null)
-          setPrefilledCompany(undefined)
         }}
         onAddContact={handleAddContact}
-        companies={companyNames}
-        initialCompany={prefilledCompany}
         contactToEdit={editingContact}
         onUpdateContact={handleUpdateContact}
       />

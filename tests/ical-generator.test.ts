@@ -72,7 +72,6 @@ describe('iCalendar (RFC 5545) Generator', () => {
         {
           id: 'deal-1',
           title: 'Design System Overhaul',
-          company: 'Acme Corp',
           contactName: 'Jane Doe',
           value: '$12,000',
           rawAmount: 12000,
@@ -85,7 +84,7 @@ describe('iCalendar (RFC 5545) Generator', () => {
         {
           id: 'deal-paid',
           title: 'Old Contract',
-          company: 'Finished Corp',
+          contactName: 'Finished Corp',
           value: '$5,000',
           rawAmount: 5000,
           stage: 'Paid',
@@ -103,7 +102,7 @@ describe('iCalendar (RFC 5545) Generator', () => {
 
       assert.ok(ics.includes('BEGIN:VEVENT\r\n'))
       assert.ok(ics.includes('UID:deal-milestone-deal-1@freelancercrm.local\r\n'))
-      assert.ok(ics.includes('SUMMARY:Milestone: Submit Phase 1 wireframes (Acme Corp)\r\n'))
+      assert.ok(ics.includes('SUMMARY:Milestone: Submit Phase 1 wireframes (Jane Doe)\r\n'))
       assert.ok(ics.includes('DTSTART;VALUE=DATE:20261105\r\n'))
       assert.ok(ics.includes('DTEND;VALUE=DATE:20261106\r\n'))
       assert.ok(ics.includes('CATEGORIES:Milestone,Freelancer CRM\r\n'))

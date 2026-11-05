@@ -103,7 +103,7 @@ describe('API Route Handlers', () => {
       // 1. CREATE (POST)
       const postReq = createAuthedRequest('http://localhost:3000/api/deals', 'POST', {
         title: 'New Portal',
-        company: 'PortalCorp',
+        contactName: 'PortalCorp',
         value: '75 000 Kč',
         rawAmount: 75000,
         stage: 'Lead',
@@ -159,11 +159,18 @@ describe('API Route Handlers', () => {
       assert.equal(data.error, 'Deal not found')
     })
 
+    it('rejects a deal without a client', async () => {
+      const res = await postDeal(
+        createAuthedRequest('http://localhost:3000/api/deals', 'POST', { title: 'No Client', stage: 'Lead' })
+      )
+      assert.equal(res.status, 400)
+    })
+
     it('rejects a negative deal value on creation and update', async () => {
       // 1. Negative value string "-500"
       const postReq1 = createAuthedRequest('http://localhost:3000/api/deals', 'POST', {
         title: 'Negative Deal',
-        company: 'Acme',
+        contactName: 'Acme',
         stage: 'Lead',
         value: '-500',
       })
@@ -173,7 +180,7 @@ describe('API Route Handlers', () => {
       // 2. Negative rawAmount -500
       const postReq2 = createAuthedRequest('http://localhost:3000/api/deals', 'POST', {
         title: 'Negative Amount Deal',
-        company: 'Acme',
+        contactName: 'Acme',
         stage: 'Lead',
         rawAmount: -500,
       })
@@ -183,7 +190,7 @@ describe('API Route Handlers', () => {
       // 3. Create a valid deal first, then attempt updating to -500
       const validDeal = await repo.createDeal({
         title: 'Valid Deal',
-        company: 'Acme Corp',
+        contactName: 'Acme Corp',
         value: '$1,000',
         rawAmount: 1000,
         stage: 'Lead',
@@ -218,8 +225,6 @@ describe('API Route Handlers', () => {
       // CREATE
       const postReq = createAuthedRequest('http://localhost:3000/api/contacts', 'POST', {
         name: 'John Miller',
-        role: 'Founder',
-        company: 'Miller Media',
         email: 'john@millermedia.com',
         color: 'blue',
       })
@@ -236,12 +241,12 @@ describe('API Route Handlers', () => {
       // UPDATE
       const putReq = createAuthedRequest('http://localhost:3000/api/contacts', 'PUT', {
         ...contact,
-        role: 'CEO',
+        notes: 'Pays on time',
       })
       const putRes = await putContact(putReq)
       assert.equal(putRes.status, 200)
       const updated = await putRes.json()
-      assert.equal(updated.role, 'CEO')
+      assert.equal(updated.notes, 'Pays on time')
 
       // DELETE
       const delReq = createAuthedRequest(`http://localhost:3000/api/contacts?id=${contact.id}`, 'DELETE')

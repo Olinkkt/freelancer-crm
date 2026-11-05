@@ -92,7 +92,7 @@ describe('Calendar Subscription Feed (iCal / RFC 5545)', () => {
       // Seed an active deal with milestone
       await createDeal({
         title: 'Platform Redesign',
-        company: 'Apex Labs',
+        contactName: 'Apex Labs',
         value: '$15,000',
         rawAmount: 15000,
         stage: 'Proposal',

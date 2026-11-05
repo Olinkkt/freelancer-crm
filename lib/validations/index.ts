@@ -3,10 +3,9 @@ import { z } from 'zod'
 export const ContactBackupSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
-  company: z.string(),
-  role: z.string().nullable().optional(),
   email: z.string().optional(),
   phone: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
   deals: z.number().optional(),
   lastTouch: z.string().optional(),
   color: z.string().optional(),
@@ -15,7 +14,6 @@ export const ContactBackupSchema = z.object({
 export const DealBackupSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
-  company: z.string().min(1),
   value: z.string().default('0'),
   rawAmount: z.number().nonnegative().optional(),
   stage: z.string(),
@@ -23,7 +21,8 @@ export const DealBackupSchema = z.object({
   next: z.string().default(''),
   nextDueDate: z.string().nullable().optional(),
   color: z.string().optional(),
-  contactName: z.string().nullable().optional(),
+  contactId: z.string().nullable().optional(),
+  contactName: z.string().min(1),
   contactEmail: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
   startDate: z.string().nullable().optional(),
@@ -95,9 +94,8 @@ export const BackupPayloadSchema = z
 export type ValidatedBackupPayload = z.infer<typeof BackupPayloadSchema>
 
 // API Input schemas
-export const DealCreateInputSchema = z.object({
+const DealInputBaseSchema = z.object({
   title: z.string().trim().min(1, 'Title is required').max(100, 'Title cannot exceed 100 characters'),
-  company: z.string().trim().min(1, 'Company is required').max(100, 'Company name cannot exceed 100 characters'),
   value: z
     .union([z.string(), z.number()])
     .refine(
@@ -118,7 +116,9 @@ export const DealCreateInputSchema = z.object({
   next: z.string().optional(),
   nextDueDate: z.string().nullable().optional(),
   color: z.string().optional(),
-  contactName: z.string().nullable().optional(),
+  /** The client (person) this deal belongs to; or pass contactName to match/create one */
+  contactId: z.string().nullable().optional(),
+  contactName: z.string().trim().max(100, 'Client name cannot exceed 100 characters').nullable().optional(),
   contactEmail: z.string().email().nullable().or(z.literal('')).optional(),
   notes: z.string().nullable().optional(),
   startDate: z.string().nullable().optional(),
@@ -127,16 +127,20 @@ export const DealCreateInputSchema = z.object({
   invoices: z.array(z.any()).optional(),
 })
 
-export const DealUpdateInputSchema = DealCreateInputSchema.partial().extend({
+export const DealCreateInputSchema = DealInputBaseSchema.refine(
+  (d) => !!(d.contactId || d.contactName?.trim() || d.contactEmail?.trim()),
+  { message: 'Client is required', path: ['contactName'] }
+)
+
+export const DealUpdateInputSchema = DealInputBaseSchema.partial().extend({
   id: z.string().min(1, 'Deal ID is required'),
 })
 
 export const ContactCreateInputSchema = z.object({
-  name: z.string().trim().min(1, 'Contact name is required').max(100, 'Name cannot exceed 100 characters'),
-  company: z.string().trim().min(1, 'Company is required').max(100, 'Company name cannot exceed 100 characters'),
-  role: z.string().max(100).nullable().optional(),
+  name: z.string().trim().min(1, 'Client name is required').max(100, 'Name cannot exceed 100 characters'),
   email: z.string().email().or(z.literal('')).optional(),
   phone: z.string().max(50).nullable().optional(),
+  notes: z.string().max(5000).nullable().optional(),
   deals: z.number().optional(),
   lastTouch: z.string().optional(),
   color: z.string().optional(),

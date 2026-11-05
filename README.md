@@ -57,7 +57,7 @@ Operate your entire freelance business without taking your hands off the keyboar
 - <kbd>C</kbd> — Add new client contacts.
 - <kbd>⌘</kbd> <kbd>K</kbd> or <kbd>Ctrl</kbd> <kbd>K</kbd> — Fuzzy command palette.
 - <kbd>H</kbd> <kbd>J</kbd> <kbd>K</kbd> <kbd>L</kbd> or Arrow Keys — Vim-style column and card traversal.
-- <kbd>G</kbd> <kbd>D</kbd>, <kbd>G</kbd> <kbd>P</kbd>, <kbd>G</kbd> <kbd>U</kbd>, <kbd>G</kbd> <kbd>K</kbd>, <kbd>G</kbd> <kbd>S</kbd> — Instant view jumping (Home, Deals, Clients, Calendar, Settings).
+- <kbd>G</kbd> <kbd>D</kbd>, <kbd>G</kbd> <kbd>P</kbd>, <kbd>G</kbd> <kbd>U</kbd>, <kbd>G</kbd> <kbd>S</kbd> — Instant view jumping (Home, Deals, Clients, Settings).
 
 ### 2. 💰 The Freelancer 50/50 Payment Rule
 Cash flow kills solo businesses. Freelancer CRM enforces healthy invoicing by default:
@@ -107,7 +107,6 @@ Press <kbd>O</kbd> on any deal or navigate to `/deals/[id]` to open the dedicate
 | <kbd>G</kbd> then <kbd>D</kbd> | Jump to Home | Global |
 | <kbd>G</kbd> then <kbd>P</kbd> | Jump to Deals board | Global |
 | <kbd>G</kbd> then <kbd>U</kbd> | Jump to Clients list | Global |
-| <kbd>G</kbd> then <kbd>K</kbd> | Jump to Calendar | Global |
 | <kbd>G</kbd> then <kbd>S</kbd> | Jump to Settings | Global |
 | <kbd>Esc</kbd> | Close any active modal | Global |
 

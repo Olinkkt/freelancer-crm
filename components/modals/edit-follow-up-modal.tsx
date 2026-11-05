@@ -110,7 +110,7 @@ export function EditFollowUpModal({
 
           <div>
             <label className="block text-[11px] font-medium text-[#505967] mb-1">
-              Company / Client
+              Client
             </label>
             <input
               type="text"

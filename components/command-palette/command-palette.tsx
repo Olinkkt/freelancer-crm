@@ -9,7 +9,6 @@ import {
   LayoutDashboard,
   WalletCards,
   Users,
-  CalendarDays,
   Settings2,
   FileText,
   ArrowRight,
@@ -223,16 +222,6 @@ export function CommandPalette({
         payload: 'Clients',
       },
       {
-        id: 'nav-calendar',
-        category: 'Navigation',
-        title: 'Go to Calendar',
-        subtitle: 'Weekly schedule, meetings & milestone timeline',
-        shortcut: 'G K',
-        icon: <CalendarDays size={15} className="text-[#266df0]" />,
-        actionType: 'navigate',
-        payload: 'Calendar',
-      },
-      {
         id: 'nav-settings',
         category: 'Navigation',
         title: 'Go to Settings',
@@ -252,13 +241,13 @@ export function CommandPalette({
         title: deal.title,
         subtitle:
           deal.stage === 'Paid' || !deal.next
-            ? `${deal.company} • ${deal.stage}`
-            : `${deal.company} • ${deal.stage} • Next: ${deal.next}`,
+            ? `${deal.contactName} • ${deal.stage}`
+            : `${deal.contactName} • ${deal.stage} • Next: ${deal.next}`,
         badge: deal.value,
         color: deal.color,
         icon: (
           <span className="w-5 h-5 rounded-[6px] flex items-center justify-center text-[10px] font-semibold bg-[#e9f0ff] text-[#266df0] shrink-0">
-            {deal.company.charAt(0)}
+            {deal.contactName.charAt(0)}
           </span>
         ),
         actionType: 'open_deal',
@@ -272,9 +261,7 @@ export function CommandPalette({
         id: `contact-${contact.id}`,
         category: 'Clients',
         title: contact.name,
-        subtitle: contact.role
-          ? `${contact.role} at ${contact.company} • ${contact.email}`
-          : `${contact.company} • ${contact.email}`,
+        subtitle: [contact.email, contact.phone].filter(Boolean).join(' • '),
         badge: contact.lastTouch,
         color: contact.color,
         icon: (
@@ -369,9 +356,9 @@ export function CommandPalette({
           onAddActivity({
             dealId: d.id,
             type: 'Meeting',
-            title: `${d.company} Meeting Note`,
-            person: d.contactName || d.company,
-            company: d.company,
+            title: `${d.contactName} Meeting Note`,
+            person: d.contactName,
+            company: d.contactName,
             date: timeStr,
             status: 'Completed',
             color: d.color || 'blue',
@@ -401,7 +388,7 @@ export function CommandPalette({
   const handleSyncTodosFromScratchpad = (todos: string[]) => {
     if (onSyncTodos) {
       const targetDeal = deals.find((d) => d.id === targetDealId)
-      onSyncTodos(todos, targetDeal?.company || 'Workspace')
+      onSyncTodos(todos, targetDeal?.contactName || 'Workspace')
     }
   }
 
@@ -460,13 +447,13 @@ export function CommandPalette({
             hour: '2-digit',
             minute: '2-digit',
           })
-          snippet = `### 📞 Client Call — ${nowStr}\n- **Client:** ${targetDeal?.contactName || targetDeal?.company || 'Client'}\n- **Key Decisions:**\n  • `
+          snippet = `### 📞 Client Call — ${nowStr}\n- **Client:** ${targetDeal?.contactName || 'Client'}\n- **Key Decisions:**\n  • `
         } else if (cmd === '/scope') {
           snippet = `### 📋 Project Scope: ${targetDeal?.title || 'Scope'}\n- [ ] Phase 1: Wireframes\n- [ ] Phase 2: Design\n- [ ] Phase 3: Build`
         } else if (cmd === '/quote') {
           snippet = `### 💰 Commercial Quote\n- **Project Fee:** ${targetDeal?.value || formatMoney(30000)}\n- **Deposit (50%):** Due upon kickoff\n- **Balance (50%):** Due upon delivery`
         } else if (cmd === '/todo') {
-          snippet = `- [ ] Follow up on next milestone with ${targetDeal?.contactName || targetDeal?.company || 'client'} tomorrow`
+          snippet = `- [ ] Follow up on next milestone with ${targetDeal?.contactName || 'client'} tomorrow`
         }
         setScratchpadNotes((prev) => (prev ? `${prev}\n\n${snippet}` : snippet))
       }
@@ -524,7 +511,7 @@ export function CommandPalette({
                   <option value="general">Workspace General Note</option>
                   {deals.map((d) => (
                     <option key={d.id} value={d.id}>
-                      {d.company}: {d.title}
+                      {d.contactName}: {d.title}
                     </option>
                   ))}
                 </select>
@@ -547,7 +534,7 @@ export function CommandPalette({
                   activeDeal
                     ? {
                         title: activeDeal.title,
-                        company: activeDeal.company,
+                        company: activeDeal.contactName,
                         contactName: activeDeal.contactName,
                         value: activeDeal.value,
                       }

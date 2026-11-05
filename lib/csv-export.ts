@@ -48,7 +48,9 @@ export function exportDealsCSV(deals: Deal[], currency: string = 'USD'): void {
   const headers = [
     { key: 'id' as const, label: 'Deal ID' },
     { key: 'title' as const, label: 'Title' },
-    { key: 'company' as const, label: 'Company' },
+    { key: 'contactId' as const, label: 'Client ID' },
+    { key: 'contactName' as const, label: 'Client Name' },
+    { key: 'contactEmail' as const, label: 'Client Email' },
     { key: 'value' as const, label: 'Value (Display)' },
     { key: 'rawAmount' as const, label: `Raw Amount (${currency.toUpperCase()})` },
     { key: 'stage' as const, label: 'Stage' },
@@ -57,8 +59,6 @@ export function exportDealsCSV(deals: Deal[], currency: string = 'USD'): void {
     { key: 'nextDueDate' as const, label: 'Next Due Date' },
     { key: 'startDate' as const, label: 'Start Date' },
     { key: 'endDate' as const, label: 'End Date' },
-    { key: 'contactName' as const, label: 'Contact Name' },
-    { key: 'contactEmail' as const, label: 'Contact Email' },
     { key: 'notes' as const, label: 'Internal Notes' },
     { key: 'createdAt' as const, label: 'Created At' },
   ]
@@ -72,12 +72,11 @@ export function exportDealsCSV(deals: Deal[], currency: string = 'USD'): void {
  */
 export function exportContactsCSV(contacts: Contact[]): void {
   const headers = [
-    { key: 'id' as const, label: 'Contact ID' },
+    { key: 'id' as const, label: 'Client ID' },
     { key: 'name' as const, label: 'Full Name' },
-    { key: 'role' as const, label: 'Role' },
-    { key: 'company' as const, label: 'Company' },
     { key: 'email' as const, label: 'Email' },
     { key: 'phone' as const, label: 'Phone' },
+    { key: 'notes' as const, label: 'Notes' },
     { key: 'deals' as const, label: 'Deals Count' },
     { key: 'lastTouch' as const, label: 'Last Touch' },
   ]

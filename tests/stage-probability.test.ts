@@ -27,7 +27,7 @@ describe('Deal Win Probability Consistency Across Stages (#28)', () => {
     // 1. Create a deal in 'Lead' stage (starts at 20%)
     const deal = await repo.createDeal({
       title: 'Consulting Project',
-      company: 'Acme Corp',
+      contactName: 'Acme Corp',
       value: '50 000 Kč',
       rawAmount: 50000,
       stage: 'Lead',

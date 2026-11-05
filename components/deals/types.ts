@@ -10,7 +10,7 @@ export type DealColor = 'blue' | 'violet' | 'amber' | 'green'
 export interface Deal {
   id: string
   title: string
-  company: string
+  contactName: string
   value: string
   stage: DealStage
   probability: string

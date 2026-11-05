@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { X, CirclePlus, ArrowUpRight, Calendar, AlertCircle } from 'lucide-react'
-import { Deal, DealStage, STAGE_DEFAULT_PROBABILITIES, WorkspaceSettings } from '@/lib/crm-types'
+import { Contact, Deal, DealStage, STAGE_DEFAULT_PROBABILITIES, WorkspaceSettings } from '@/lib/crm-types'
 import { formatMoney, OPERATOR_CONFIG } from '@/lib/config'
 import { Combobox } from '@/components/ui/combobox'
 
@@ -10,9 +10,9 @@ interface NewDealModalProps {
   isOpen: boolean
   onClose: () => void
   onAddDeal: (deal: Omit<Deal, 'id'>) => void
-  /** Known company names, offered as suggestions */
-  companies: string[]
-  initialCompany?: string
+  /** Existing clients; typing a new name creates a client on save */
+  clients: Contact[]
+  initialClientName?: string
   dealToEdit?: Deal | null
   onUpdateDeal?: (deal: Deal) => void
   settings?: WorkspaceSettings
@@ -30,15 +30,15 @@ export function NewDealModal({
   isOpen,
   onClose,
   onAddDeal,
-  companies,
-  initialCompany,
+  clients,
+  initialClientName,
   dealToEdit,
   onUpdateDeal,
   settings,
 }: NewDealModalProps) {
   const [mode, setMode] = useState<'quick' | 'detailed'>('quick')
   const [title, setTitle] = useState('')
-  const [company, setCompany] = useState('')
+  const [clientName, setClientName] = useState('')
   const [value, setValue] = useState('')
   const [stage, setStage] = useState<DealStage>('Lead')
   const [probability, setProbability] = useState('20%')
@@ -54,7 +54,7 @@ export function NewDealModal({
       if (dealToEdit) {
         setMode('detailed')
         setTitle(dealToEdit.title || '')
-        setCompany(dealToEdit.company || initialCompany || '')
+        setClientName(dealToEdit.contactName || initialClientName || '')
         setValue(dealToEdit.value || '')
         setStage(dealToEdit.stage || 'Lead')
         setProbability(dealToEdit.probability || STAGE_DEFAULT_PROBABILITIES[dealToEdit.stage || 'Lead'] || '20%')
@@ -64,7 +64,7 @@ export function NewDealModal({
       } else {
         setMode('quick')
         setTitle('')
-        setCompany(initialCompany || '')
+        setClientName(initialClientName || '')
         setValue(formatMoney(25000, settings))
         setStage('Lead')
         setProbability(STAGE_DEFAULT_PROBABILITIES['Lead'])
@@ -76,13 +76,25 @@ export function NewDealModal({
         titleInputRef.current?.focus()
       }, 50)
     }
-  }, [isOpen, companies, initialCompany, dealToEdit, settings])
+  }, [isOpen, initialClientName, dealToEdit, settings])
 
   if (!isOpen) return null
 
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault()
-    if (!title.trim() || !company.trim()) return
+    if (!title.trim() || !clientName.trim()) return
+
+    // Link to an existing client by name; otherwise the server creates one
+    const typedName = clientName.trim()
+    const existingClient =
+      (dealToEdit?.contactId && dealToEdit.contactName.trim().toLowerCase() === typedName.toLowerCase()
+        ? clients.find((c) => c.id === dealToEdit.contactId)
+        : undefined) || clients.find((c) => c.name.trim().toLowerCase() === typedName.toLowerCase())
+    const clientFields = {
+      contactId: existingClient?.id,
+      contactName: existingClient?.name || typedName,
+      contactEmail: existingClient ? existingClient.email || undefined : undefined,
+    }
 
     // Guard against negative amounts
     if (/-\s*\d+/.test(value.trim())) {
@@ -108,7 +120,7 @@ export function NewDealModal({
       onUpdateDeal({
         ...dealToEdit,
         title: title.trim(),
-        company: company.trim(),
+        ...clientFields,
         value: formattedVal || '—',
         rawAmount: numeric,
         stage,
@@ -121,7 +133,7 @@ export function NewDealModal({
     } else {
       onAddDeal({
         title: title.trim(),
-        company: company.trim(),
+        ...clientFields,
         value: formattedVal || '—',
         rawAmount: numeric,
         stage: mode === 'quick' ? 'Lead' : stage,
@@ -230,17 +242,18 @@ export function NewDealModal({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-[11px] font-bold uppercase tracking-wider text-[#505967] mb-1.5">
-                Company Account *
+                Client *
               </label>
               <Combobox
-                value={company}
-                onChange={setCompany}
-                options={companies.map((name) => ({
-                  id: name,
-                  label: name,
-                  value: name,
+                value={clientName}
+                onChange={setClientName}
+                options={clients.map((c) => ({
+                  id: c.id,
+                  label: c.name,
+                  value: c.name,
+                  sublabel: c.email || undefined,
                 }))}
-                placeholder="Select or enter company"
+                placeholder="Select or type a new client"
                 required
                 maxLength={100}
               />
@@ -364,7 +377,7 @@ export function NewDealModal({
               </button>
               <button
                 type="submit"
-                disabled={!title.trim() || !company.trim()}
+                disabled={!title.trim() || !clientName.trim()}
                 className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#232529] hover:bg-[#101113] text-white text-[12px] font-medium rounded-[10px] shadow-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 <CirclePlus size={15} />

@@ -80,7 +80,7 @@ export function DealKanban({
       ? deals.filter(
           (d) =>
             d.title.toLowerCase().includes(searchFilter.toLowerCase()) ||
-            d.company.toLowerCase().includes(searchFilter.toLowerCase())
+            d.contactName.toLowerCase().includes(searchFilter.toLowerCase())
         )
       : deals
 
@@ -517,10 +517,10 @@ export function DealKanban({
                                 className="text-[#cbd0d8] group-hover:text-[#6f7988] shrink-0 transition-colors"
                               />
                               <span className="w-6 h-6 rounded-[6px] flex items-center justify-center text-[10px] font-semibold bg-[#e9f0ff] text-[#266df0] shrink-0">
-                                {deal.company.charAt(0)}
+                                {deal.contactName.charAt(0)}
                               </span>
                               <span className="text-[11px] font-semibold text-[#6f7988] truncate">
-                                {deal.company}
+                                {deal.contactName}
                               </span>
                             </div>
 

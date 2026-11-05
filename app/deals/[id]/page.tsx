@@ -175,7 +175,7 @@ export default function DealProjectPage() {
 
   const openNoteDraft = () => {
     if (!deal) return
-    setNewMeetingTitle(`${deal.company} sync`)
+    setNewMeetingTitle(`${deal.contactName} sync`)
     setDraftNotes('')
     setIsDraftingNote(true)
   }
@@ -188,8 +188,8 @@ export default function DealProjectPage() {
       dealId: deal.id,
       title: newMeetingTitle.trim(),
       type: newMeetingType,
-      person: deal.contactName || deal.company,
-      company: deal.company,
+      person: deal.contactName,
+      company: deal.contactName,
       date: 'Today, Just now',
       status: 'Completed',
       summary: draftNotes.trim(),
@@ -242,7 +242,7 @@ export default function DealProjectPage() {
   const handleSyncTodos = async (todos: string[]) => {
     if (!deal) return
     try {
-      await syncTodosAction(todos, deal.company, deal.id)
+      await syncTodosAction(todos, deal.contactName, deal.id)
       addToast(`Synced ${todos.length} action item${todos.length > 1 ? 's' : ''} to Follow-ups`, 'Follow-up')
     } catch (err: any) {
       addToast(err?.message || 'Failed to sync follow-ups', undefined, 'warning')
@@ -292,7 +292,7 @@ export default function DealProjectPage() {
     )
   }
 
-  const contactEmail = deal.contactEmail || `contact@${deal.company.toLowerCase().replace(/[^a-z0-9]/g, '')}.cz`
+  const contactEmail = deal.contactEmail || `contact@${deal.contactName.toLowerCase().replace(/[^a-z0-9]/g, '')}.cz`
   const totalDeliverables = deal.deliverables?.length || 0
   const doneDeliverables = deal.deliverables?.filter((d) => d.status === 'Done').length || 0
   const progressPercent = totalDeliverables > 0 ? Math.round((doneDeliverables / totalDeliverables) * 100) : 0
@@ -358,7 +358,7 @@ export default function DealProjectPage() {
             <div className="space-y-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="px-2.5 py-0.5 rounded-[6px] bg-[#f0f2f5] text-[#232529] text-[11px] font-semibold uppercase tracking-wider">
-                  {deal.company}
+                  {deal.contactName}
                 </span>
                 <span className="text-[#6f7988] text-[12px]">•</span>
                 <span className="text-[12px] text-[#6f7988]">
@@ -518,7 +518,7 @@ export default function DealProjectPage() {
                   onSyncTodos={(todos) => handleSyncTodos(todos)}
                   dealContext={{
                     title: deal.title,
-                    company: deal.company,
+                    company: deal.contactName,
                     contactName: deal.contactName,
                     value: deal.value,
                   }}
@@ -581,7 +581,7 @@ export default function DealProjectPage() {
                       onChangeNotes={(text) => setDraftNotes(text)}
                       dealContext={{
                         title: deal.title,
-                        company: deal.company,
+                        company: deal.contactName,
                         contactName: deal.contactName,
                         value: deal.value,
                       }}
@@ -748,12 +748,12 @@ export default function DealProjectPage() {
                 <div className="flex items-start justify-between">
                   <div>
                     <h4 className="text-[14px] font-bold text-[#1c1d1f]">
-                      {deal.contactName || deal.company}
+                      {deal.contactName}
                     </h4>
-                    <p className="text-[11px] text-[#6f7988]">{deal.company}</p>
+                    {deal.contactEmail && <p className="text-[11px] text-[#6f7988]">{deal.contactEmail}</p>}
                   </div>
                   <span className="w-8 h-8 rounded-full bg-[#f0f2f5] text-[#232529] text-[11px] font-bold flex items-center justify-center">
-                    {deal.company[0]}
+                    {deal.contactName[0]}
                   </span>
                 </div>
 

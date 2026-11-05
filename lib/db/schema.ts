@@ -3,10 +3,9 @@ import { Generated } from 'kysely'
 export interface ContactTable {
   id: string
   name: string
-  role: string | null
-  company: string
   email: string
   phone: string | null
+  notes: string | null
   deals: number
   last_touch: string
   color: 'blue' | 'violet' | 'amber' | 'green'
@@ -17,7 +16,6 @@ export interface ContactTable {
 export interface DealTable {
   id: string
   title: string
-  company: string
   value: string
   raw_amount: number
   stage: string
@@ -25,6 +23,7 @@ export interface DealTable {
   next: string
   next_due_date: string | null
   color: string
+  contact_id: string | null
   contact_name: string | null
   contact_email: string | null
   notes: string | null

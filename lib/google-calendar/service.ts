@@ -173,14 +173,13 @@ export function getActivityEventInput(activity: Activity): GoogleCalendarEventIn
  */
 export function getDealNextEventInput(deal: Deal): GoogleCalendarEventInput {
   const dates = resolveEventDates(deal.nextDueDate)
-  const summary = deal.company ? `${deal.company}: ${deal.next}` : deal.next
+  const summary = deal.contactName ? `${deal.contactName}: ${deal.next}` : deal.next
 
   const details = [
     `Deal: ${deal.title}`,
-    deal.company ? `Company: ${deal.company}` : null,
     `Stage: ${deal.stage} (${deal.probability})`,
     deal.value ? `Value: ${deal.value}` : null,
-    deal.contactName ? `Contact: ${deal.contactName} (${deal.contactEmail || ''})` : null,
+    deal.contactName ? `Client: ${deal.contactName}${deal.contactEmail ? ` (${deal.contactEmail})` : ''}` : null,
   ]
     .filter(Boolean)
     .join('\n')
@@ -188,7 +187,7 @@ export function getDealNextEventInput(deal: Deal): GoogleCalendarEventInput {
   return {
     summary,
     description: details,
-    location: deal.company || undefined,
+    location: deal.contactName || undefined,
     start: dates.start,
     end: dates.end,
   }

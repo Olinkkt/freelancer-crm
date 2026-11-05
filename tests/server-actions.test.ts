@@ -72,7 +72,7 @@ describe('Server Actions Integration', () => {
         () =>
           createDealAction({
             title: 'Hacked Deal',
-            company: 'EvilCorp',
+            contactName: 'EvilCorp',
             value: '1000 Kč',
             rawAmount: 1000,
             stage: 'Lead',
@@ -105,7 +105,7 @@ describe('Server Actions Integration', () => {
       // 1. Create deal action
       const deal = await createDealAction({
         title: 'Ecommerce Redesign',
-        company: 'RetailHub',
+        contactName: 'RetailHub',
         value: '120 000 Kč',
         rawAmount: 120000,
         stage: 'Lead',
@@ -137,8 +137,6 @@ describe('Server Actions Integration', () => {
       // 5. Create contact action
       const contact = await createContactAction({
         name: 'George Retail',
-        company: 'RetailHub',
-        role: 'COO',
         email: 'george@retailhub.com',
         deals: 1,
         lastTouch: 'Today',

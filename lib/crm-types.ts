@@ -37,7 +37,6 @@ export interface InvoiceMilestone {
 export interface Deal {
   id: string
   title: string
-  company: string
   value: string
   rawAmount: number
   stage: DealStage
@@ -45,7 +44,9 @@ export interface Deal {
   next: string
   nextDueDate?: string
   color: 'blue' | 'violet' | 'amber' | 'green'
-  contactName?: string
+  /** The client (person) this deal belongs to */
+  contactId?: string
+  contactName: string
   contactEmail?: string
   notes?: string
   createdAt?: string
@@ -58,10 +59,9 @@ export interface Deal {
 export interface Contact {
   id: string
   name: string
-  role?: string | null
-  company: string
   email: string
   phone?: string
+  notes?: string
   deals: number
   lastTouch: string
   color: 'blue' | 'violet' | 'amber' | 'green'

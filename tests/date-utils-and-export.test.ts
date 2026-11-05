@@ -231,7 +231,7 @@ describe('CSV Generation & Data Export', () => {
       {
         id: 'deal-1',
         title: 'Brand Refresh',
-        company: 'Vortex Labs',
+        contactName: 'Vortex Labs',
         value: '45,000 Kč',
         stage: 'Lead In' as any,
         probability: '25%',
@@ -242,12 +242,12 @@ describe('CSV Generation & Data Export', () => {
     const headers = [
       { key: 'id' as keyof Deal, label: 'Deal ID' },
       { key: 'title' as keyof Deal, label: 'Title' },
-      { key: 'company' as keyof Deal, label: 'Company' },
+      { key: 'contactName' as keyof Deal, label: 'Client' },
       { key: 'stage' as keyof Deal, label: 'Stage' },
     ]
 
     const csv = generateCSV(mockDeals, headers)
-    assert.match(csv, /"Deal ID","Title","Company","Stage"/)
+    assert.match(csv, /"Deal ID","Title","Client","Stage"/)
     assert.match(csv, /"deal-1","Brand Refresh","Vortex Labs","Lead In"/)
   })
 })

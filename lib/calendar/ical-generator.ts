@@ -88,13 +88,12 @@ export function generateIcsCalendar(options: IcsCalendarOptions = {}): string {
 
     const { start, end } = resolveEventDates(deal.nextDueDate)
     const uid = `deal-milestone-${deal.id}@freelancercrm.local`
-    const summary = `Milestone: ${deal.next} (${deal.company})`
+    const summary = `Milestone: ${deal.next} (${deal.contactName})`
     const descriptionLines: string[] = [
       `Deal: ${deal.title}`,
-      `Company: ${deal.company}`,
       `Value: ${deal.value}`,
       `Stage: ${deal.stage}`,
-      deal.contactName ? `Contact: ${deal.contactName}` : '',
+      deal.contactName ? `Client: ${deal.contactName}` : '',
       deal.notes ? `\nNotes:\n${deal.notes}` : '',
     ].filter(Boolean)
 

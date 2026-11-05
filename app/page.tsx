@@ -460,12 +460,12 @@ export default function Page() {
   }
 
   // Update Deal in list
-  const handleUpdateDeal = async (updated: Deal) => {
+  const handleUpdateDeal = async (updated: Deal, opts?: { silent?: boolean }) => {
     setDeals((prev) => prev.map((d) => (d.id === updated.id ? updated : d)))
     try {
       const saved = await updateDealAction(updated)
       setDeals((prev) => prev.map((d) => (d.id === saved.id ? saved : d)))
-      addToast(`Deal "${saved.title}" updated`)
+      if (!opts?.silent) addToast(`Deal "${saved.title}" updated`)
     } catch (err: any) {
       addToast(err?.message || 'Failed to update deal', undefined, 'warning')
     }

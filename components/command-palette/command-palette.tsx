@@ -59,7 +59,7 @@ interface CommandPaletteProps {
   onSelectAction: (actionType: PaletteActionType, payload?: any) => void
   deals: Deal[]
   contacts: Contact[]
-  onUpdateDeal?: (deal: Deal) => void
+  onUpdateDeal?: (deal: Deal, opts?: { silent?: boolean }) => void
   onAddActivity?: (activity: Omit<Activity, 'id'>) => void
   /** Open straight into the notes editor for this deal */
   notesDealId?: string | null
@@ -91,6 +91,39 @@ export function CommandPalette({
   // reset the palette back to the main page mid-edit.
   const dealsRef = useRef(deals)
   dealsRef.current = deals
+  const onUpdateDealRef = useRef(onUpdateDeal)
+  onUpdateDealRef.current = onUpdateDeal
+
+  // Deal notes autosave: debounce while typing, flush on back / switch / close
+  const pendingNotesRef = useRef<{ dealId: string; notes: string } | null>(null)
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle')
+
+  const flushNotes = () => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    saveTimerRef.current = null
+    const pending = pendingNotesRef.current
+    if (!pending) return
+    pendingNotesRef.current = null
+    const d = dealsRef.current.find((x) => x.id === pending.dealId)
+    if (d && d.notes !== pending.notes) onUpdateDealRef.current?.({ ...d, notes: pending.notes }, { silent: true })
+    setSaveState('saved')
+  }
+
+  const handleChangeNotes = (value: string) => {
+    setScratchpadNotes(value)
+    if (!targetDealId || targetDealId === 'general') return
+    pendingNotesRef.current = { dealId: targetDealId, notes: value }
+    setSaveState('saving')
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    saveTimerRef.current = setTimeout(flushNotes, 600)
+  }
+
+  // Flush anything pending when the palette closes
+  useEffect(() => {
+    if (!isOpen) flushNotes()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen])
 
   // Reset state before paint so opening straight into notes never flashes the main list
   useLayoutEffect(() => {
@@ -104,6 +137,7 @@ export function CommandPalette({
     setTargetDealId(initialDeal?.id || 'general')
     setScratchpadNotes(initialDeal?.notes || '')
     setIsSavedToast(false)
+    setSaveState('idle')
   }, [isOpen, notesDealId])
 
   // Focus input when opened
@@ -314,6 +348,8 @@ export function CommandPalette({
   }, [selectedIndex])
 
   const handleSelectTargetDeal = (dealId: string) => {
+    flushNotes()
+    setSaveState('idle')
     setTargetDealId(dealId)
     if (dealId === 'general') {
       setScratchpadNotes('')
@@ -332,7 +368,7 @@ export function CommandPalette({
       const d = deals.find((x) => x.id === targetDealId)
       // Deal notes live on the deal itself; saving doesn't log an activity
       if (d && onUpdateDeal) {
-        onUpdateDeal({ ...d, notes: scratchpadNotes })
+        onUpdateDeal({ ...d, notes: scratchpadNotes }, { silent: true })
       }
     } else if (targetDealId === 'general') {
       if (!scratchpadNotes.trim()) return
@@ -359,10 +395,12 @@ export function CommandPalette({
     if (subpage === 'scratchpad') {
       if (e.key === 'Escape') {
         e.preventDefault()
+        flushNotes()
         setSubpage('main')
       } else if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
         e.preventDefault()
-        handleSaveNotes()
+        if (targetDealId === 'general') handleSaveNotes()
+        else flushNotes()
       }
       return
     }
@@ -423,7 +461,9 @@ export function CommandPalette({
       {/* Dim layer behind the panel */}
       <div className="absolute inset-0 bg-[#10141c]/30" aria-hidden />
       <div
-        className="relative w-full max-w-2xl bg-white rounded-[12px] shadow-xl border border-[#e4e7ec] overflow-hidden flex flex-col max-h-[78vh] animate-in fade-in zoom-in-95 duration-150"
+        className={`relative w-full bg-white rounded-[12px] shadow-xl border border-[#e4e7ec] overflow-hidden flex flex-col animate-in ${
+          subpage === 'scratchpad' ? 'max-w-4xl h-[80vh]' : 'max-w-2xl max-h-[78vh]'
+        } fade-in zoom-in-95 duration-150`}
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
       >
@@ -435,7 +475,10 @@ export function CommandPalette({
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => setSubpage('main')}
+                  onClick={() => {
+                    flushNotes()
+                    setSubpage('main')
+                  }}
                   className="flex items-center gap-1 px-2 py-1 rounded-[6px] text-[11px] font-medium text-[#505967] hover:bg-[#edf0f3] hover:text-[#1c1d1f] transition-colors cursor-pointer"
                 >
                   <ArrowLeft size={13} />
@@ -473,10 +516,10 @@ export function CommandPalette({
             </div>
 
             {/* Subpage Editor Body */}
-            <div className="p-4 space-y-3 max-h-[58vh] overflow-y-auto">
+            <div className="p-4 flex flex-col flex-1 min-h-0">
               <ScratchpadEditor
                 notes={scratchpadNotes}
-                onChangeNotes={setScratchpadNotes}
+                onChangeNotes={handleChangeNotes}
               />
             </div>
 
@@ -487,26 +530,23 @@ export function CommandPalette({
                   <kbd className="px-1 py-0.2 font-mono bg-white border border-[#e4e7ec] rounded">Esc</kbd> Back to commands
                 </span>
                 <span>
-                  <kbd className="px-1 py-0.2 font-mono bg-white border border-[#e4e7ec] rounded">Ctrl+S</kbd> Save
+                  <kbd className="px-1 py-0.2 font-mono bg-white border border-[#e4e7ec] rounded">Ctrl+S</kbd> Save now
                 </span>
               </div>
 
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setSubpage('main')}
-                  className="px-2.5 py-1 text-[#6f7988] hover:text-[#1c1d1f] font-medium rounded-[6px] cursor-pointer"
-                >
-                  Cancel
-                </button>
+              {targetDealId === 'general' ? (
                 <button
                   type="button"
                   onClick={handleSaveNotes}
                   className="px-3 py-1 bg-[#232529] hover:bg-[#101113] text-white font-medium rounded-[7px] shadow-xs transition-colors cursor-pointer"
                 >
-                  {isSavedToast ? 'Saved to Deal!' : 'Save Note'}
+                  {isSavedToast ? 'Saved!' : 'Save Note'}
                 </button>
-              </div>
+              ) : (
+                <span className="text-[#8f99a8]" aria-live="polite">
+                  {saveState === 'saving' ? 'Saving…' : saveState === 'saved' ? 'Saved' : 'Autosaves'}
+                </span>
+              )}
             </div>
           </div>
         ) : (

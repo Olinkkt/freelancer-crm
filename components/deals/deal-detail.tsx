@@ -95,7 +95,7 @@ export function DealDetail({
 
       <div className="deal-detail-grid">
         {/* Next action (GTD) */}
-        <section className="panel min-h-[200px]">
+        <section className="panel">
           <p className="section-kicker">Next action</p>
           {deal.next ? (
             <>
@@ -119,7 +119,7 @@ export function DealDetail({
         </section>
 
         {/* Notes */}
-        <section className="panel min-h-[200px]">
+        <section className="panel">
           <p className="section-kicker">Notes</p>
           {deal.notes?.trim() ? (
             <p className="mt-2 text-[14px] leading-relaxed text-[#505967] whitespace-pre-wrap line-clamp-5">{deal.notes.trim()}</p>

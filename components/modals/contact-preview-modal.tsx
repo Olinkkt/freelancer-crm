@@ -41,7 +41,7 @@ export function ContactPreviewModal({ contact, openDealsCount, onClose }: Contac
       <div
         role="dialog"
         aria-label={`${contact.name} preview`}
-        className="w-full max-w-md bg-white rounded-[12px] shadow-xl border border-[#e4e7ec] overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+        className="w-full max-w-xl bg-white rounded-[12px] shadow-xl border border-[#e4e7ec] overflow-hidden animate-in fade-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-[#edf0f3] bg-[#fafbfc]">
@@ -61,10 +61,10 @@ export function ContactPreviewModal({ contact, openDealsCount, onClose }: Contac
           </button>
         </div>
 
-        <div className="p-5 grid grid-cols-2 gap-x-4 gap-y-4">
+        <div className="p-5 grid grid-cols-[3fr_2fr] gap-x-6 gap-y-4">
           <Field label="Email">
             {contact.email ? (
-              <a href={`mailto:${contact.email}`} className="text-[#266df0] hover:underline break-all">
+              <a href={`mailto:${contact.email}`} className="text-[#266df0] hover:underline break-all whitespace-normal">
                 {contact.email}
               </a>
             ) : (

@@ -80,6 +80,8 @@ export function cardColumn(item: DeliverableItem): BoardColumnId {
 export interface DeliverableItem {
   id: string
   title: string
+  /** Markdown description of a board card */
+  description?: string
   status: 'Pending' | 'In Progress' | 'Done'
   /** Task board column; kept in step with status (done column = Done) */
   column?: BoardColumnId

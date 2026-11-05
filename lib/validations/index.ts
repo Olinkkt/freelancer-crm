@@ -27,6 +27,7 @@ const LEGACY_STAGES: Record<string, (typeof DEAL_STAGES)[number]> = {
 export const ChecklistItemSchema = z.object({
   id: z.string().min(1),
   title: z.string().trim().min(1, 'Item cannot be empty').max(200),
+  description: z.string().max(10000).optional(),
   status: z.enum(['Pending', 'In Progress', 'Done']),
   column: z.enum(['todo', 'waiting', 'blocked', 'done']).optional(),
   section: z.enum(['podklady', 'deliverables']).optional(),

@@ -1,7 +1,8 @@
 'use client'
 
 import React, { useRef, useState } from 'react'
-import { Check, Plus, X } from 'lucide-react'
+import { AlignLeft, Check, Plus, X } from 'lucide-react'
+import { TaskModal } from '@/components/deals/task-modal'
 import { BOARD_COLUMNS, BoardColumnId, DeliverableItem, cardColumn } from '@/lib/crm-types'
 
 interface DealBoardProps {
@@ -15,6 +16,8 @@ export function DealBoard({ items, onChange }: DealBoardProps) {
   const [overCol, setOverCol] = useState<BoardColumnId | null>(null)
   const [addingIn, setAddingIn] = useState<BoardColumnId | null>(null)
   const [draft, setDraft] = useState('')
+  const [openId, setOpenId] = useState<string | null>(null)
+  const openCard = items.find((i) => i.id === openId) ?? null
 
   const moveCard = (id: string, col: BoardColumnId, beforeId?: string) => {
     const card = items.find((i) => i.id === id)
@@ -80,6 +83,7 @@ export function DealBoard({ items, onChange }: DealBoardProps) {
                 <div
                   key={card.id}
                   draggable
+                  onClick={() => setOpenId(card.id)}
                   className={`board-card ${dragId === card.id ? 'dragging' : ''}`}
                   onDragStart={() => setDragId(card.id)}
                   onDragEnd={() => {
@@ -101,16 +105,25 @@ export function DealBoard({ items, onChange }: DealBoardProps) {
                     type="button"
                     className={`board-check ${col.id === 'done' ? 'on' : ''}`}
                     aria-label={col.id === 'done' ? 'Mark as to do' : 'Mark as done'}
-                    onClick={() => moveCard(card.id, col.id === 'done' ? 'todo' : 'done')}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      moveCard(card.id, col.id === 'done' ? 'todo' : 'done')
+                    }}
                   >
                     <Check size={11} strokeWidth={3} />
                   </button>
-                  <span className={col.id === 'done' ? 'done' : ''}>{card.title}</span>
+                  <span className="board-card-body">
+                    <span className={col.id === 'done' ? 'done' : ''}>{card.title}</span>
+                    {card.description?.trim() && <AlignLeft size={13} className="board-card-icon" aria-label="Has description" />}
+                  </span>
                   <button
                     type="button"
                     className="board-remove"
                     aria-label="Delete card"
-                    onClick={() => onChange(items.filter((i) => i.id !== card.id))}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onChange(items.filter((i) => i.id !== card.id))
+                    }}
                   >
                     <X size={12} />
                   </button>
@@ -182,6 +195,12 @@ export function DealBoard({ items, onChange }: DealBoardProps) {
           </div>
         )
       })}
+      <TaskModal
+        card={openCard}
+        onClose={() => setOpenId(null)}
+        onChange={(patch) => openCard && onChange(items.map((i) => (i.id === openCard.id ? { ...i, ...patch } : i)))}
+        onMove={(col) => openCard && moveCard(openCard.id, col)}
+      />
     </section>
   )
 }

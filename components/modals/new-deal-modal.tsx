@@ -53,7 +53,7 @@ export function NewDealModal({
         setClientName(dealToEdit.contactName || initialClientName || '')
         setValue(dealToEdit.value || '')
         setStage(dealToEdit.stage || 'Lead')
-        setNextAction(dealToEdit.next || '')
+        setNextAction(dealToEdit.waiting ? '' : dealToEdit.next || '')
         setNextDueDate(normalizeDueDate(dealToEdit.nextDueDate) || getDateString(addDays(new Date(), 1)))
         setWaiting(!!dealToEdit.waiting)
         setNotes(dealToEdit.notes || '')
@@ -263,7 +263,11 @@ export function NewDealModal({
                 <span>Next Action</span>
               </div>
               <label className="flex items-center gap-1.5 normal-case tracking-normal font-medium text-[#505967] cursor-pointer">
-                <input type="checkbox" checked={waiting} onChange={(e) => setWaiting(e.target.checked)} />
+                <input type="checkbox" checked={waiting} onChange={(e) => {
+                    setWaiting(e.target.checked)
+                    if (e.target.checked && nextAction.trim() === '') return
+                    if (!e.target.checked && nextAction === 'Waiting on client') setNextAction('')
+                  }} />
                 Waiting on client
               </label>
             </div>

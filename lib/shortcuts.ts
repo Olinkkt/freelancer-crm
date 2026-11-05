@@ -16,8 +16,8 @@ export function getShortcutSections(modKey: string) {
         { keys: [modKey, '↵'], label: 'Submit quick-add form' },
         { keys: [modKey, 'S'], label: 'Save notes or task description now' },
         { keys: ['Ctrl', 'E'], label: 'Switch notes between preview and write' },
-        { keys: ['Ctrl', 'N'], label: 'Palette: next result (or ↓)' },
-        { keys: ['Ctrl', 'P'], label: 'Palette: previous result (or ↑)' },
+        { keys: ['Ctrl', 'D'], label: 'Palette: next result (or ↓)' },
+        { keys: ['Ctrl', 'U'], label: 'Palette: previous result (or ↑)' },
       ],
     },
     {

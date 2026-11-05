@@ -354,10 +354,10 @@ export function CommandPalette({
       return
     }
 
-    if (e.key === 'ArrowDown' || (e.ctrlKey && e.key === 'n')) {
+    if (e.key === 'ArrowDown' || (e.ctrlKey && e.key.toLowerCase() === 'd')) {
       e.preventDefault()
       setSelectedIndex((prev) => (filteredItems.length > 0 ? (prev + 1) % filteredItems.length : 0))
-    } else if (e.key === 'ArrowUp' || (e.ctrlKey && e.key === 'p')) {
+    } else if (e.key === 'ArrowUp' || (e.ctrlKey && e.key.toLowerCase() === 'u')) {
       e.preventDefault()
       setSelectedIndex((prev) =>
         filteredItems.length > 0 ? (prev - 1 + filteredItems.length) % filteredItems.length : 0

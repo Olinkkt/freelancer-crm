@@ -100,26 +100,39 @@ export function ProjectsOverview({ rows, onOpenDeal }: ProjectsOverviewProps) {
       <ul>
         {rows.map((row) => {
           const { deal } = row
+          const pct = row.tasksTotal ? Math.round((row.tasksDone / row.tasksTotal) * 100) : 0
           return (
             <li key={deal.id} className="project-row">
               <button type="button" className="project-main" onClick={() => onOpenDeal(deal)}>
                 <strong>{deal.title}</strong>
                 <span>
                   {deal.contactName} · {deal.stage}
-                  {row.tasksTotal ? ` · ${row.tasksDone}/${row.tasksTotal} tasks` : ''}
+                  {row.due ? ` · ${formatDue(row.due)}` : ''}
                 </span>
               </button>
 
-              <div className="project-next">
-                {deal.waiting ? (
-                  <span className="project-none">Waiting on client</span>
-                ) : deal.next ? (
+              <div
+                className="project-steps"
+                role="img"
+                aria-label={`Stage ${row.stageIndex + 1} of ${ACTIVE_PROJECT_STAGES.length}: ${deal.stage}`}
+              >
+                {ACTIVE_PROJECT_STAGES.map((stage, i) => (
+                  <i key={stage} className={i < row.stageIndex ? 'done' : i === row.stageIndex ? 'current' : ''} />
+                ))}
+              </div>
+
+              <div className="project-tasks" title={`${row.tasksDone} of ${row.tasksTotal} tasks done`}>
+                {row.tasksTotal ? (
                   <>
-                    <strong>{deal.next}</strong>
-                    {deal.nextDueDate && <span>{formatDue(deal.nextDueDate)}</span>}
+                    <div className="project-tasks-bar">
+                      <b style={{ width: `${pct}%` }} />
+                    </div>
+                    <span className="font-mono">
+                      {row.tasksDone}/{row.tasksTotal}
+                    </span>
                   </>
                 ) : (
-                  <span className="project-none">No next action</span>
+                  <span className="project-none">No tasks</span>
                 )}
               </div>
 

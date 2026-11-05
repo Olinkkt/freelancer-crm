@@ -49,7 +49,6 @@ import { DealList } from '@/components/deals/deal-list'
 import { DealDetail } from '@/components/deals/deal-detail'
 import { TodayList, buildToday } from '@/components/home/today-list'
 import { ProjectsOverview, buildProjects } from '@/components/home/projects-overview'
-import { MetricCards, PipelinePanel, buildOverview } from '@/components/home/home-overview'
 import { ToastHUD, ToastHUDItem } from '@/components/ui/toast-hud'
 import { OperatorGate } from '@/components/auth/operator-gate'
 import { SetupWizard } from '@/components/auth/setup-wizard'
@@ -567,7 +566,6 @@ export default function Page() {
 
   const todayGroups = buildToday(deals, followUps, completedFollowUps)
   const projectRows = buildProjects(deals)
-  const overview = buildOverview(deals)
 
   if (isLoading) {
     return (
@@ -1371,24 +1369,14 @@ export default function Page() {
                 </div>
               </section>
 
-              <MetricCards
-                overview={overview}
-                dueToday={todayGroups.due.length}
-                overdue={todayGroups.due.filter((i) => i.tone === 'overdue').length}
-                settings={currentSettings}
+              <TodayList
+                groups={todayGroups}
+                onOpenDeal={openDeal}
+                onToggleFollowUp={toggleFollowUp}
+                onEditFollowUp={setEditingFollowUp}
+                onDeleteFollowUp={handleDeleteFollowUp}
+                onAddDeal={() => setIsNewDealOpen(true)}
               />
-
-              <div className="dashboard-grid">
-                <TodayList
-                  groups={todayGroups}
-                  onOpenDeal={openDeal}
-                  onToggleFollowUp={toggleFollowUp}
-                  onEditFollowUp={setEditingFollowUp}
-                  onDeleteFollowUp={handleDeleteFollowUp}
-                  onAddDeal={() => setIsNewDealOpen(true)}
-                />
-                <PipelinePanel overview={overview} settings={currentSettings} onOpenDeals={() => setActiveView('Deals')} />
-              </div>
 
               <ProjectsOverview rows={projectRows} onOpenDeal={openDeal} />
             </>

@@ -5,7 +5,7 @@ A keyboard-first, local-first CRM and project tracker for solo freelancers. It k
 [![CI](https://img.shields.io/github/actions/workflow/status/Olinkkt/freelancer-crm/ci.yml?branch=main&label=CI&style=flat-square)](https://github.com/Olinkkt/freelancer-crm/actions)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg?style=flat-square)](./LICENSE)
 
-<!-- TODO: add a 5-10 s demo GIF here: ![Demo](./docs/assets/demo.gif) -->
+![Demo: add three deals with the N key, jump around with G shortcuts, search with Ctrl K](./docs/assets/demo.gif)
 
 ## Install
 

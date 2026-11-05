@@ -412,17 +412,17 @@ export function CommandPalette({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh] px-4 bg-[#10141c]/30 backdrop-blur-xs transition-all"
+      className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh] px-4 bg-[#10141c]/30"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-2xl bg-white rounded-[12px] shadow-xl border border-[#e4e7ec] overflow-hidden flex flex-col max-h-[78vh] animate-in fade-in zoom-in-95 duration-150"
+        className="w-full max-w-2xl bg-white rounded-[12px] shadow-xl border border-[#e4e7ec] overflow-hidden flex flex-col max-h-[78vh] animate-in fade-in duration-100"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
       >
         {/* SUBPAGE: SCRATCHPAD & NOTES */}
         {subpage === 'scratchpad' ? (
-          <div className="flex flex-col h-full animate-in fade-in duration-100">
+          <div className="flex flex-col h-full">
             {/* Subpage Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-[#edf0f3] bg-[#fafbfc]">
               <div className="flex items-center gap-2">

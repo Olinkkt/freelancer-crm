@@ -26,6 +26,7 @@ import {
   Save,
 } from 'lucide-react'
 import { Deal, Contact, Activity } from '@/lib/crm-types'
+import { fuzzyScoreFields } from '@/lib/fuzzy'
 import { ScratchpadEditor } from '../drawers/scratchpad-editor'
 import { formatMoney, OPERATOR_CONFIG } from '@/lib/config'
 
@@ -63,6 +64,8 @@ interface CommandPaletteProps {
   /** Open straight into the notes editor for this deal */
   notesDealId?: string | null
 }
+
+const PALETTE_CATEGORY_ORDER = ['Notes', 'Actions', 'Navigation', 'Deals', 'Clients'] as const
 
 export function CommandPalette({
   isOpen,
@@ -280,17 +283,19 @@ export function CommandPalette({
       searchTerm = cleanQuery.slice(1).trim()
     }
 
-    return list.filter((item) => {
-      if (targetCategory && item.category !== targetCategory) {
-        return false
-      }
-      if (!searchTerm) return true
-      const matchTitle = item.title.toLowerCase().includes(searchTerm)
-      const matchSubtitle = item.subtitle?.toLowerCase().includes(searchTerm)
-      const matchBadge = item.badge?.toLowerCase().includes(searchTerm)
-      const matchShortcut = item.shortcut?.toLowerCase().includes(searchTerm)
-      return matchTitle || matchSubtitle || matchBadge || matchShortcut
-    })
+    const scored: Array<{ item: PaletteItem; score: number }> = []
+    for (const item of list) {
+      if (targetCategory && item.category !== targetCategory) continue
+      const score = searchTerm
+        ? fuzzyScoreFields(searchTerm, [item.title, item.subtitle, item.badge, item.shortcut], [1, 0.5, 0.5, 0.8])
+        : 0
+      if (score >= 0) scored.push({ item, score })
+    }
+    // Rows render grouped by category, so keep the flat list in that order
+    // (otherwise Enter/arrow selection drifts from what's highlighted).
+    const rank = (c: string) => PALETTE_CATEGORY_ORDER.indexOf(c as (typeof PALETTE_CATEGORY_ORDER)[number])
+    scored.sort((x, y) => rank(x.item.category) - rank(y.item.category) || y.score - x.score)
+    return scored.map((x) => x.item)
   }, [allItems, query, selectedCategory])
 
   // Keep selected index within bounds
@@ -407,7 +412,7 @@ export function CommandPalette({
   if (!isOpen) return null
 
   // Group items by category for rendering headers
-  const categories = ['Notes', 'Actions', 'Navigation', 'Deals', 'Clients'] as const
+  const categories = PALETTE_CATEGORY_ORDER
   const activeDeal = deals.find((d) => d.id === targetDealId)
 
   return (

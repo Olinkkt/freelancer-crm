@@ -101,17 +101,6 @@ export function stripDiacritics(str: string): string {
   return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 }
 
-/**
- * Checks whether a due date string indicates "today" (supports English & Czech)
- */
-export function isDueToday(dueDate?: string | null): boolean {
-  if (!dueDate) return false
-  const iso = dueDate.match(/^(\d{4}-\d{2}-\d{2})/)
-  if (iso) return iso[1] === getDateString(new Date())
-  const norm = stripDiacritics(dueDate.toLowerCase())
-  return /\b(today|dnes|dneska)\b/i.test(norm)
-}
-
 const CZECH_MONTHS: Record<number, string[]> = {
   1: ['leden', 'ledna', 'led'],
   2: ['unor', 'unora', 'uno'],

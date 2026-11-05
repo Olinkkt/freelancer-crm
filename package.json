@@ -15,11 +15,9 @@
     "test": "DATABASE_URL=file:./data/test.db node --import tsx --test --test-concurrency=1 tests/*.test.ts"
   },
   "dependencies": {
-    "@base-ui/react": "^1.5.0",
     "@libsql/client": "^0.18.0",
     "@libsql/kysely-libsql": "^0.4.1",
     "@vercel/analytics": "1.6.1",
-    "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "kysely": "^0.29.6",
     "lucide-react": "^1.16.0",

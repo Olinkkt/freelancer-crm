@@ -449,7 +449,7 @@ export async function moveDealStage(dealId: string, stage: DealStage): Promise<D
   }
 }
 
-/** Replace a deal's checklist (podklady + deliverables) without touching other fields */
+/** Replace a deal's checklist (client materials + deliverables) without touching other fields */
 export async function setDealChecklist(dealId: string, items: DeliverableItem[]): Promise<Deal | null> {
   await ensureDbInitialized()
 

@@ -125,8 +125,8 @@ describe('Server Actions Integration', () => {
       assert.equal(moved.stage, 'Won')
 
       // 3b. PM stages, checklist, and bad stage input
-      const zaloha = await moveDealStageAction(deal.id, 'Záloha')
-      assert.equal(zaloha?.stage, 'Záloha')
+      const deposit = await moveDealStageAction(deal.id, 'Deposit')
+      assert.equal(deposit?.stage, 'Deposit')
       await assert.rejects(() => moveDealStageAction(deal.id, 'Paid' as any))
       const withChecklist = await updateDealChecklistAction(deal.id, [
         { id: 'p1', title: 'Brand assets', status: 'Done', section: 'podklady' },

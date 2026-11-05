@@ -3,30 +3,30 @@ export type DealStage =
   | 'Qualified'
   | 'Proposal'
   | 'Won'
-  | 'Záloha'
-  | 'Podklady'
+  | 'Deposit'
+  | 'Materials'
   | 'Build'
   | 'Handoff'
   | 'Revisions'
-  | 'Vady'
+  | 'Warranty'
 
 /**
  * One deal, one pipeline, in order — the single source for types, validation,
  * filters, pickers and counts.
  * CRM: Lead → Qualified → Proposal. Won = contract signed = CRM→PM handoff.
- * PM: Záloha → Podklady → Build → Handoff → Revisions → Vady.
+ * PM: Deposit → Materials → Build → Handoff → Revisions → Warranty.
  */
 export const DEAL_STAGES = [
   'Lead',
   'Qualified',
   'Proposal',
   'Won',
-  'Záloha',
-  'Podklady',
+  'Deposit',
+  'Materials',
   'Build',
   'Handoff',
   'Revisions',
-  'Vady',
+  'Warranty',
 ] as const satisfies readonly DealStage[]
 
 /** Stages a deal is still being won in (CRM side, everything before Won) */
@@ -35,8 +35,8 @@ export const OPEN_DEAL_STAGES: DealStage[] = ['Lead', 'Qualified', 'Proposal']
 /** Won and everything after it: the contract is signed and project work runs (PM side) */
 export const PM_STAGES: DealStage[] = DEAL_STAGES.filter((s) => !OPEN_DEAL_STAGES.includes(s))
 
-/** PM stages where the project is still being delivered (Vady = warranty only) */
-export const ACTIVE_PROJECT_STAGES: DealStage[] = PM_STAGES.filter((s) => s !== 'Vady')
+/** PM stages where the project is still being delivered (Warranty = after delivery) */
+export const ACTIVE_PROJECT_STAGES: DealStage[] = PM_STAGES.filter((s) => s !== 'Warranty')
 
 export const isPmStage = (stage: DealStage) => PM_STAGES.includes(stage)
 
@@ -52,15 +52,15 @@ export const DEAL_STAGE_HINTS: Record<DealStage, string> = {
   Qualified: 'Call done, scope agreed',
   Proposal: 'Contract sent',
   Won: 'Contract signed, project starts',
-  Záloha: 'Deposit / advance invoiced',
-  Podklady: 'Waiting on client materials',
+  Deposit: 'Deposit invoiced, waiting for payment',
+  Materials: 'Waiting on client materials',
   Build: 'Building, preview shared',
   Handoff: 'Handed over, final payment due',
   Revisions: 'Client revisions',
-  Vady: 'Vady / záruka (warranty)',
+  Warranty: 'Delivered, fixing defects under warranty',
 }
 
-/** Checklist groups on a deal. Podklady = what the client owes you. */
+/** Checklist groups on a deal. 'podklady' (stored key) = client materials, what the client owes you. */
 export type ChecklistSection = 'podklady' | 'deliverables'
 
 export interface DeliverableItem {

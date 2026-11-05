@@ -197,7 +197,7 @@ describe('CRM Database Repository', () => {
       ])
       assert.equal(checklist?.deliverables?.length, 2)
 
-      for (const stage of ['Záloha', 'Podklady'] as const) {
+      for (const stage of ['Deposit', 'Materials'] as const) {
         const moved = await repo.moveDealStage(deal.id, stage)
         assert.equal(moved?.stage, stage)
       }
@@ -206,18 +206,34 @@ describe('CRM Database Repository', () => {
         { id: 'p1', title: 'Logo SVG', status: 'Done', section: 'podklady' },
         { id: 'd1', title: 'Homepage', status: 'Pending', section: 'deliverables' },
       ])
-      assert.equal(ticked?.stage, 'Podklady')
+      assert.equal(ticked?.stage, 'Materials')
       assert.equal(ticked?.next, 'Send deposit invoice')
 
       const data = await repo.getWorkspaceData()
       const stored = data.deals.find((d) => d.id === deal.id)
-      assert.equal(stored?.stage, 'Podklady')
+      assert.equal(stored?.stage, 'Materials')
       assert.equal(stored?.deliverables?.find((i) => i.id === 'p1')?.status, 'Done')
       assert.equal(stored?.deliverables?.find((i) => i.id === 'p1')?.section, 'podklady')
     })
 
     it('setDealChecklist returns null for an unknown deal', async () => {
       assert.equal(await repo.setDealChecklist('nope', []), null)
+    })
+
+    it('migrates Czech PM stage names to English on init', async () => {
+      const deal = await repo.createDeal({
+        title: 'Old PM deal',
+        contactName: 'Eva',
+        value: '1 000 Kč',
+        rawAmount: 1000,
+        stage: 'Won',
+        next: 'Chase',
+        color: 'green',
+      })
+      await db.updateTable('deals').set({ stage: 'Podklady' }).where('id', '=', deal.id).execute()
+      await ensureDbInitialized(true)
+      const data = await repo.getWorkspaceData()
+      assert.equal(data.deals.find((d) => d.id === deal.id)?.stage, 'Materials')
     })
 
     it('existing Won deals stay Won after init', async () => {

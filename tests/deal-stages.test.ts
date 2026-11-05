@@ -6,23 +6,23 @@ import { buildToday } from '@/components/home/today-list'
 import type { Deal } from '@/lib/crm-types'
 
 describe('Deal stages', () => {
-  it('pipeline is Lead … Won, then the PM stages through Vady', () => {
+  it('pipeline is Lead … Won, then the PM stages through Warranty', () => {
     assert.deepEqual(
       [...DEAL_STAGES],
-      ['Lead', 'Qualified', 'Proposal', 'Won', 'Záloha', 'Podklady', 'Build', 'Handoff', 'Revisions', 'Vady']
+      ['Lead', 'Qualified', 'Proposal', 'Won', 'Deposit', 'Materials', 'Build', 'Handoff', 'Revisions', 'Warranty']
     )
     assert.deepEqual(OPEN_DEAL_STAGES, ['Lead', 'Qualified', 'Proposal'])
-    assert.deepEqual(PM_STAGES, ['Won', 'Záloha', 'Podklady', 'Build', 'Handoff', 'Revisions', 'Vady'])
-    assert.ok(!ACTIVE_PROJECT_STAGES.includes('Vady'))
+    assert.deepEqual(PM_STAGES, ['Won', 'Deposit', 'Materials', 'Build', 'Handoff', 'Revisions', 'Warranty'])
+    assert.ok(!ACTIVE_PROJECT_STAGES.includes('Warranty'))
   })
 
   it('Won starts PM; nextDealStage walks the pipeline', () => {
     assert.equal(isPmStage('Proposal'), false)
     assert.equal(isPmStage('Won'), true)
     assert.equal(nextDealStage('Proposal'), 'Won')
-    assert.equal(nextDealStage('Won'), 'Záloha')
-    assert.equal(nextDealStage('Záloha'), 'Podklady')
-    assert.equal(nextDealStage('Vady'), null)
+    assert.equal(nextDealStage('Won'), 'Deposit')
+    assert.equal(nextDealStage('Deposit'), 'Materials')
+    assert.equal(nextDealStage('Warranty'), null)
   })
 
   it('accepts every pipeline stage and rejects Paid/Lost on create', () => {
@@ -36,9 +36,11 @@ describe('Deal stages', () => {
 
   it('maps legacy stages when restoring a backup', () => {
     const base = { id: 'd1', title: 'X', contactName: 'Y' }
+    assert.equal(DealBackupSchema.parse({ ...base, stage: 'Záloha' }).stage, 'Deposit')
+    assert.equal(DealBackupSchema.parse({ ...base, stage: 'Vady' }).stage, 'Warranty')
     assert.equal(DealBackupSchema.parse({ ...base, stage: 'Paid' }).stage, 'Won')
     assert.equal(DealBackupSchema.parse({ ...base, stage: 'Discovery' }).stage, 'Qualified')
-    assert.equal(DealBackupSchema.parse({ ...base, stage: 'Podklady' }).stage, 'Podklady')
+    assert.equal(DealBackupSchema.parse({ ...base, stage: 'Materials' }).stage, 'Materials')
   })
 
   it('checklist items need a title and a known section', () => {
@@ -86,12 +88,12 @@ describe('Today home', () => {
     const g = buildToday([later, today, overdue, waiting, allIn, noNext], [], [], now)
     assert.deepEqual(g.due.map((i) => (i.kind === 'deal' ? i.deal.title : '')), ['Overdue', 'Today'])
     assert.deepEqual(g.waiting.map((i) => (i.kind === 'deal' ? i.deal.title : '')), ['Waiting'])
-    assert.match(g.waiting[0].detail, /1 podklad missing: Logo/)
+    assert.match(g.waiting[0].detail, /1 material missing: Logo/)
     assert.deepEqual(g.needsYou.map((i) => (i.kind === 'deal' ? i.deal.title : '')), ['No next'])
   })
 
-  it('a deal in Podklady waits on the client even with an empty checklist', () => {
-    const g = buildToday([deal({ stage: 'Podklady' })], [], [], now)
+  it('a deal in Materials waits on the client even with an empty checklist', () => {
+    const g = buildToday([deal({ stage: 'Materials' })], [], [], now)
     assert.equal(g.waiting.length, 1)
   })
 

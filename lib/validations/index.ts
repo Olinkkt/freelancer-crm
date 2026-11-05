@@ -16,6 +16,9 @@ export const ContactBackupSchema = z.object({
 const LEGACY_STAGES: Record<string, (typeof DEAL_STAGES)[number]> = {
   Paid: 'Won',
   Discovery: 'Qualified',
+  Záloha: 'Deposit',
+  Podklady: 'Materials',
+  Vady: 'Warranty',
 }
 
 /** One checklist item on a deal (stored in the deliverables JSON column) */

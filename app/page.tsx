@@ -601,7 +601,7 @@ export default function Page() {
     (sum, d) => sum + (d.rawAmount || parseInt(d.value.replace(/[^0-9]/g, '')) || 0),
     0
   )
-  // Won = contract signed, so every PM stage (Won…Vady) counts as won
+  // Won = contract signed, so every PM stage (Won…Warranty) counts as won
   const wonDealsCount = deals.filter((d) => isPmStage(d.stage)).length
   const winRate = deals.length > 0 ? `${Math.round((wonDealsCount / deals.length) * 100)}%` : '0%'
 

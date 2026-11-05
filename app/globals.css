@@ -983,14 +983,14 @@ button {
 
 .deals-list-head, .deals-list-row {
   display: grid;
-  grid-template-columns: minmax(160px, 2fr) 120px minmax(90px, 0.9fr) minmax(140px, 1.6fr) 34px;
+  grid-template-columns: minmax(160px, 2fr) 128px minmax(100px, 0.9fr) minmax(140px, 1.6fr) 34px;
   align-items: center;
-  gap: 12px;
-  padding: 0 4px;
+  gap: 28px;
+  padding: 0 12px;
 }
 
 .deals-list-head {
-  padding: 10px 4px 6px;
+  padding: 10px 12px 6px;
   color: var(--color-fog-400);
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -1401,7 +1401,7 @@ button {
   .deal-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .deals-list-toolbar { flex-direction: column; align-items: stretch; }
   .deals-list-toolbar .search-field input { width: 100%; }
-  .deals-list-head, .deals-list-row { grid-template-columns: minmax(0, 1fr) 96px 34px; }
+  .deals-list-head, .deals-list-row { grid-template-columns: minmax(0, 1fr) 96px 34px; gap: 12px; }
   .deals-list-head > :nth-child(3), .deals-list-head > :nth-child(4),
   .deals-list-row > :nth-child(3), .deals-list-row > :nth-child(4) { display: none; }
   .top-actions { min-width: 0; }

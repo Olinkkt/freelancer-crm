@@ -236,7 +236,7 @@ export function DealList({
                     ...(nextDealStage(deal.stage)
                       ? [
                           {
-                            label: `Move to ${nextDealStage(deal.stage)}`,
+                            label: nextDealStage(deal.stage) === 'Completed' ? 'Complete project' : `Move to ${nextDealStage(deal.stage)}`,
                             icon: nextDealStage(deal.stage) === 'Completed' ? Check : ArrowRight,
                             onClick: () => onMoveDealStage(deal.id, nextDealStage(deal.stage)!),
                           },

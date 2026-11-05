@@ -95,7 +95,7 @@ export function DealDetail({
               title={DEAL_STAGE_HINTS[next]}
             >
               {next === 'Completed' ? <Check size={15} /> : <ArrowRight size={15} />}
-              <span>Move to {next}</span>
+              <span>{next === 'Completed' ? 'Complete project' : `Move to ${next}`}</span>
             </button>
           )}
         </div>

@@ -44,6 +44,7 @@ export function DealBoard({ items, onChange }: DealBoardProps) {
     }
     onChange([...items, card])
     setDraft('')
+    setAddingIn(null)
   }
 
   return (

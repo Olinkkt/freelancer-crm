@@ -214,8 +214,13 @@ export async function checkIsAuthenticated(req?: Request): Promise<boolean> {
   }
 }
 
-export async function setOperatorSession(secretOverride?: string): Promise<void> {
-  const effectiveSecret = secretOverride || (await getEffectiveAuthSecret())
+/**
+ * Always signs with the effective secret (AUTH_SECRET wins over the DB passcode hash),
+ * the same secret every request is verified against. Signing with anything else
+ * produces a cookie that never verifies.
+ */
+export async function setOperatorSession(): Promise<void> {
+  const effectiveSecret = await getEffectiveAuthSecret()
   const token = createSessionToken(effectiveSecret)
   try {
     const cookieStore = await cookies()

@@ -84,7 +84,7 @@ export async function claimWorkspaceAction(params: {
     })
 
     // If passcode was provided, grant immediate session to the claimant
-    await setOperatorSession(passcodeHash)
+    await setOperatorSession()
 
     return { success: true, settings }
   } catch (err: any) {
@@ -113,7 +113,7 @@ export async function updateWorkspaceSettingsAction(params: {
       passcodeHash,
     })
     if (passcodeHash) {
-      await setOperatorSession(passcodeHash)
+      await setOperatorSession()
     }
     return { success: true, settings }
   } catch (err: any) {
@@ -132,7 +132,7 @@ export async function loginOperator(passcode: string): Promise<{ success: boolea
   // 1. Check against DB passcode hash if configured
   if (settings?.passcodeHash) {
     if (verifyPasscode(passcode, settings.passcodeHash)) {
-      await setOperatorSession(settings.passcodeHash)
+      await setOperatorSession()
       return { success: true }
     }
   }

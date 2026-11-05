@@ -62,6 +62,26 @@ function NotesModalImpl({ deal, onClose, onSave }: NotesModalProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deal?.id])
 
+  // Window-level so Esc / Ctrl+S work when focus isn't inside the panel (preview mode).
+  const closeRef = useRef(close)
+  closeRef.current = close
+  const hasDeal = !!deal
+  useEffect(() => {
+    if (!hasDeal) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        closeRef.current()
+      } else if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault()
+        flush()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasDeal])
+
   if (!deal) return null
 
   return (
@@ -71,15 +91,6 @@ function NotesModalImpl({ deal, onClose, onSave }: NotesModalProps) {
         role="dialog"
         aria-label={`Notes for ${deal.title}`}
         onClick={(e) => e.stopPropagation()}
-        onKeyDown={(e) => {
-          if (e.key === 'Escape') {
-            e.preventDefault()
-            close()
-          } else if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
-            e.preventDefault()
-            flush()
-          }
-        }}
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-[#edf0f3] bg-[#fafbfc]">
           <span className="text-[12px] font-semibold text-[#1c1d1f] flex items-center gap-1.5 min-w-0">

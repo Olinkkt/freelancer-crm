@@ -106,6 +106,17 @@ export function buildToday(deals: Deal[], followUps: FollowUpItem[], completedFo
 
 const TODAY_CAP = 5
 
+/** Next actions dated after today, soonest first. Fills the quiet days. */
+export function buildUpcoming(deals: Deal[], now = new Date()): Deal[] {
+  return deals
+    .filter((d) => {
+      if (d.waiting || !d.next || !d.nextDueDate) return false
+      const diff = daysUntil(d.nextDueDate, now)
+      return diff !== null && diff > 0
+    })
+    .sort((a, b) => (a.nextDueDate! < b.nextDueDate! ? -1 : 1))
+}
+
 interface TodayListProps {
   groups: TodayGroups
   onOpenDeal: (deal: Deal) => void
@@ -113,10 +124,12 @@ interface TodayListProps {
   onEditFollowUp: (followUp: FollowUpItem) => void
   onDeleteFollowUp: (id: string) => void
   onAddDeal: () => void
+  upcoming?: Deal[]
 }
 
 export function TodayList({
   groups,
+  upcoming = [],
   onOpenDeal,
   onToggleFollowUp,
   onEditFollowUp,
@@ -131,6 +144,7 @@ export function TodayList({
   const visible = showAll ? actionable : actionable.slice(0, TODAY_CAP)
   const hidden = actionable.length - visible.length
   const total = actionable.length + groups.waiting.length
+  const upcomingShown = upcoming.slice(0, Math.max(3, TODAY_CAP - visible.length))
 
   const renderRow = (item: TodayItem, isDue: boolean) => (
     <li key={item.key} className="followup-row today-row">
@@ -190,7 +204,7 @@ export function TodayList({
         <span className="font-mono">{actionable.length}</span>
       </div>
 
-      {total === 0 ? (
+      {total === 0 && upcomingShown.length === 0 ? (
         <div className="py-6 text-center">
           <div className="w-9 h-9 rounded-full bg-[#f4f5f6] flex items-center justify-center mx-auto mb-2">
             <Check size={17} className="text-[#43a878]" />
@@ -204,7 +218,7 @@ export function TodayList({
       ) : (
         <>
           {actionable.length === 0 ? (
-            <p className="today-empty">Nothing due. You’re clear.</p>
+            <p className="today-empty">Nothing due today. You’re clear.</p>
           ) : (
             <ul>{visible.map((item) => renderRow(item, groups.due.includes(item)))}</ul>
           )}
@@ -212,6 +226,24 @@ export function TodayList({
             <button type="button" className="home-more" onClick={() => setShowAll((v) => !v)}>
               {showAll ? 'Show less' : `+${hidden} more`}
             </button>
+          )}
+
+          {upcomingShown.length > 0 && (
+            <>
+              <p className="home-upcoming-label">Coming up</p>
+              <ul>
+                {upcomingShown.map((deal) => (
+                  <li key={deal.id} className="followup-row today-row">
+                    <span className="today-dot" aria-hidden />
+                    <button type="button" className="today-row-main" onClick={() => onOpenDeal(deal)}>
+                      <strong>{deal.next}</strong>
+                      <span>{deal.title}</span>
+                    </button>
+                    <time>{formatDue(deal.nextDueDate!)}</time>
+                  </li>
+                ))}
+              </ul>
+            </>
           )}
 
           {groups.waiting.length > 0 && (

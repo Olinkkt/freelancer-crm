@@ -84,11 +84,12 @@ export function buildProjects(deals: Deal[], now = new Date()): ProjectRow[] {
 interface ProjectsOverviewProps {
   rows: ProjectRow[]
   onOpenDeal: (deal: Deal) => void
+  onAddDeal?: () => void
 }
 
 const PROJECTS_CAP = 5
 
-export function ProjectsOverview({ rows, onOpenDeal }: ProjectsOverviewProps) {
+export function ProjectsOverview({ rows, onOpenDeal, onAddDeal }: ProjectsOverviewProps) {
   const [showAll, setShowAll] = useState(false)
   const visibleRows = showAll ? rows : rows.slice(0, PROJECTS_CAP)
   const hidden = rows.length - visibleRows.length
@@ -100,7 +101,15 @@ export function ProjectsOverview({ rows, onOpenDeal }: ProjectsOverviewProps) {
         <span className="font-mono">{rows.length}</span>
       </div>
       {rows.length === 0 && (
-        <p className="today-empty">No active projects. Deals show up here once the contract is signed (Closed).</p>
+        <div className="home-empty">
+          <p className="text-[13px] font-semibold text-[#1c1d1f] mb-1">No active projects</p>
+          <p className="text-[11px] text-[#8f99a8] mb-3">A deal appears here once the contract is signed.</p>
+          {onAddDeal && (
+            <button type="button" className="text-button mx-auto" onClick={onAddDeal}>
+              + New deal
+            </button>
+          )}
+        </div>
       )}
       <ul>
         {visibleRows.map((row) => {

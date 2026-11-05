@@ -1718,6 +1718,7 @@ button {
   background: #ffffff;
   border: 1px solid var(--border);
   border-radius: var(--radius-cards);
+  box-shadow: var(--shadow-subtle-2);
   padding: 10px;
   min-width: 220px;
   transition: border-color 0.12s, background 0.12s;

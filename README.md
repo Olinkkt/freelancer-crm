@@ -54,8 +54,8 @@ $$\text{Quick Capture} \longrightarrow \text{Discovery} \longrightarrow \text{50
 Operate your entire freelance business without taking your hands off the keyboard:
 - <kbd>N</kbd> — Quick-capture deals in under 5 seconds.
 - <kbd>C</kbd> — Add new client contacts.
-- <kbd>/</kbd> — Fuzzy command palette.
-- <kbd>G</kbd> <kbd>H</kbd>, <kbd>G</kbd> <kbd>D</kbd>, <kbd>G</kbd> <kbd>C</kbd>, <kbd>G</kbd> <kbd>S</kbd> — Instant view jumping (Home, Deals, Clients, Settings).
+- <kbd>⌘</kbd> <kbd>K</kbd> or <kbd>Ctrl</kbd> <kbd>K</kbd> — Fuzzy command palette.
+- <kbd>G</kbd> <kbd>D</kbd>, <kbd>G</kbd> <kbd>P</kbd>, <kbd>G</kbd> <kbd>U</kbd>, <kbd>G</kbd> <kbd>S</kbd> — Instant view jumping (Home, Deals, Clients, Settings).
 
 ### 2. 💰 The Freelancer 50/50 Payment Rule
 Cash flow kills solo businesses. Freelancer CRM enforces healthy invoicing by default:
@@ -95,12 +95,12 @@ Press <kbd>O</kbd> on any deal or navigate to `/deals/[id]` to open the dedicate
 | :--- | :--- | :--- |
 | <kbd>N</kbd> | New Deal modal | Global |
 | <kbd>C</kbd> | Add Client Contact | Global |
-| <kbd>/</kbd> | Command Palette | Global |
+| <kbd>⌘</kbd> <kbd>K</kbd> / <kbd>Ctrl</kbd> <kbd>K</kbd> | Command Palette | Global |
 | <kbd>?</kbd> | Show Keyboard Shortcuts overlay | Global |
 | <kbd>Enter</kbd> / <kbd>Space</kbd> | Open focused deal | Deals list |
-| <kbd>G</kbd> then <kbd>H</kbd> | Jump to Home | Global |
-| <kbd>G</kbd> then <kbd>D</kbd> | Jump to Deals | Global |
-| <kbd>G</kbd> then <kbd>C</kbd> | Jump to Clients list | Global |
+| <kbd>G</kbd> then <kbd>D</kbd> | Jump to Home | Global |
+| <kbd>G</kbd> then <kbd>P</kbd> | Jump to Deals | Global |
+| <kbd>G</kbd> then <kbd>U</kbd> | Jump to Clients list | Global |
 | <kbd>G</kbd> then <kbd>S</kbd> | Jump to Settings | Global |
 | <kbd>Esc</kbd> | Close any active modal | Global |
 

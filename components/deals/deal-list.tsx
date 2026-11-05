@@ -14,7 +14,7 @@ interface DealListProps {
   onMoveDealStage: (dealId: string, newStage: DealStage) => void
   onDeleteDeal?: (dealId: string) => void
   onEditDeal?: (deal: Deal) => void
-  /** Open this deal's notes (palette scratchpad) */
+  /** Open this deal's notes (⌘K scratchpad) */
   onOpenNotes?: (deal: Deal) => void
   settings?: WorkspaceSettings
 }

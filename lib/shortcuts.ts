@@ -1,9 +1,9 @@
-export function getShortcutSections() {
+export function getShortcutSections(modKey: string) {
   return [
     {
       title: 'Global',
       items: [
-        { keys: ['/'], label: 'Open command palette' },
+        { keys: [modKey, 'K'], label: 'Open command palette' },
         { keys: ['?'], label: 'Show shortcuts' },
         { keys: ['Esc'], label: 'Close modal or palette, or go back from a deal' },
       ],
@@ -13,6 +13,7 @@ export function getShortcutSections() {
       items: [
         { keys: ['N'], label: 'New deal' },
         { keys: ['C'], label: 'New client' },
+        { keys: [modKey, '↵'], label: 'Submit quick-add form' },
       ],
     },
     {

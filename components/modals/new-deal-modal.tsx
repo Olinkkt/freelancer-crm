@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { X, CirclePlus, ArrowUpRight, Calendar, AlertCircle } from 'lucide-react'
-import { Deal, DealStage, STAGE_DEFAULT_PROBABILITIES, Company, WorkspaceSettings } from '@/lib/crm-types'
+import { Deal, DealStage, STAGE_DEFAULT_PROBABILITIES, WorkspaceSettings } from '@/lib/crm-types'
 import { formatMoney, OPERATOR_CONFIG } from '@/lib/config'
 import { Combobox } from '@/components/ui/combobox'
 
@@ -10,7 +10,8 @@ interface NewDealModalProps {
   isOpen: boolean
   onClose: () => void
   onAddDeal: (deal: Omit<Deal, 'id'>) => void
-  companies: Company[]
+  /** Known company names, offered as suggestions */
+  companies: string[]
   initialCompany?: string
   dealToEdit?: Deal | null
   onUpdateDeal?: (deal: Deal) => void
@@ -234,11 +235,10 @@ export function NewDealModal({
               <Combobox
                 value={company}
                 onChange={setCompany}
-                options={companies.map((c) => ({
-                  id: c.id,
-                  label: c.name,
-                  value: c.name,
-                  sublabel: c.type,
+                options={companies.map((name) => ({
+                  id: name,
+                  label: name,
+                  value: name,
                 }))}
                 placeholder="Select or enter company"
                 required

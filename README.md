@@ -53,12 +53,11 @@ $$\text{Quick Capture} \longrightarrow \text{Discovery} \longrightarrow \text{50
 ### 1. 🏎️ Superhuman-Grade Keyboard Velocity
 Operate your entire freelance business without taking your hands off the keyboard:
 - <kbd>N</kbd> — Quick-capture deals in under 5 seconds.
-- <kbd>L</kbd> — Quick-log client calls and discovery meetings with slash templates (`/call`, `/meeting`, `/pricing`, `/tech`).
 - <kbd>O</kbd> — Instant deep jump into the **Project Workspace** (`/deals/[id]`).
 - <kbd>C</kbd> — Add new client contacts.
 - <kbd>⌘</kbd> <kbd>K</kbd> or <kbd>Ctrl</kbd> <kbd>K</kbd> — Fuzzy command palette.
 - <kbd>H</kbd> <kbd>J</kbd> <kbd>K</kbd> <kbd>L</kbd> or Arrow Keys — Vim-style column and card traversal.
-- <kbd>G</kbd> <kbd>D</kbd>, <kbd>G</kbd> <kbd>C</kbd>, <kbd>G</kbd> <kbd>K</kbd>, <kbd>G</kbd> <kbd>S</kbd> — Instant view jumping (Deals, Companies, Contacts, Settings).
+- <kbd>G</kbd> <kbd>D</kbd>, <kbd>G</kbd> <kbd>P</kbd>, <kbd>G</kbd> <kbd>U</kbd>, <kbd>G</kbd> <kbd>K</kbd>, <kbd>G</kbd> <kbd>S</kbd> — Instant view jumping (Home, Deals, Clients, Calendar, Settings).
 
 ### 2. 💰 The Freelancer 50/50 Payment Rule
 Cash flow kills solo businesses. Freelancer CRM enforces healthy invoicing by default:
@@ -87,7 +86,7 @@ Prevent the feast-or-famine freelance cycle with automated high-leverage trigger
 
 Press <kbd>O</kbd> on any deal or navigate to `/deals/[id]` to open the dedicated **Project Management Cockpit**:
 
-- **Progressive Disclosure**: Use the fast Kanban drawer for daily pipeline triage; press <kbd>O</kbd> when doing deep project execution.
+- **Meeting Notes Timeline**: Every call, meeting, and note for the deal lives on the deal's timeline tab.
 - **Auto-Syncing Markdown Notes**: Type checklist items (`- [ ]`) in the scratchpad and click **Sync Todos** to instantly register them into your global GTD follow-up inbox.
 - **Invoicing & Milestone Hub**: Review payments, sign-offs, and client contacts in a full-width distraction-free view.
 
@@ -98,20 +97,19 @@ Press <kbd>O</kbd> on any deal or navigate to `/deals/[id]` to open the dedicate
 | Shortcut | Action | Context |
 | :--- | :--- | :--- |
 | <kbd>N</kbd> | New Deal modal | Global |
-| <kbd>L</kbd> | Log Activity / Meeting Notes | Global |
 | <kbd>C</kbd> | Add Client Contact | Global |
-| <kbd>O</kbd> | Open Project Workspace (`/deals/[id]`) | Kanban Drawer / Card |
+| <kbd>O</kbd> | Open Project Workspace (`/deals/[id]`) | Kanban Card |
 | <kbd>⌘</kbd> <kbd>K</kbd> / <kbd>Ctrl</kbd> <kbd>K</kbd> | Command Palette | Global |
 | <kbd>?</kbd> | Show Keyboard Shortcuts overlay | Global |
 | <kbd>H</kbd> / <kbd>L</kbd> | Move cursor Left / Right across columns | Kanban Board |
 | <kbd>J</kbd> / <kbd>K</kbd> | Move cursor Down / Up across deal cards | Kanban Board |
-| <kbd>Enter</kbd> / <kbd>Space</kbd> | Open deal inspect drawer | Kanban Board |
-| <kbd>G</kbd> then <kbd>D</kbd> | Jump to Deals board | Global |
-| <kbd>G</kbd> then <kbd>C</kbd> | Jump to Companies list | Global |
-| <kbd>G</kbd> then <kbd>K</kbd> | Jump to Contacts list | Global |
-| <kbd>G</kbd> then <kbd>A</kbd> | Jump to Activity stream | Global |
+| <kbd>Enter</kbd> / <kbd>Space</kbd> | Open deal page | Kanban Board |
+| <kbd>G</kbd> then <kbd>D</kbd> | Jump to Home | Global |
+| <kbd>G</kbd> then <kbd>P</kbd> | Jump to Deals board | Global |
+| <kbd>G</kbd> then <kbd>U</kbd> | Jump to Clients list | Global |
+| <kbd>G</kbd> then <kbd>K</kbd> | Jump to Calendar | Global |
 | <kbd>G</kbd> then <kbd>S</kbd> | Jump to Settings | Global |
-| <kbd>Esc</kbd> | Close any active modal or drawer | Global |
+| <kbd>Esc</kbd> | Close any active modal | Global |
 
 ---
 

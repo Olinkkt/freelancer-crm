@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useState, useEffect, useRef, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
 import {
   Kanban,
   CirclePlus,
@@ -15,8 +14,6 @@ import {
   Sparkles,
   Command,
   WalletCards,
-  FileText,
-  PhoneCall,
   Check,
   Trash2,
   GripVertical,
@@ -37,7 +34,6 @@ interface DealKanbanProps {
   onAddDealClick: () => void
   onMoveDealStage: (dealId: string, newStage: DealStage) => void
   onDeleteDeal?: (dealId: string) => void
-  onLogInteraction?: (deal: Deal) => void
   onEditDeal?: (deal: Deal) => void
   settings?: WorkspaceSettings
 }
@@ -56,11 +52,9 @@ export function DealKanban({
   onAddDealClick,
   onMoveDealStage,
   onDeleteDeal,
-  onLogInteraction,
   onEditDeal,
   settings,
 }: DealKanbanProps) {
-  const router = useRouter()
   const [focusedColIndex, setFocusedColIndex] = useState<number>(0)
   const [focusedCardIndex, setFocusedCardIndex] = useState<number>(0)
   const [isBoardFocused, setIsBoardFocused] = useState<boolean>(false)
@@ -574,13 +568,8 @@ export function DealKanban({
                                   triggerLabel={`Options for ${deal.title}`}
                                   items={[
                                     {
-                                      label: 'Open project workspace',
+                                      label: 'Open deal',
                                       icon: ExternalLink,
-                                      onClick: () => router.push(`/deals/${deal.id}`),
-                                    },
-                                    {
-                                      label: 'Open deal drawer',
-                                      icon: FileText,
                                       onClick: () => onOpenDeal(deal),
                                     },
                                     {
@@ -588,15 +577,6 @@ export function DealKanban({
                                       icon: Edit3,
                                       onClick: () => (onEditDeal ? onEditDeal(deal) : onOpenDeal(deal)),
                                     },
-                                    ...(onLogInteraction
-                                      ? [
-                                          {
-                                            label: 'Log interaction',
-                                            icon: PhoneCall,
-                                            onClick: () => onLogInteraction(deal),
-                                          },
-                                        ]
-                                      : []),
                                     ...(deal.stage !== 'Won' && deal.stage !== 'Paid'
                                       ? [
                                           {

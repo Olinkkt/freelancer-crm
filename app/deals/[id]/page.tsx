@@ -1,11 +1,10 @@
 'use client'
 
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   ArrowLeft,
-  Building2,
   Calendar,
   AlertCircle,
   Check,
@@ -19,7 +18,6 @@ import {
   ListTodo,
   FileText,
   Plus,
-  PhoneCall,
   MessageSquare,
   ChevronDown,
   ChevronUp,
@@ -30,8 +28,6 @@ import {
   DealStage,
   STAGE_DEFAULT_PROBABILITIES,
   Activity,
-  FollowUpItem,
-  Contact,
 } from '@/lib/crm-types'
 import {
   fetchDealByIdAction,
@@ -40,18 +36,14 @@ import {
   moveDealStageAction,
   fetchDealActivitiesAction,
   logActivityAction,
-  deleteActivityAction,
   updateActivityAction,
   syncTodosAction,
 } from '@/app/actions/crm'
-import { getAuthStatus } from '@/app/actions/auth'
 import { formatDealValue } from '@/lib/config'
 import { DeliverablesTracker } from '@/components/drawers/deliverables-tracker'
 import { ScratchpadEditor } from '@/components/drawers/scratchpad-editor'
 import { MarkdownFormatter } from '@/components/ui/markdown-formatter'
 import { ToastHUD, ToastHUDItem } from '@/components/ui/toast-hud'
-import { LogCallModal } from '@/components/modals/log-call-modal'
-import { EditFollowUpModal } from '@/components/modals/edit-follow-up-modal'
 
 const STAGES: DealStage[] = [
   'Lead',
@@ -75,7 +67,6 @@ export default function DealProjectPage() {
   const [activeTab, setActiveTab] = useState<'deliverables' | 'scratchpad' | 'timeline'>('deliverables')
 
   // Modals & Drafting state
-  const [isLogCallOpen, setIsLogCallOpen] = useState(false)
   const [isDraftingNote, setIsDraftingNote] = useState(false)
   const [newMeetingTitle, setNewMeetingTitle] = useState('')
   const [newMeetingType, setNewMeetingType] = useState<Activity['type']>('Meeting')
@@ -104,24 +95,6 @@ export default function DealProjectPage() {
   const dismissToast = (id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id))
   }
-
-  const modalDeals = useMemo(() => (deal ? [deal] : []), [deal])
-  const modalContacts = useMemo<Contact[]>(() => {
-    if (!deal) return []
-    const contactEmail = deal.contactEmail || `contact@${deal.company.toLowerCase().replace(/[^a-z0-9]/g, '')}.cz`
-    return [
-      {
-        id: 'primary-contact',
-        name: deal.contactName || deal.company,
-        email: deal.contactEmail || contactEmail || '',
-        company: deal.company,
-        role: '',
-        deals: 1,
-        lastTouch: 'Today',
-        color: deal.color || 'blue',
-      },
-    ]
-  }, [deal])
 
   // Load deal and its timeline
   const loadDeal = useCallback(async () => {
@@ -198,6 +171,13 @@ export default function DealProjectPage() {
     } catch (err: any) {
       addToast(err?.message || 'Failed to save next action', undefined, 'warning')
     }
+  }
+
+  const openNoteDraft = () => {
+    if (!deal) return
+    setNewMeetingTitle(`${deal.company} sync`)
+    setDraftNotes('')
+    setIsDraftingNote(true)
   }
 
   // Save meeting note from drafting scratchpad
@@ -306,7 +286,7 @@ export default function DealProjectPage() {
           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#232529] hover:bg-[#101113] text-white text-[12px] font-medium rounded-[8px] transition-colors"
         >
           <ArrowLeft size={13} />
-          <span>Return to Dashboard</span>
+          <span>Return to Home</span>
         </Link>
       </div>
     )
@@ -350,11 +330,14 @@ export default function DealProjectPage() {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => setIsLogCallOpen(true)}
+              onClick={() => {
+                setActiveTab('timeline')
+                openNoteDraft()
+              }}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#e4e7ec] hover:bg-[#f7f8fa] text-[#232529] text-[12px] font-medium rounded-[8px] transition-colors cursor-pointer"
             >
-              <PhoneCall size={13} />
-              <span>Log interaction</span>
+              <Plus size={13} />
+              <span>Add note</span>
             </button>
             <button
               type="button"
@@ -558,9 +541,7 @@ export default function DealProjectPage() {
                     type="button"
                     onClick={() => {
                       if (!isDraftingNote) {
-                        setNewMeetingTitle(`${deal.company} sync`)
-                        setDraftNotes('')
-                        setIsDraftingNote(true)
+                        openNoteDraft()
                       } else {
                         setIsDraftingNote(false)
                       }
@@ -791,18 +772,6 @@ export default function DealProjectPage() {
                     </a>
                   </div>
 
-                  {/* Company Directory Link */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-[#8f99a8] flex items-center gap-1.5">
-                      <Building2 size={13} /> Account:
-                    </span>
-                    <Link
-                      href="/?view=Companies"
-                      className="font-medium text-[#505967] hover:text-[#1c1d1f]"
-                    >
-                      {deal.company}
-                    </Link>
-                  </div>
                 </div>
               </div>
             </div>
@@ -810,27 +779,6 @@ export default function DealProjectPage() {
         </div>
       </main>
 
-      {/* MODALS */}
-      {isLogCallOpen && (
-        <LogCallModal
-          isOpen={isLogCallOpen}
-          onClose={() => setIsLogCallOpen(false)}
-          initialDealId={deal.id}
-          deals={modalDeals}
-          contacts={modalContacts}
-          prefilledCompany={deal.company}
-          onSaveActivity={async (newAct: Omit<Activity, 'id'>, newFollowUp?: Omit<FollowUpItem, 'id'>) => {
-            try {
-              const res = await logActivityAction(newAct, newFollowUp, deal.id)
-              setActivities((prev) => [res.activity, ...prev])
-              setIsLogCallOpen(false)
-              addToast(`Logged interaction for ${deal.company}`)
-            } catch (err: any) {
-              addToast(err?.message || 'Failed to log call', undefined, 'warning')
-            }
-          }}
-        />
-      )}
     </div>
   )
 }

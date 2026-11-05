@@ -2,14 +2,15 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { X, UserPlus, Building2, Mail, Phone, Briefcase } from 'lucide-react'
-import { Contact, Company } from '@/lib/crm-types'
+import { Contact } from '@/lib/crm-types'
 import { Combobox } from '@/components/ui/combobox'
 
 interface NewContactModalProps {
   isOpen: boolean
   onClose: () => void
   onAddContact: (contact: Omit<Contact, 'id'>) => void
-  companies: Company[]
+  /** Known company names, offered as suggestions */
+  companies: string[]
   initialCompany?: string
   contactToEdit?: Contact | null
   onUpdateContact?: (contact: Contact) => void
@@ -159,11 +160,10 @@ export function NewContactModal({
               <Combobox
                 value={company}
                 onChange={setCompany}
-                options={companies.map((c) => ({
-                  id: c.id,
-                  label: c.name,
-                  value: c.name,
-                  sublabel: c.type,
+                options={companies.map((name) => ({
+                  id: name,
+                  label: name,
+                  value: name,
                 }))}
                 placeholder="Select or enter company"
                 maxLength={100}

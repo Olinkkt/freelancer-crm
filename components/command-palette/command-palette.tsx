@@ -8,7 +8,6 @@ import {
   PhoneCall,
   LayoutDashboard,
   WalletCards,
-  Building2,
   Users,
   CalendarDays,
   Settings2,
@@ -27,9 +26,8 @@ import {
   Calculator,
   CheckSquare,
   Save,
-  ExternalLink,
 } from 'lucide-react'
-import { Deal, Contact, Company, Activity } from '@/lib/crm-types'
+import { Deal, Contact, Activity } from '@/lib/crm-types'
 import { ScratchpadEditor } from '../drawers/scratchpad-editor'
 import { formatMoney, OPERATOR_CONFIG } from '@/lib/config'
 
@@ -37,10 +35,7 @@ export type PaletteActionType =
   | 'navigate'
   | 'new_deal'
   | 'new_contact'
-  | 'log_call'
   | 'open_deal'
-  | 'open_project_workspace'
-  | 'open_company'
   | 'open_contact'
   | 'toggle_kanban'
   | 'show_shortcuts'
@@ -48,7 +43,7 @@ export type PaletteActionType =
 
 export interface PaletteItem {
   id: string
-  category: 'Actions' | 'Notes' | 'Deals' | 'Contacts' | 'Companies' | 'Navigation'
+  category: 'Actions' | 'Notes' | 'Deals' | 'Clients' | 'Navigation'
   title: string
   subtitle?: string
   badge?: string
@@ -65,7 +60,6 @@ interface CommandPaletteProps {
   onSelectAction: (actionType: PaletteActionType, payload?: any) => void
   deals: Deal[]
   contacts: Contact[]
-  companies: Company[]
   onUpdateDeal?: (deal: Deal) => void
   onSyncTodos?: (todos: string[], companyName?: string) => void
   onAddActivity?: (activity: Omit<Activity, 'id'>) => void
@@ -77,7 +71,6 @@ export function CommandPalette({
   onSelectAction,
   deals,
   contacts,
-  companies,
   onUpdateDeal,
   onSyncTodos,
   onAddActivity,
@@ -173,20 +166,11 @@ export function CommandPalette({
       {
         id: 'action-new-contact',
         category: 'Actions',
-        title: 'Add new contact',
+        title: 'Add new client',
         subtitle: 'Create a stakeholder or lead in directory',
         shortcut: 'C',
         icon: <UserPlus size={15} className="text-[#6f7988]" />,
         actionType: 'new_contact',
-      },
-      {
-        id: 'action-log-call',
-        category: 'Actions',
-        title: 'Log call or meeting note',
-        subtitle: 'Fast interaction & next action scratchpad',
-        shortcut: 'L',
-        icon: <PhoneCall size={15} className="text-[#6f7988]" />,
-        actionType: 'log_call',
       },
       {
         id: 'action-shortcuts',
@@ -211,12 +195,12 @@ export function CommandPalette({
       {
         id: 'nav-dashboard',
         category: 'Navigation',
-        title: 'Go to Dashboard',
+        title: 'Go to Home',
         subtitle: 'Overview, today’s follow-ups & metrics',
         shortcut: 'G D',
         icon: <LayoutDashboard size={15} className="text-[#6f7988]" />,
         actionType: 'navigate',
-        payload: 'Dashboard',
+        payload: 'Home',
       },
       {
         id: 'nav-deals',
@@ -229,24 +213,14 @@ export function CommandPalette({
         payload: 'Deals',
       },
       {
-        id: 'nav-companies',
+        id: 'nav-clients',
         category: 'Navigation',
-        title: 'Go to Companies',
-        subtitle: 'Client accounts, industry types & accounts',
-        shortcut: 'G C',
-        icon: <Building2 size={15} className="text-[#6f7988]" />,
-        actionType: 'navigate',
-        payload: 'Companies',
-      },
-      {
-        id: 'nav-contacts',
-        category: 'Navigation',
-        title: 'Go to Contacts',
+        title: 'Go to Clients',
         subtitle: 'Client stakeholders, founders & emails',
         shortcut: 'G U',
         icon: <Users size={15} className="text-[#6f7988]" />,
         actionType: 'navigate',
-        payload: 'Contacts',
+        payload: 'Clients',
       },
       {
         id: 'nav-calendar',
@@ -257,16 +231,6 @@ export function CommandPalette({
         icon: <CalendarDays size={15} className="text-[#266df0]" />,
         actionType: 'navigate',
         payload: 'Calendar',
-      },
-      {
-        id: 'nav-activities',
-        category: 'Navigation',
-        title: 'Go to Activities',
-        subtitle: 'Call logs, touch history & timeline',
-        shortcut: 'G A',
-        icon: <FileText size={15} className="text-[#6f7988]" />,
-        actionType: 'navigate',
-        payload: 'Activities',
       },
       {
         id: 'nav-settings',
@@ -300,45 +264,13 @@ export function CommandPalette({
         actionType: 'open_deal',
         payload: deal,
       })
-
-      // Full workspace subpage jump
-      items.push({
-        id: `deal-workspace-${deal.id}`,
-        category: 'Deals',
-        title: `${deal.title} — Full Project Workspace`,
-        subtitle: `Deliverables, milestones & billing for ${deal.company}`,
-        badge: 'Workspace ↗',
-        color: deal.color,
-        icon: <ExternalLink size={14} className="text-[#266df0] shrink-0" />,
-        actionType: 'open_project_workspace',
-        payload: deal,
-      })
     })
 
-    // Add Companies
-    companies.forEach((comp) => {
-      items.push({
-        id: `comp-${comp.id}`,
-        category: 'Companies',
-        title: comp.name,
-        subtitle: `${comp.type} • Contact: ${comp.contact} (${comp.deals} deal${comp.deals !== 1 ? 's' : ''})`,
-        badge: comp.status,
-        color: comp.color,
-        icon: (
-          <span className="w-5 h-5 rounded-[6px] flex items-center justify-center text-[10px] font-semibold bg-[#f0f2f5] text-[#232529] shrink-0">
-            {comp.name.charAt(0)}
-          </span>
-        ),
-        actionType: 'open_company',
-        payload: comp,
-      })
-    })
-
-    // Add Contacts
+    // Add Clients
     contacts.forEach((contact) => {
       items.push({
         id: `contact-${contact.id}`,
-        category: 'Contacts',
+        category: 'Clients',
         title: contact.name,
         subtitle: contact.role
           ? `${contact.role} at ${contact.company} • ${contact.email}`
@@ -356,7 +288,7 @@ export function CommandPalette({
     })
 
     return items
-  }, [deals, companies, contacts])
+  }, [deals, contacts])
 
   // Filter items by query and category
   const filteredItems = useMemo(() => {
@@ -376,7 +308,7 @@ export function CommandPalette({
       targetCategory = 'Actions'
       searchTerm = cleanQuery.slice(1).trim()
     } else if (cleanQuery.startsWith('@')) {
-      targetCategory = 'Contacts'
+      targetCategory = 'Clients'
       searchTerm = cleanQuery.slice(1).trim()
     } else if (cleanQuery.startsWith('#')) {
       targetCategory = 'Deals'
@@ -505,7 +437,7 @@ export function CommandPalette({
     } else if (e.key === 'Tab') {
       // Cycle through categories
       e.preventDefault()
-      const categories = ['All', 'Notes', 'Actions', 'Deals', 'Contacts', 'Companies', 'Navigation']
+      const categories = ['All', 'Notes', 'Actions', 'Deals', 'Clients', 'Navigation']
       const currentIndex = categories.indexOf(selectedCategory)
       const nextIndex = e.shiftKey
         ? (currentIndex - 1 + categories.length) % categories.length
@@ -547,7 +479,7 @@ export function CommandPalette({
   if (!isOpen) return null
 
   // Group items by category for rendering headers
-  const categories = ['Notes', 'Actions', 'Navigation', 'Deals', 'Companies', 'Contacts'] as const
+  const categories = ['Notes', 'Actions', 'Navigation', 'Deals', 'Clients'] as const
   const activeDeal = deals.find((d) => d.id === targetDealId)
 
   return (
@@ -684,7 +616,7 @@ export function CommandPalette({
 
             {/* Filter Category Chips */}
             <div className="flex items-center gap-1.5 px-4 py-2 border-b border-[#f0f1f3] bg-[#fafbfc] overflow-x-auto text-[11px] scrollbar-none">
-              {['All', 'Notes', 'Actions', 'Deals', 'Contacts', 'Companies', 'Navigation'].map((cat) => (
+              {['All', 'Notes', 'Actions', 'Deals', 'Clients', 'Navigation'].map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}

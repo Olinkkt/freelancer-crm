@@ -6,6 +6,9 @@ import { X, CirclePlus, ArrowUpRight, Calendar, AlertCircle } from 'lucide-react
 import { Contact, Deal, DealStage, DEAL_STAGES, STAGE_DEFAULT_PROBABILITIES, WorkspaceSettings } from '@/lib/crm-types'
 import { formatMoney, OPERATOR_CONFIG } from '@/lib/config'
 import { Combobox } from '@/components/ui/combobox'
+import { NextActionFields } from '@/components/deals/next-action-fields'
+import { addDays, isUntouchedPreset, nextActionPresets, normalizeDueDate } from '@/lib/due-date'
+import { getDateString } from '@/lib/date-utils'
 
 interface NewDealModalProps {
   isOpen: boolean
@@ -37,7 +40,7 @@ export function NewDealModal({
   const [value, setValue] = useState('')
   const [stage, setStage] = useState<DealStage>('Lead')
   const [nextAction, setNextAction] = useState('')
-  const [nextDueDate, setNextDueDate] = useState('Tomorrow, 10:00')
+  const [nextDueDate, setNextDueDate] = useState(getDateString(addDays(new Date(), 1)))
   const [notes, setNotes] = useState('')
   const [error, setError] = useState<string | null>(null)
   const titleInputRef = useRef<HTMLInputElement>(null)
@@ -51,15 +54,15 @@ export function NewDealModal({
         setValue(dealToEdit.value || '')
         setStage(dealToEdit.stage || 'Lead')
         setNextAction(dealToEdit.next || '')
-        setNextDueDate(dealToEdit.nextDueDate || '')
+        setNextDueDate(normalizeDueDate(dealToEdit.nextDueDate) || getDateString(addDays(new Date(), 1)))
         setNotes(dealToEdit.notes || '')
       } else {
         setTitle('')
         setClientName(initialClientName || '')
         setValue(formatMoney(25000, settings))
         setStage('Lead')
-        setNextAction('Discovery call & initial scope review')
-        setNextDueDate('Tomorrow, 10:00')
+        setNextAction(nextActionPresets('Lead')[0])
+        setNextDueDate(getDateString(addDays(new Date(), 1)))
         setNotes('')
       }
       setTimeout(() => {
@@ -116,7 +119,7 @@ export function NewDealModal({
         stage,
         probability: STAGE_DEFAULT_PROBABILITIES[stage],
         next: isPaid ? '' : nextAction.trim(),
-        nextDueDate: isPaid ? undefined : nextDueDate.trim(),
+        nextDueDate: isPaid ? undefined : nextDueDate || undefined,
         color: colorMap[stage] || dealToEdit.color || 'blue',
         notes: notes.trim(),
       })
@@ -129,7 +132,7 @@ export function NewDealModal({
         stage,
         probability: STAGE_DEFAULT_PROBABILITIES[stage],
         next: isPaid ? '' : (nextAction.trim() || 'Schedule next step'),
-        nextDueDate: isPaid ? undefined : (nextDueDate.trim() || 'This week'),
+        nextDueDate: isPaid ? undefined : nextDueDate || getDateString(addDays(new Date(), 1)),
         color: colorMap[stage] || 'blue',
         notes: notes.trim(),
         createdAt: 'Just now',
@@ -243,7 +246,13 @@ export function NewDealModal({
             </label>
             <select
               value={stage}
-              onChange={(e) => setStage(e.target.value as DealStage)}
+              onChange={(e) => {
+                const newStage = e.target.value as DealStage
+                setStage(newStage)
+                if (!dealToEdit && isUntouchedPreset(nextAction)) {
+                  setNextAction(nextActionPresets(newStage)[0] ?? '')
+                }
+              }}
               className="w-full h-10 px-3 border border-[#e4e7ec] rounded-[10px] text-[13px] text-[#1c1d1f] bg-white focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
             >
               {STAGES.map((s) => (
@@ -263,22 +272,13 @@ export function NewDealModal({
                   <span>Next Action</span>
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <input
-                  type="text"
-                  value={nextAction}
-                  onChange={(e) => setNextAction(e.target.value)}
-                  placeholder="e.g. Send revised scope"
-                  className="w-full h-9 px-2.5 bg-white border border-[#dbe6fe] rounded-[10px] text-[12px] text-[#1c1d1f] focus:outline-none focus:border-[#266df0]"
-                />
-                <input
-                  type="text"
-                  value={nextDueDate}
-                  onChange={(e) => setNextDueDate(e.target.value)}
-                  placeholder="e.g. Tomorrow 14:30"
-                  className="w-full h-9 px-2.5 bg-white border border-[#dbe6fe] rounded-[10px] text-[12px] text-[#1c1d1f] focus:outline-none focus:border-[#266df0]"
-                />
-              </div>
+              <NextActionFields
+                stage={stage}
+                action={nextAction}
+                dueDate={nextDueDate}
+                onActionChange={setNextAction}
+                onDueDateChange={setNextDueDate}
+              />
             </div>
           )}
 

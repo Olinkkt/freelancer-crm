@@ -1,4 +1,5 @@
 import { Kysely } from 'kysely'
+import { normalizeDueDate } from '@/lib/due-date'
 import { db } from './client'
 import { Database } from './schema'
 import { ensureDbInitialized } from './init'
@@ -211,7 +212,7 @@ export async function createDeal(dealData: Omit<Deal, 'id'>): Promise<Deal> {
 
   const isPaid = dealData.stage === 'Paid'
   const nextAction = isPaid ? '' : (dealData.next || '')
-  const nextDueDate = isPaid ? null : (dealData.nextDueDate || null)
+  const nextDueDate = isPaid ? null : normalizeDueDate(dealData.nextDueDate)
 
   const client = await resolveDealClient(db, dealData)
   const contactName = client.name
@@ -290,7 +291,7 @@ export async function updateDeal(deal: Deal): Promise<Deal | null> {
 
   const isPaid = deal.stage === 'Paid'
   const nextAction = isPaid ? '' : (deal.next || '')
-  const nextDueDate = isPaid ? null : (deal.nextDueDate || null)
+  const nextDueDate = isPaid ? null : normalizeDueDate(deal.nextDueDate)
   const clientGiven = !!(deal.contactId || deal.contactName?.trim() || deal.contactEmail?.trim())
   const client = await resolveDealClient(
     db,
@@ -672,7 +673,7 @@ export async function logActivity(
         : noteContent
 
       const newNext = followUpData?.action || existingDealRow.next
-      const newNextDueDate = followUpData?.time || existingDealRow.next_due_date
+      const newNextDueDate = normalizeDueDate(followUpData?.time) || existingDealRow.next_due_date
 
       await db
         .updateTable('deals')

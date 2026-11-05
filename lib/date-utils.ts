@@ -106,6 +106,8 @@ export function stripDiacritics(str: string): string {
  */
 export function isDueToday(dueDate?: string | null): boolean {
   if (!dueDate) return false
+  const iso = dueDate.match(/^(\d{4}-\d{2}-\d{2})/)
+  if (iso) return iso[1] === getDateString(new Date())
   const norm = stripDiacritics(dueDate.toLowerCase())
   return /\b(today|dnes|dneska)\b/i.test(norm)
 }

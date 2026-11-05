@@ -374,7 +374,8 @@ describe('CRM Database Repository', () => {
 
       assert.ok(res.updatedDeal)
       assert.equal(res.updatedDeal.next, 'Send dark mode mockups')
-      assert.equal(res.updatedDeal.nextDueDate, '11:00')
+      // follow-up time-of-day is not a date, so the deal's due date is left alone
+      assert.equal(res.updatedDeal.nextDueDate, undefined)
       assert.ok(res.updatedDeal.notes?.includes('Requirement gathering'))
       assert.ok(res.updatedDeal.notes?.includes('Client needs dark mode support.'))
     })

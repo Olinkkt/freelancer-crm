@@ -43,6 +43,9 @@ import {
   syncTodosAction,
 } from '@/app/actions/crm'
 import { formatDealValue } from '@/lib/config'
+import { NextActionFields } from '@/components/deals/next-action-fields'
+import { addDays, formatDue, isOverdue, normalizeDueDate } from '@/lib/due-date'
+import { getDateString } from '@/lib/date-utils'
 import { generateDealNextActionLink } from '@/lib/calendar/web-links'
 import { DeliverablesTracker } from '@/components/drawers/deliverables-tracker'
 import { ScratchpadEditor } from '@/components/drawers/scratchpad-editor'
@@ -113,7 +116,7 @@ export default function DealProjectPage() {
       }
       setDeal(data)
       setNextActionText(data.next || '')
-      setNextActionDate(data.nextDueDate || 'Tomorrow, 10:00')
+      setNextActionDate(normalizeDueDate(data.nextDueDate) || getDateString(addDays(new Date(), 1)))
 
       const [acts, workspaceSettings] = await Promise.all([
         fetchDealActivitiesAction(data.id),
@@ -153,7 +156,7 @@ export default function DealProjectPage() {
       stage: newStage,
       probability: STAGE_DEFAULT_PROBABILITIES[newStage],
       next: isPaid ? 'Request testimonial & case study review' : deal.next,
-      nextDueDate: isPaid ? 'In 3 days' : deal.nextDueDate,
+      nextDueDate: isPaid ? getDateString(addDays(new Date(), 3)) : deal.nextDueDate,
     }
     setDeal(updated)
     addToast(`Shifted stage to ${newStage}`)
@@ -170,7 +173,7 @@ export default function DealProjectPage() {
     const updated: Deal = {
       ...deal,
       next: nextActionText.trim() || 'Follow up on progress',
-      nextDueDate: nextActionDate.trim() || 'Tomorrow, 10:00',
+      nextDueDate: nextActionDate || getDateString(addDays(new Date(), 1)),
     }
     setDeal(updated)
     setIsEditingNextAction(false)
@@ -704,19 +707,13 @@ export default function DealProjectPage() {
 
               {isEditingNextAction ? (
                 <div className="space-y-2 pt-1 animate-in fade-in duration-150">
-                  <input
-                    type="text"
-                    value={nextActionText}
-                    onChange={(e) => setNextActionText(e.target.value)}
-                    placeholder="e.g. Send formal quote & deposit link"
-                    className="w-full px-3 py-1.5 text-[12px] border border-[#e4e7ec] rounded-[8px] focus:outline-none focus:border-[#266df0]"
-                  />
-                  <input
-                    type="text"
-                    value={nextActionDate}
-                    onChange={(e) => setNextActionDate(e.target.value)}
-                    placeholder="e.g. Tomorrow, 10:00"
-                    className="w-full px-3 py-1.5 text-[12px] border border-[#e4e7ec] rounded-[8px] focus:outline-none focus:border-[#266df0]"
+                  <NextActionFields
+                    stage={deal.stage}
+                    action={nextActionText}
+                    dueDate={nextActionDate}
+                    onActionChange={setNextActionText}
+                    onDueDateChange={setNextActionDate}
+                    autoFocusAction
                   />
                   <div className="flex justify-end gap-2 pt-1">
                     <button
@@ -741,8 +738,10 @@ export default function DealProjectPage() {
                     {deal.next || 'No next action scheduled'}
                   </p>
                   <div className="flex items-center gap-1.5 text-[11px] text-[#6f7988]">
-                    <Clock size={12} className="text-[#266df0]" />
-                    <span>{deal.nextDueDate || 'Pending schedule'}</span>
+                    <Clock size={12} className={isOverdue(deal.nextDueDate) ? 'text-[#d92d20]' : 'text-[#266df0]'} />
+                    <span className={isOverdue(deal.nextDueDate) ? 'text-[#d92d20] font-semibold' : ''}>
+                      {formatDue(deal.nextDueDate) || 'Pending schedule'}
+                    </span>
                   </div>
                   {deal.next && (
                     <a

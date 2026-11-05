@@ -1,5 +1,6 @@
 'use client'
 
+import { formatDue, isOverdue } from '@/lib/due-date'
 import React, { useMemo, useState } from 'react'
 import { Search, CirclePlus, ExternalLink, Edit3, Trash2, Clock, WalletCards } from 'lucide-react'
 import { Deal, DealStage, DEAL_STAGES, WorkspaceSettings } from '@/lib/crm-types'
@@ -178,9 +179,13 @@ export function DealList({
                       {deal.next}
                     </span>
                     {deal.nextDueDate && (
-                      <span className="flex items-center gap-1 text-[11px] text-[#8f99a8]">
+                      <span
+                        className={`flex items-center gap-1 text-[11px] ${
+                          isOverdue(deal.nextDueDate) ? 'text-[#d92d20] font-semibold' : 'text-[#8f99a8]'
+                        }`}
+                      >
                         <Clock size={11} />
-                        <span className="truncate">{deal.nextDueDate}</span>
+                        <span className="truncate">{formatDue(deal.nextDueDate)}</span>
                       </span>
                     )}
                   </>

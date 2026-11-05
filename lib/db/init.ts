@@ -1,7 +1,8 @@
 import { sql } from 'kysely'
+import { normalizeDueDate } from '@/lib/due-date'
 import { db } from './client'
 
-const SCHEMA_VERSION = 7
+const SCHEMA_VERSION = 8
 
 const globalForInit = globalThis as unknown as {
   dbInitPromise?: Promise<void>
@@ -75,6 +76,9 @@ export async function ensureDbInitialized(force = false): Promise<void> {
 
     // Migration (v6): clients are people, deals hang off a client.
     await migrateToClientsOnly()
+
+    // Migration (v8): next-action due dates are stored as YYYY-MM-DD instead of free text
+    await migrateDueDatesToIso()
 
     // 3. Activities
     await sql`
@@ -173,6 +177,19 @@ async function columnExists(table: string, column: string): Promise<boolean> {
 async function addColumnIfMissing(table: string, column: string, type: string): Promise<void> {
   if (await columnExists(table, column)) return
   await sql`ALTER TABLE ${sql.table(table)} ADD COLUMN ${sql.ref(column)} ${sql.raw(type)};`.execute(db)
+}
+
+async function migrateDueDatesToIso(): Promise<void> {
+  const rows = await db.selectFrom('deals').select(['id', 'next_due_date']).where('next_due_date', 'is not', null).execute()
+  for (const row of rows) {
+    const current = row.next_due_date as string
+    if (/^\d{4}-\d{2}-\d{2}$/.test(current)) continue
+    await db
+      .updateTable('deals')
+      .set({ next_due_date: normalizeDueDate(current) })
+      .where('id', '=', row.id)
+      .execute()
+  }
 }
 
 const norm = (v: unknown) => (typeof v === 'string' ? v.trim().toLowerCase() : '')

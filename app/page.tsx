@@ -34,7 +34,8 @@ import {
   exportActivitiesCSV,
   exportFollowUpsCSV,
 } from '@/lib/csv-export'
-import { getFormattedToday, getDynamicGreeting } from '@/lib/date-utils'
+import { getFormattedToday, getDynamicGreeting, getDateString } from '@/lib/date-utils'
+import { addDays } from '@/lib/due-date'
 import { OPERATOR_CONFIG, formatMoney, formatDealValue, getOperatorInitials } from '@/lib/config'
 import { Deal, Contact, Activity, FollowUpItem, DealStage, OPEN_DEAL_STAGES, STAGE_DEFAULT_PROBABILITIES } from '@/lib/crm-types'
 import { useModKey } from '@/lib/use-mod-key'
@@ -558,7 +559,11 @@ export default function Page() {
             deliverables: isPaid && dealDeliverables ? dealDeliverables : d.deliverables,
             invoices: d.invoices,
             next: isPaid ? 'Request testimonial & case study review' : isWon ? 'Kickoff meeting & design sprint' : d.next,
-            nextDueDate: isPaid ? 'In 3 days' : isWon ? 'Tomorrow, 10:00' : d.nextDueDate,
+            nextDueDate: isPaid
+              ? getDateString(addDays(new Date(), 3))
+              : isWon
+                ? getDateString(addDays(new Date(), 1))
+                : d.nextDueDate,
           }
         }
         return d

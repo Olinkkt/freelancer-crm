@@ -33,7 +33,7 @@ export async function GET(
     const operatorName = settings?.operatorName || 'Operator'
     const icsContent = generateIcsCalendar({
       calendarName: `${operatorName} — Freelancer CRM`,
-      calendarDescription: `Client meetings, calls, and active deal milestones for ${operatorName}`,
+      calendarDescription: `Deal next actions for ${operatorName}`,
       deals: workspace.deals || [],
     })
 

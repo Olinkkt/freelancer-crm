@@ -457,7 +457,7 @@ export function EditSettingsModal({
                     </h3>
                   </div>
                   <p className="text-[12px] text-[#6f7988] mt-0.5">
-                    A read-only feed of your deals’ next actions and logged calls and meetings. Subscribe once in Google Calendar, Apple Calendar or your phone; it refreshes on its own.
+                    A read-only feed of your deals’ next actions. Subscribe once in Google Calendar, Apple Calendar or your phone; it refreshes on its own.
                   </p>
                 </div>
               </div>

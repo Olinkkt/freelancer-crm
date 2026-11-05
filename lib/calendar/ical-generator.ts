@@ -61,7 +61,7 @@ export interface IcsCalendarOptions {
 export function generateIcsCalendar(options: IcsCalendarOptions = {}): string {
   const {
     calendarName = 'Freelancer CRM',
-    calendarDescription = 'Milestones, calls, and client meetings from Freelancer CRM',
+    calendarDescription = 'Deal next actions from Freelancer CRM',
     deals = [],
     now = new Date(),
   } = options

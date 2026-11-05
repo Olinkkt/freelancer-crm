@@ -43,17 +43,11 @@ export function ShortcutsModal({ isOpen, onClose }: ShortcutsModalProps) {
       ],
     },
     {
-      title: 'Kanban Board Deals Navigation (No Mouse)',
+      title: 'Deals List',
       icon: <LayoutGrid size={15} className="text-[#6f7988]" />,
       items: [
-        { keys: ['←'], label: 'Move focus left to previous stage (or H)' },
-        { keys: ['→'], label: 'Move focus right to next stage (or L)' },
-        { keys: ['↑'], label: 'Move focus up to previous deal (or K)' },
-        { keys: ['↓'], label: 'Move focus down to next deal (or J)' },
-        { keys: ['Tab'], label: 'Cycle forward through deals' },
-        { keys: ['↵'], label: 'Open deal page' },
-        { keys: ['['], label: 'Shift selected deal to previous stage' },
-        { keys: [']'], label: 'Shift selected deal to next stage' },
+        { keys: ['Tab'], label: 'Focus the next deal' },
+        { keys: ['↵'], label: 'Open the focused deal' },
       ],
     },
     {

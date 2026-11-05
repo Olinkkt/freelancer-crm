@@ -17,7 +17,6 @@ import {
   Command,
   CornerDownLeft,
   X,
-  Kanban,
   Keyboard,
   Clock,
   CheckCircle2,
@@ -36,7 +35,6 @@ export type PaletteActionType =
   | 'new_contact'
   | 'open_deal'
   | 'open_contact'
-  | 'toggle_kanban'
   | 'show_shortcuts'
   | 'open_scratchpad'
 
@@ -180,15 +178,6 @@ export function CommandPalette({
         icon: <Keyboard size={15} className="text-[#6f7988]" />,
         actionType: 'show_shortcuts',
       },
-      {
-        id: 'action-switch-kanban',
-        category: 'Actions',
-        title: 'Open Deals & Pipeline (Kanban)',
-        subtitle: 'Visual stage columns with hotkey navigation',
-        shortcut: 'G P',
-        icon: <Kanban size={15} className="text-[#266df0]" />,
-        actionType: 'toggle_kanban',
-      },
 
       // Navigation
       {
@@ -204,8 +193,8 @@ export function CommandPalette({
       {
         id: 'nav-deals',
         category: 'Navigation',
-        title: 'Go to Deals & Pipeline',
-        subtitle: 'Active opportunities, Kanban board & values',
+        title: 'Go to Deals',
+        subtitle: 'All deals, filterable by stage',
         shortcut: 'G P',
         icon: <WalletCards size={15} className="text-[#266df0]" />,
         actionType: 'navigate',

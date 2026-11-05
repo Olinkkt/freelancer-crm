@@ -53,10 +53,8 @@ $$\text{Quick Capture} \longrightarrow \text{Discovery} \longrightarrow \text{50
 ### 1. 🏎️ Superhuman-Grade Keyboard Velocity
 Operate your entire freelance business without taking your hands off the keyboard:
 - <kbd>N</kbd> — Quick-capture deals in under 5 seconds.
-- <kbd>O</kbd> — Instant deep jump into the **Project Workspace** (`/deals/[id]`).
 - <kbd>C</kbd> — Add new client contacts.
 - <kbd>⌘</kbd> <kbd>K</kbd> or <kbd>Ctrl</kbd> <kbd>K</kbd> — Fuzzy command palette.
-- <kbd>H</kbd> <kbd>J</kbd> <kbd>K</kbd> <kbd>L</kbd> or Arrow Keys — Vim-style column and card traversal.
 - <kbd>G</kbd> <kbd>D</kbd>, <kbd>G</kbd> <kbd>P</kbd>, <kbd>G</kbd> <kbd>U</kbd>, <kbd>G</kbd> <kbd>S</kbd> — Instant view jumping (Home, Deals, Clients, Settings).
 
 ### 2. 💰 The Freelancer 50/50 Payment Rule
@@ -71,7 +69,7 @@ Cash flow kills solo businesses. Freelancer CRM enforces healthy invoicing by de
   - `+ Web Build (4 milestones)`: Architecture, Prototype, Integration, Handover.
   - `+ Brand & Identity (3 milestones)`: Strategy, Visual System, Guidelines.
   - `+ Monthly Retainer (3 milestones)`: Sprint Planning, Execution, Review.
-- Client approval toggles with real-time progress percentages displayed directly on Kanban cards.
+- Client approval toggles with real-time progress percentages on each deal page.
 
 ### 4. 🔄 Post-Delivery Momentum Engine
 Prevent the feast-or-famine freelance cycle with automated high-leverage triggers:
@@ -98,14 +96,11 @@ Press <kbd>O</kbd> on any deal or navigate to `/deals/[id]` to open the dedicate
 | :--- | :--- | :--- |
 | <kbd>N</kbd> | New Deal modal | Global |
 | <kbd>C</kbd> | Add Client Contact | Global |
-| <kbd>O</kbd> | Open Project Workspace (`/deals/[id]`) | Kanban Card |
 | <kbd>⌘</kbd> <kbd>K</kbd> / <kbd>Ctrl</kbd> <kbd>K</kbd> | Command Palette | Global |
 | <kbd>?</kbd> | Show Keyboard Shortcuts overlay | Global |
-| <kbd>H</kbd> / <kbd>L</kbd> | Move cursor Left / Right across columns | Kanban Board |
-| <kbd>J</kbd> / <kbd>K</kbd> | Move cursor Down / Up across deal cards | Kanban Board |
-| <kbd>Enter</kbd> / <kbd>Space</kbd> | Open deal page | Kanban Board |
+| <kbd>Enter</kbd> / <kbd>Space</kbd> | Open focused deal | Deals list |
 | <kbd>G</kbd> then <kbd>D</kbd> | Jump to Home | Global |
-| <kbd>G</kbd> then <kbd>P</kbd> | Jump to Deals board | Global |
+| <kbd>G</kbd> then <kbd>P</kbd> | Jump to Deals | Global |
 | <kbd>G</kbd> then <kbd>U</kbd> | Jump to Clients list | Global |
 | <kbd>G</kbd> then <kbd>S</kbd> | Jump to Settings | Global |
 | <kbd>Esc</kbd> | Close any active modal | Global |

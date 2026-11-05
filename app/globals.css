@@ -965,6 +965,83 @@ button {
   border-color: var(--color-ink-black);
 }
 
+/* Deals list (replaces the old Kanban board) */
+.deals-list-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.deals-stage-filter {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.deals-stage-filter button {
+  white-space: nowrap;
+}
+
+.deals-list {
+  margin-top: 8px;
+}
+
+.deals-list-head, .deals-list-row {
+  display: grid;
+  grid-template-columns: minmax(160px, 2fr) 120px minmax(90px, 0.9fr) minmax(140px, 1.6fr) 34px;
+  align-items: center;
+  gap: 12px;
+  padding: 0 4px;
+}
+
+.deals-list-head {
+  padding: 10px 4px 6px;
+  color: var(--color-fog-400);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.deals-list-row {
+  min-height: 52px;
+  border-top: 1px solid #f0f1f3;
+  font-size: 12px;
+  color: var(--color-slate-500);
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.deals-list-row:hover {
+  background: #fafbfc;
+}
+
+.deals-list-row:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: -2px;
+}
+
+.deals-list-next {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stage-select {
+  width: 100%;
+  max-width: 120px;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid #dbe6fe;
+  border-radius: var(--radius-badges);
+  background: #f1f5ff;
+  color: var(--blue);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
 /* Modals & Backdrop */
 .modal-backdrop {
   position: fixed;
@@ -1166,6 +1243,11 @@ button {
   .deal-row > :nth-child(2), .deal-row > :nth-child(4), .deal-row > :nth-child(5) { display: none; }
   .breadcrumbs > span { display: none; }
   .deal-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .deals-list-toolbar { flex-direction: column; align-items: stretch; }
+  .deals-list-toolbar .search-field input { width: 100%; }
+  .deals-list-head, .deals-list-row { grid-template-columns: minmax(0, 1fr) 96px 34px; }
+  .deals-list-head > :nth-child(3), .deals-list-head > :nth-child(4),
+  .deals-list-row > :nth-child(3), .deals-list-row > :nth-child(4) { display: none; }
   .top-actions { min-width: 0; }
   .topbar-search { min-width: 0; flex-shrink: 1; }
   .topbar-search .search-shortcut { display: none; }

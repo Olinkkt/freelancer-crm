@@ -53,7 +53,7 @@ import { NewDealModal } from '@/components/modals/new-deal-modal'
 import { NewContactModal } from '@/components/modals/new-contact-modal'
 import { EditFollowUpModal } from '@/components/modals/edit-follow-up-modal'
 import { EditSettingsModal } from '@/components/modals/edit-settings-modal'
-import { DealKanban } from '@/components/deals/deal-kanban'
+import { DealList } from '@/components/deals/deal-list'
 import { ToastHUD, ToastHUDItem } from '@/components/ui/toast-hud'
 import { OperatorGate } from '@/components/auth/operator-gate'
 import { SetupWizard } from '@/components/auth/setup-wizard'
@@ -420,9 +420,6 @@ export default function Page() {
       case 'open_contact':
         setActiveView('Clients')
         if (payload?.name) setContactSearch(payload.name)
-        break
-      case 'toggle_kanban':
-        setActiveView('Deals')
         break
       case 'open_scratchpad':
         setIsPaletteOpen(true)
@@ -849,13 +846,13 @@ export default function Page() {
         {/* VIEW CONTAINER */}
         <div className="content-wrap">
           {activeView === 'Deals' ? (
-            /* DEALS & PIPELINE VIEW (Kanban Board) */
+            /* DEALS VIEW (list) */
             <>
               <section className="page-heading">
                 <div>
                   <h1>Deals</h1>
                   <p className="subcopy">
-                    Move deals through stages by dragging cards or pressing [ and ].
+                    Every deal in one list. Filter by stage, or change a deal’s stage from its row.
                   </p>
                 </div>
               </section>
@@ -865,7 +862,7 @@ export default function Page() {
                 <div>
                   <span className="metric-label">Open deals</span>
                   <strong>{openDealsCount}</strong>
-                  <small>Across {OPEN_DEAL_STAGES.length} open stages</small>
+                  <small>In {OPEN_DEAL_STAGES.join(', ').replace(/, ([^,]*)$/, ' or $1')}</small>
                 </div>
                 <div>
                   <span className="metric-label">Pipeline value</span>
@@ -892,8 +889,7 @@ export default function Page() {
                 </div>
               </section>
 
-              {/* Kanban Board Component */}
-              <DealKanban
+              <DealList
                 deals={deals}
                 settings={currentSettings}
                 onOpenDeal={openDeal}
@@ -1451,20 +1447,17 @@ export default function Page() {
                       ],
                     },
                     {
-                      category: 'Deals & Pipeline',
+                      category: 'Deals',
                       items: [
-                        { label: 'Navigate Kanban stage columns', keys: ['←', '→'], note: 'Shift active column focus' },
-                        { label: 'Select deal card in column', keys: ['↑', '↓'], note: 'Navigate deal cards' },
-                        { label: 'Cycle forward through deals', keys: ['Tab'], note: 'Fast linear card cycling' },
-                        { label: 'Open deal', keys: ['↵'], note: 'Open the deal page' },
-                        { label: 'Shift deal stage left / right', keys: ['[', ']'], note: 'Advance or revert stage' },
+                        { label: 'Move between deals', keys: ['Tab'], note: 'Focus the next deal row' },
+                        { label: 'Open deal', keys: ['↵'], note: 'Open the focused deal' },
                       ],
                     },
                     {
                       category: 'Workspace Navigation (Go-to)',
                       items: [
                         { label: 'Jump to Home', keys: ['G', 'D'], note: 'Daily overview' },
-                        { label: 'Jump to Deals pipeline', keys: ['G', 'P'], note: 'Kanban stages and values' },
+                        { label: 'Jump to Deals', keys: ['G', 'P'], note: 'All deals by stage' },
                         { label: 'Jump to Clients', keys: ['G', 'U'], note: 'The people you work with' },
                         { label: 'Jump to Settings view', keys: ['G', 'S'], note: 'Workspace preferences' },
                       ],
@@ -1895,7 +1888,7 @@ export default function Page() {
                       className="text-button"
                       onClick={() => setActiveView('Deals')}
                     >
-                      Open Kanban <ArrowUpRight size={14} />
+                      All deals <ArrowUpRight size={14} />
                     </button>
                   </div>
 

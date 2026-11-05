@@ -1046,7 +1046,6 @@ button {
   place-items: center;
   padding: 20px;
   background: rgba(16, 17, 19, 0.3);
-  backdrop-filter: blur(4px);
 }
 
 .composer {
@@ -1658,7 +1657,6 @@ button {
   position: absolute;
   inset: 0;
   background: rgb(16 20 28 / 0.3);
-  backdrop-filter: blur(4px);
 }
 .notes-modal-panel {
   width: 100%;

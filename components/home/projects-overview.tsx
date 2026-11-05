@@ -120,7 +120,6 @@ interface ProjectsOverviewProps {
 }
 
 export function ProjectsOverview({ rows, onOpenDeal }: ProjectsOverviewProps) {
-  if (rows.length === 0) return null
   const axis = buildAxis(rows)
   const todayLeft = ((axis.today - axis.from) / (axis.to - axis.from)) * 100
 
@@ -131,6 +130,9 @@ export function ProjectsOverview({ rows, onOpenDeal }: ProjectsOverviewProps) {
         <h2>Active projects</h2>
         <span className="font-mono">{rows.length}</span>
       </div>
+      {rows.length === 0 && (
+        <p className="today-empty">No active projects. Deals show up here once the contract is signed (Closed).</p>
+      )}
       <ul>
         {rows.map((row) => {
           const { deal } = row

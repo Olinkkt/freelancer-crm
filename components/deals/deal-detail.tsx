@@ -99,19 +99,19 @@ export function DealDetail({
           <p className="section-kicker">Next action</p>
           {deal.next ? (
             <>
-              <h2 className="text-[22px] leading-snug font-semibold text-[#1c1d1f] mt-2">{deal.next}</h2>
+              <h2 className="text-[15px] font-semibold text-[#1c1d1f] mt-1">{deal.next}</h2>
               {deal.nextDueDate && !deal.waiting && (
                 <p
-                  className={`mt-2 flex items-center gap-1.5 text-[14px] ${
+                  className={`mt-1 flex items-center gap-1 text-[12px] ${
                     isOverdue(deal.nextDueDate) ? 'text-[#d92d20] font-semibold' : 'text-[#8f99a8]'
                   }`}
                 >
-                  <Clock size={14} /> {formatDue(deal.nextDueDate)}
+                  <Clock size={12} /> {formatDue(deal.nextDueDate)}
                 </p>
               )}
             </>
           ) : (
-            <p className="mt-2 text-[14px] text-[#b54708]">No next action. Every deal needs one.</p>
+            <p className="mt-1 text-[12px] text-[#b54708]">No next action. Every deal needs one.</p>
           )}
           <button type="button" className="text-button mt-auto pt-3 self-start" onClick={() => onEdit(deal)}>
             <Edit3 size={13} /> Change
@@ -122,9 +122,9 @@ export function DealDetail({
         <section className="panel">
           <p className="section-kicker">Notes</p>
           {deal.notes?.trim() ? (
-            <p className="mt-2 text-[14px] leading-relaxed text-[#505967] whitespace-pre-wrap line-clamp-5">{deal.notes.trim()}</p>
+            <p className="mt-1 text-[12px] text-[#505967] whitespace-pre-wrap line-clamp-3">{deal.notes.trim()}</p>
           ) : (
-            <p className="mt-2 text-[14px] text-[#8f99a8]">No notes yet.</p>
+            <p className="mt-1 text-[12px] text-[#8f99a8]">No notes yet.</p>
           )}
           <button type="button" className="text-button mt-auto pt-3 self-start" onClick={() => onOpenNotes(deal)}>
             <FileText size={13} /> Open notes

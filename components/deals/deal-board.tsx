@@ -117,7 +117,8 @@ export function DealBoard({ items, onChange }: DealBoardProps) {
               ))}
             </div>
 
-            {addingIn === col.id ? (
+            <div className="board-composer" data-open={addingIn === col.id} data-composer={col.id} inert={addingIn !== col.id}>
+              <div className="board-composer-inner">
               <form
                 className="board-add-form"
                 onSubmit={(e) => {
@@ -129,7 +130,6 @@ export function DealBoard({ items, onChange }: DealBoardProps) {
                 }}
               >
                 <textarea
-                  autoFocus
                   rows={2}
                   value={draft}
                   placeholder="Enter a title for this card"
@@ -163,13 +163,18 @@ export function DealBoard({ items, onChange }: DealBoardProps) {
                   </button>
                 </div>
               </form>
-            ) : (
+              </div>
+            </div>
+            {addingIn !== col.id && (
               <button
                 type="button"
                 className="board-add"
                 onClick={() => {
                   setDraft('')
                   setAddingIn(col.id)
+                  requestAnimationFrame(() =>
+                    document.querySelector<HTMLTextAreaElement>(`[data-composer="${col.id}"] textarea`)?.focus()
+                  )
                 }}
               >
                 <Plus size={14} /> Add card

@@ -87,18 +87,17 @@ export function DealList({
 
   return (
     <section className="panel deals-list-panel">
-      <div className="deals-list-toolbar">
-        <label className="search-field">
-          <Search size={15} />
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search deals" />
-        </label>
-        {/* With no deals, the empty state's "Add first deal" is the only add button */}
-        {deals.length > 0 && (
-          <button type="button" className="primary-button" onClick={onAddDealClick}>
-            <CirclePlus size={16} />
-            <span>New deal</span>
-          </button>
-        )}
+      <div className="company-toolbar">
+        <div>
+          <p className="section-kicker">Deals directory</p>
+          <h2>All deals</h2>
+        </div>
+        <div className="company-tools">
+          <label className="search-field">
+            <Search size={15} />
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search deals" />
+          </label>
+        </div>
       </div>
 
       <div className="tabs deals-stage-filter" role="tablist" aria-label="Filter by stage">

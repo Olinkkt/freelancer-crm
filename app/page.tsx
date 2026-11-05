@@ -752,6 +752,12 @@ export default function Page() {
                     Every deal in one list. Filter by stage, or change a deal’s stage from its row.
                   </p>
                 </div>
+                {deals.length > 0 && (
+                  <button className="primary-button" onClick={() => setIsNewDealOpen(true)}>
+                    <CirclePlus size={17} />
+                    <span>New deal</span>
+                  </button>
+                )}
               </section>
 
               {/* Deal Metrics Summary */}

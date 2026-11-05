@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
 import {
   AlertCircle,
   ArrowUpRight,
@@ -108,7 +107,6 @@ function NavItem({
 }
 
 export default function Page() {
-  const router = useRouter()
   const modKey = useModKey()
   // Navigation & View State
   const [activeView, setActiveView] = useState<string>('Home')
@@ -349,7 +347,11 @@ export default function Page() {
     addToast,
   ])
 
-  const openDeal = (deal: Deal) => router.push(`/deals/${deal.id}`)
+  // Deal detail page removed; open the edit modal until it's rebuilt
+  const openDeal = (deal: Deal) => {
+    setEditingDeal(deal)
+    setIsNewDealOpen(true)
+  }
 
   // Handle Command Palette Selection
   const handlePaletteAction = (actionType: PaletteActionType, payload?: any) => {

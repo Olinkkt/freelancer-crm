@@ -57,7 +57,7 @@ export function DealDetail({
             {deal.title}
           </h1>
           <p className="subcopy">
-            {deal.contactName} · <span className="font-mono tabular-nums">{formatDealValue(deal.value, settings)}</span>
+            {deal.contactName} · <span className="tabular-nums">{formatDealValue(deal.value, settings)}</span>
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">

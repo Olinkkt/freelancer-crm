@@ -750,7 +750,7 @@ export default function Page() {
                 </div>
                 <div>
                   <span className="metric-label">Pipeline value</span>
-                  <strong className="font-mono tabular-nums">
+                  <strong className="tabular-nums">
                     {formatMoney(totalPipelineAmount, currentSettings)}
                   </strong>
                   <small>
@@ -759,7 +759,7 @@ export default function Page() {
                 </div>
                 <div>
                   <span className="metric-label">Expected close</span>
-                  <strong className="font-mono tabular-nums">
+                  <strong className="tabular-nums">
                     {formatMoney(expectedCloseAmount, currentSettings)}
                   </strong>
                   <small>

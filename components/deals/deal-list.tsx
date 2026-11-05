@@ -187,7 +187,7 @@ export function DealList({
                 </select>
               </div>
 
-              <strong className="font-mono tabular-nums">{formatDealValue(deal.value, settings)}</strong>
+              <strong className="tabular-nums">{formatDealValue(deal.value, settings)}</strong>
 
               <div className="deals-list-next min-w-0">
                 {!deal.next ? (

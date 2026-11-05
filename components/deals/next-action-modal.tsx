@@ -165,7 +165,7 @@ export function NextActionModal({
             <span className="stage-pill" style={{ fontSize: '10px', padding: '3px 8px', borderRadius: '7px' }}>
               {deal.stage}
             </span>
-            <strong style={{ fontSize: '12px', color: '#1c1d1f' }} className="font-mono tabular-nums">{deal.value}</strong>
+            <strong style={{ fontSize: '12px', color: '#1c1d1f' }} className="tabular-nums">{deal.value}</strong>
           </div>
         </div>
 

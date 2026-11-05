@@ -10,7 +10,7 @@ interface ScratchpadEditorProps {
 }
 
 /** Flip `- [ ]` / `- [x]` on one (1-based) line of the markdown source. */
-function toggleTaskLine(source: string, line: number): string {
+export function toggleTaskLine(source: string, line: number): string {
   const lines = source.split('\n')
   const text = lines[line - 1]
   if (text === undefined) return source

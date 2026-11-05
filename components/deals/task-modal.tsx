@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { X } from 'lucide-react'
+import { toggleTaskLine } from '@/components/drawers/scratchpad-editor'
 import { DeliverableItem } from '@/lib/crm-types'
 
 interface TaskModalProps {
@@ -122,10 +123,31 @@ export function TaskModal({ card, onClose, onChange }: TaskModalProps) {
               role="button"
               tabIndex={0}
               title="Click to edit"
-              onClick={(e) => !(e.target as HTMLElement).closest('a') && setEditing(true)}
+              onClick={(e) => !(e.target as HTMLElement).closest('a, input') && setEditing(true)}
               onKeyDown={(e) => e.key === 'Enter' && setEditing(true)}
             >
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{desc}</ReactMarkdown>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  a: ({ node: _n, ...p }) => <a {...p} target="_blank" rel="noopener noreferrer" />,
+                  input: ({ node, ...p }) =>
+                    p.type === 'checkbox' ? (
+                      <input
+                        type="checkbox"
+                        checked={!!p.checked}
+                        onChange={() => {
+                          const line = node?.position?.start.line
+                          if (!line) return
+                          const next = toggleTaskLine(desc, line)
+                          setDesc(next)
+                          onChange({ description: next })
+                        }}
+                      />
+                    ) : null,
+                }}
+              >
+                {desc}
+              </ReactMarkdown>
             </div>
           ) : (
             <button type="button" className="task-desc-empty" onClick={() => setEditing(true)}>

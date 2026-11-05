@@ -1,0 +1,25 @@
+{
+  "name": "freelancer-crm-mcp",
+  "version": "1.0.0",
+  "description": "stdio MCP server for Freelancer CRM. Proxies to a running instance's /api/mcp endpoint.",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "bin": {
+    "freelancer-crm-mcp": "./index.mjs"
+  },
+  "files": [
+    "index.mjs",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Olinkkt/freelancer-crm.git",
+    "directory": "packages/mcp-stdio"
+  }
+}

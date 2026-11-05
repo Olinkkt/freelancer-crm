@@ -16,13 +16,13 @@ export interface TodayGroups {
   needsYou: TodayItem[]
 }
 
-const openPodklady = (d: Deal) =>
+const openMaterials = (d: Deal) =>
   (d.deliverables ?? []).filter((i) => i.section === 'podklady' && i.status !== 'Done')
 
 /**
  * Today = what to act on now.
  * - Due: next actions / follow-ups due today or overdue.
- * - Waiting on client: signed deals with client materials (podklady) still missing.
+ * - Waiting on client: signed deals with client materials still missing.
  * - Needs you: deals missing a next action or due date (GTD rule), undated follow-ups.
  * A deal shows up once, in the first group that fits.
  */
@@ -46,8 +46,8 @@ export function buildToday(deals: Deal[], followUps: FollowUpItem[], completedFo
       dueRank.set(deal.id, diff)
       continue
     }
-    const missing = openPodklady(deal)
-    if (isPmStage(deal.stage) && (deal.stage === 'Podklady' || missing.length > 0)) {
+    const missing = openMaterials(deal)
+    if (isPmStage(deal.stage) && (deal.stage === 'Materials' || missing.length > 0)) {
       waiting.push({
         kind: 'deal',
         key: deal.id,
@@ -55,7 +55,7 @@ export function buildToday(deals: Deal[], followUps: FollowUpItem[], completedFo
         title: deal.title,
         detail:
           missing.length > 0
-            ? `${missing.length} podklad${missing.length === 1 ? '' : 'y'} missing: ${missing
+            ? `${missing.length} material${missing.length === 1 ? '' : 's'} missing: ${missing
                 .slice(0, 2)
                 .map((i) => i.title)
                 .join(', ')}${missing.length > 2 ? '…' : ''}`

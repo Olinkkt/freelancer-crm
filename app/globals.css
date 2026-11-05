@@ -2047,3 +2047,8 @@ button {
   cursor: pointer;
 }
 .task-desc-empty:hover { background: var(--color-haze); }
+
+.notes-modal-backdrop.task-backdrop { align-items: center; padding: 16px; }
+.task-desc-view { cursor: text; border-radius: 8px; margin-left: 15px; padding: 6px 8px; margin-top: -6px; }
+.task-desc-view:hover { background: var(--color-paper); }
+.task-desc-view a { cursor: pointer; }

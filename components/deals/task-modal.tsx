@@ -3,8 +3,8 @@
 import React, { useEffect, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { AlignLeft, Check, ChevronDown, X } from 'lucide-react'
-import { BOARD_COLUMNS, BoardColumnId, DeliverableItem, cardColumn } from '@/lib/crm-types'
+import { AlignLeft, Check } from 'lucide-react'
+import { BoardColumnId, DeliverableItem, cardColumn } from '@/lib/crm-types'
 
 interface TaskModalProps {
   card: DeliverableItem | null
@@ -57,24 +57,8 @@ export function TaskModal({ card, onClose, onChange, onMove }: TaskModalProps) {
   }
 
   return (
-    <div className="notes-modal-backdrop" onClick={onClose}>
+    <div className="notes-modal-backdrop task-backdrop" onClick={onClose}>
       <div className="notes-modal-panel task-modal" role="dialog" aria-label={card.title} onClick={(e) => e.stopPropagation()}>
-        <div className="task-modal-head">
-          <label className="task-col-select">
-            <select value={col} onChange={(e) => onMove(e.target.value as BoardColumnId)} aria-label="Column">
-              {BOARD_COLUMNS.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-            <ChevronDown size={12} />
-          </label>
-          <button type="button" className="task-modal-close" onClick={onClose} aria-label="Close">
-            <X size={15} />
-          </button>
-        </div>
-
         <div className="task-modal-body">
           <div className="task-title-row">
             <button
@@ -100,11 +84,6 @@ export function TaskModal({ card, onClose, onChange, onMove }: TaskModalProps) {
             <span>
               <AlignLeft size={15} /> Description
             </span>
-            {!editing && desc.trim() && (
-              <button type="button" className="task-edit-btn" onClick={() => setEditing(true)}>
-                Edit
-              </button>
-            )}
           </div>
 
           {editing ? (
@@ -139,7 +118,14 @@ export function TaskModal({ card, onClose, onChange, onMove }: TaskModalProps) {
               </div>
             </div>
           ) : desc.trim() ? (
-            <div className="notes-md task-desc-view">
+            <div
+              className="notes-md task-desc-view"
+              role="button"
+              tabIndex={0}
+              title="Click to edit"
+              onClick={(e) => !(e.target as HTMLElement).closest('a') && setEditing(true)}
+              onKeyDown={(e) => e.key === 'Enter' && setEditing(true)}
+            >
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{desc}</ReactMarkdown>
             </div>
           ) : (

@@ -112,8 +112,8 @@ export function NewDealModal({
         value: formattedVal || '—',
         rawAmount: numeric,
         stage,
-        next: nextAction.trim() || (waiting ? 'Waiting on client' : ''),
-        nextDueDate: nextDueDate || undefined,
+        next: waiting ? 'Waiting on client' : nextAction.trim(),
+        nextDueDate: waiting ? undefined : nextDueDate || undefined,
         waiting,
         color: stageColor || dealToEdit.color || 'blue',
         notes: notes.trim(),
@@ -125,8 +125,8 @@ export function NewDealModal({
         value: formattedVal || '—',
         rawAmount: numeric,
         stage,
-        next: nextAction.trim() || (waiting ? 'Waiting on client' : 'Schedule next step'),
-        nextDueDate: nextDueDate || getDateString(addDays(new Date(), 1)),
+        next: waiting ? 'Waiting on client' : nextAction.trim() || 'Schedule next step',
+        nextDueDate: waiting ? undefined : nextDueDate || getDateString(addDays(new Date(), 1)),
         waiting,
         color: stageColor || 'blue',
         notes: notes.trim(),
@@ -260,23 +260,24 @@ export function NewDealModal({
             <div className="flex items-center justify-between text-[11px] font-bold text-[#505967] uppercase tracking-wider">
               <div className="flex items-center gap-1.5">
                 <AlertCircle size={14} />
-                <span>{waiting ? 'Waiting on client' : 'Next Action'}</span>
+                <span>Next Action</span>
               </div>
               <label className="flex items-center gap-1.5 normal-case tracking-normal font-medium text-[#505967] cursor-pointer">
                 <input type="checkbox" checked={waiting} onChange={(e) => setWaiting(e.target.checked)} />
                 Waiting on client
               </label>
             </div>
-            {waiting && (
-              <p className="text-[11px] text-[#8f99a8]">Nothing to do right now. Pick the day you'd chase them.</p>
+            {waiting ? (
+              <p className="text-[13px] font-medium text-[#1c1d1f]">Waiting on client</p>
+            ) : (
+              <NextActionFields
+                stage={stage}
+                action={nextAction}
+                dueDate={nextDueDate}
+                onActionChange={setNextAction}
+                onDueDateChange={setNextDueDate}
+              />
             )}
-            <NextActionFields
-              stage={stage}
-              action={nextAction}
-              dueDate={nextDueDate}
-              onActionChange={setNextAction}
-              onDueDateChange={setNextDueDate}
-            />
           </div>
 
           <div>

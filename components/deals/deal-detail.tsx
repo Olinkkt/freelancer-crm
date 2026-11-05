@@ -124,17 +124,17 @@ export function DealDetail({
       <div className="deal-detail-grid">
         {/* Next action (GTD) */}
         <section className="panel">
-          <p className="section-kicker">{deal.waiting ? 'Waiting on client' : 'Next action'}</p>
+          <p className="section-kicker">Next action</p>
           {deal.next ? (
             <>
               <h2 className="text-[15px] font-semibold text-[#1c1d1f] mt-1">{deal.next}</h2>
-              {deal.nextDueDate && (
+              {deal.nextDueDate && !deal.waiting && (
                 <p
                   className={`mt-1 flex items-center gap-1 text-[12px] ${
                     isOverdue(deal.nextDueDate) ? 'text-[#d92d20] font-semibold' : 'text-[#8f99a8]'
                   }`}
                 >
-                  <Clock size={12} /> {deal.waiting ? 'Chase ' : ''}{formatDue(deal.nextDueDate)}
+                  <Clock size={12} /> {formatDue(deal.nextDueDate)}
                 </p>
               )}
             </>

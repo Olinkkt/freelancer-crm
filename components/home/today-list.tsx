@@ -33,14 +33,25 @@ export function buildToday(deals: Deal[], followUps: FollowUpItem[], completedFo
   const dueRank = new Map<string, number>()
 
   for (const deal of deals) {
+    if (deal.waiting) {
+      waiting.push({
+        kind: 'deal',
+        key: deal.id,
+        deal,
+        title: deal.title,
+        detail: 'Waiting on client',
+        tone: 'muted',
+      })
+      continue
+    }
     const diff = daysUntil(deal.nextDueDate, now)
     if (deal.next && diff !== null && diff <= 0) {
       due.push({
         kind: 'deal',
         key: deal.id,
         deal,
-        title: deal.waiting ? `Chase: ${deal.title}` : deal.next,
-        detail: deal.waiting ? `${deal.stage} · waiting on client` : `${deal.title} · ${deal.stage}`,
+        title: deal.next,
+        detail: `${deal.title} · ${deal.stage}`,
         tone: diff < 0 ? 'overdue' : 'today',
       })
       dueRank.set(deal.id, diff)
@@ -60,17 +71,6 @@ export function buildToday(deals: Deal[], followUps: FollowUpItem[], completedFo
                 .map((i) => i.title)
                 .join(', ')}${missing.length > 2 ? '…' : ''}`
             : 'Waiting on client materials',
-        tone: 'muted',
-      })
-      continue
-    }
-    if (deal.waiting) {
-      waiting.push({
-        kind: 'deal',
-        key: deal.id,
-        deal,
-        title: deal.title,
-        detail: deal.nextDueDate ? `Waiting on client · chase ${formatDue(deal.nextDueDate)}` : 'Waiting on client',
         tone: 'muted',
       })
       continue

@@ -198,14 +198,14 @@ export function DealList({
                     <span className="truncate block text-[#1c1d1f]" title={deal.next}>
                       {deal.next}
                     </span>
-                    {deal.nextDueDate && (
+                    {deal.nextDueDate && !deal.waiting && (
                       <span
                         className={`flex items-center gap-1 text-[11px] ${
                           isOverdue(deal.nextDueDate) ? 'text-[#d92d20] font-semibold' : 'text-[#8f99a8]'
                         }`}
                       >
                         <Clock size={11} />
-                        <span className="truncate">{deal.waiting ? 'Chase ' : ''}{formatDue(deal.nextDueDate)}</span>
+                        <span className="truncate">{formatDue(deal.nextDueDate)}</span>
                       </span>
                     )}
                   </>

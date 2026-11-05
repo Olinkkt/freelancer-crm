@@ -94,14 +94,14 @@ describe('Today home', () => {
     assert.deepEqual(g.needsYou.map((i) => (i.kind === 'deal' ? i.deal.title : '')), ['No next'])
   })
 
-  it('a waiting deal is calm until its chase date, then shows as a chase', () => {
-    const waitingLater = deal({ title: 'Contract', stage: 'Proposal', next: 'Waiting on client', waiting: true, nextDueDate: '2026-11-20' })
-    const waitingNoDate = deal({ title: 'Quiet', next: 'Waiting on client', waiting: true, nextDueDate: undefined })
-    const chaseToday = deal({ title: 'Chase me', next: 'Waiting on client', waiting: true, nextDueDate: '2026-11-05' })
-    const g = buildToday([waitingLater, waitingNoDate, chaseToday], [], [], now)
-    assert.deepEqual(g.due.map((i) => i.title), ['Chase: Chase me'])
-    assert.deepEqual(g.waiting.map((i) => (i.kind === 'deal' ? i.deal.title : '')), ['Contract', 'Quiet'])
+  it('a waiting deal just sits in the waiting group, never due or missing', () => {
+    const w1 = deal({ title: 'Contract', stage: 'Proposal', next: 'Waiting on client', waiting: true, nextDueDate: undefined })
+    const w2 = deal({ title: 'Old date', next: 'Waiting on client', waiting: true, nextDueDate: '2026-11-01' })
+    const g = buildToday([w1, w2], [], [], now)
+    assert.equal(g.due.length, 0)
     assert.equal(g.needsYou.length, 0)
+    assert.deepEqual(g.waiting.map((i) => (i.kind === 'deal' ? i.deal.title : '')), ['Contract', 'Old date'])
+    assert.equal(g.waiting[0].detail, 'Waiting on client')
   })
 
   it('a deal in Materials waits on the client even with an empty checklist', () => {

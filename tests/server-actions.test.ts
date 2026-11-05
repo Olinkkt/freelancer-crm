@@ -120,9 +120,9 @@ describe('Server Actions Integration', () => {
       assert.equal(workspace.deals.length, 1)
 
       // 3. Move stage action
-      const moved = await moveDealStageAction(deal.id, 'Won')
+      const moved = await moveDealStageAction(deal.id, 'Closed')
       assert.ok(moved)
-      assert.equal(moved.stage, 'Won')
+      assert.equal(moved.stage, 'Closed')
 
       // 3b. PM stages, checklist, and bad stage input
       const deposit = await moveDealStageAction(deal.id, 'Deposit')
@@ -138,7 +138,7 @@ describe('Server Actions Integration', () => {
       const updated = await updateDealAction({
         ...deal,
         title: 'Ecommerce Redesign Pro',
-        stage: 'Won',
+        stage: 'Closed',
       })
       assert.equal(updated.title, 'Ecommerce Redesign Pro')
 

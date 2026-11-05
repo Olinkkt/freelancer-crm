@@ -53,7 +53,7 @@ test('Backup & Restore API (/api/backup)', async (t) => {
           contactName: 'Backup Corp',
           value: '45 000 Kč',
           rawAmount: 45000,
-          stage: 'Won',
+          stage: 'Closed',
           next: 'Begin kickoff',
           color: 'blue',
           deliverables: [
@@ -97,7 +97,7 @@ test('Backup & Restore API (/api/backup)', async (t) => {
     assert.ok(restored)
     assert.equal(restored.contactName, 'Backup Corp')
     assert.ok(restored.contactId)
-    assert.equal(restored.stage, 'Won')
+    assert.equal(restored.stage, 'Closed')
     assert.equal(restored.deliverables?.[0]?.title, 'Audit Scope')
   })
 

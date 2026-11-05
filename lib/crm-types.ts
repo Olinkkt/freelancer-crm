@@ -2,41 +2,41 @@ export type DealStage =
   | 'Lead'
   | 'Qualified'
   | 'Proposal'
-  | 'Won'
+  | 'Closed'
   | 'Deposit'
   | 'Materials'
   | 'Build'
   | 'Handoff'
   | 'Revisions'
-  | 'Warranty'
+  | 'Completed'
 
 /**
  * One deal, one pipeline, in order — the single source for types, validation,
  * filters, pickers and counts.
- * CRM: Lead → Qualified → Proposal. Won = contract signed = CRM→PM handoff.
- * PM: Deposit → Materials → Build → Handoff → Revisions → Warranty.
+ * CRM: Lead → Qualified → Proposal. Closed = contract signed = CRM→PM handoff.
+ * PM: Deposit → Materials → Build → Handoff → Revisions → Completed.
  */
 export const DEAL_STAGES = [
   'Lead',
   'Qualified',
   'Proposal',
-  'Won',
+  'Closed',
   'Deposit',
   'Materials',
   'Build',
   'Handoff',
   'Revisions',
-  'Warranty',
+  'Completed',
 ] as const satisfies readonly DealStage[]
 
-/** Stages a deal is still being won in (CRM side, everything before Won) */
+/** Stages a deal is still being won in (CRM side, everything before Closed) */
 export const OPEN_DEAL_STAGES: DealStage[] = ['Lead', 'Qualified', 'Proposal']
 
-/** Won and everything after it: the contract is signed and project work runs (PM side) */
+/** Closed and everything after it: the contract is signed and project work runs (PM side) */
 export const PM_STAGES: DealStage[] = DEAL_STAGES.filter((s) => !OPEN_DEAL_STAGES.includes(s))
 
-/** PM stages where the project is still being delivered (Warranty = after delivery) */
-export const ACTIVE_PROJECT_STAGES: DealStage[] = PM_STAGES.filter((s) => s !== 'Warranty')
+/** PM stages where the project is still being delivered (Completed = finished) */
+export const ACTIVE_PROJECT_STAGES: DealStage[] = PM_STAGES.filter((s) => s !== 'Completed')
 
 export const isPmStage = (stage: DealStage) => PM_STAGES.includes(stage)
 
@@ -51,13 +51,13 @@ export const DEAL_STAGE_HINTS: Record<DealStage, string> = {
   Lead: 'First contact',
   Qualified: 'Call done, scope agreed',
   Proposal: 'Contract sent',
-  Won: 'Contract signed, project starts',
+  Closed: 'Contract signed, project starts',
   Deposit: 'Deposit invoiced, waiting for payment',
   Materials: 'Waiting on client materials',
   Build: 'Building, preview shared',
   Handoff: 'Handed over, final payment due',
   Revisions: 'Client revisions',
-  Warranty: 'Delivered, fixing defects under warranty',
+  Completed: 'Delivered and paid, project finished',
 }
 
 /** Checklist groups on a deal. 'podklady' (stored key) = client materials, what the client owes you. */

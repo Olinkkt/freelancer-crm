@@ -98,7 +98,7 @@ export function NewDealModal({
     const numeric = parseInt(value.replace(/[^0-9]/g, '')) || 0
     const formattedVal = formatMoney(numeric, settings)
 
-    // Signed deals (Won and every PM stage after it) are green
+    // Signed deals (Closed and every PM stage after it) are green
     const stageColor: Deal['color'] = isPmStage(stage) ? 'green' : 'blue'
 
     if (dealToEdit && onUpdateDeal) {

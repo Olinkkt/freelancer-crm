@@ -14,11 +14,13 @@ export const ContactBackupSchema = z.object({
 
 /** Stage names from older versions, mapped onto the current pipeline */
 const LEGACY_STAGES: Record<string, (typeof DEAL_STAGES)[number]> = {
-  Paid: 'Won',
+  Paid: 'Closed',
+  Won: 'Closed',
   Discovery: 'Qualified',
   Záloha: 'Deposit',
   Podklady: 'Materials',
-  Vady: 'Warranty',
+  Vady: 'Completed',
+  Warranty: 'Completed',
 }
 
 /** One checklist item on a deal (stored in the deliverables JSON column) */

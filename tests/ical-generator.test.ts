@@ -86,7 +86,7 @@ describe('iCalendar (RFC 5545) Generator', () => {
           contactName: 'Finished Corp',
           value: '$5,000',
           rawAmount: 5000,
-          stage: 'Won',
+          stage: 'Closed',
           next: 'Invoice settlement',
           nextDueDate: 'Done',
           color: 'green',

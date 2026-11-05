@@ -125,7 +125,7 @@ describe('CRM Database Repository', () => {
       )
     })
 
-    it('moveDealStage sets 100% on Won and preserves custom color', async () => {
+    it('moveDealStage sets 100% on Closed and preserves custom color', async () => {
       const deal = await repo.createDeal({
         title: 'Mobile App',
         contactName: 'Innovatech',
@@ -136,17 +136,17 @@ describe('CRM Database Repository', () => {
         color: 'violet',
       })
 
-      const moved = await repo.moveDealStage(deal.id, 'Won')
+      const moved = await repo.moveDealStage(deal.id, 'Closed')
       assert.ok(moved)
-      assert.equal(moved.stage, 'Won')
+      assert.equal(moved.stage, 'Closed')
       assert.equal(moved.color, 'violet') // Should not be overwritten with 'blue'
 
       const data = await repo.getWorkspaceData()
-      assert.equal(data.deals[0].stage, 'Won')
+      assert.equal(data.deals[0].stage, 'Closed')
       assert.equal(data.deals[0].color, 'violet')
     })
 
-    it('moveDealStage to Won keeps next action, deliverables and invoices', async () => {
+    it('moveDealStage to Closed keeps next action, deliverables and invoices', async () => {
       const deal = await repo.createDeal({
         title: 'API Integration',
         contactName: 'Fintech Co',
@@ -171,9 +171,9 @@ describe('CRM Database Repository', () => {
         ],
       })
 
-      const won = await repo.moveDealStage(deal.id, 'Won')
+      const won = await repo.moveDealStage(deal.id, 'Closed')
       assert.ok(won)
-      assert.equal(won.stage, 'Won')
+      assert.equal(won.stage, 'Closed')
       assert.equal(won.next, 'Deliver milestones')
       assert.equal(won.nextDueDate, '2026-12-01')
       assert.equal(won.deliverables?.[0]?.status, 'Pending')
@@ -186,7 +186,7 @@ describe('CRM Database Repository', () => {
         contactName: 'Jana',
         value: '40 000 Kč',
         rawAmount: 40000,
-        stage: 'Won',
+        stage: 'Closed',
         next: 'Send deposit invoice',
         color: 'green',
       })
@@ -226,7 +226,7 @@ describe('CRM Database Repository', () => {
         contactName: 'Eva',
         value: '1 000 Kč',
         rawAmount: 1000,
-        stage: 'Won',
+        stage: 'Closed',
         next: 'Chase',
         color: 'green',
       })
@@ -236,28 +236,29 @@ describe('CRM Database Repository', () => {
       assert.equal(data.deals.find((d) => d.id === deal.id)?.stage, 'Materials')
     })
 
-    it('existing Won deals stay Won after init', async () => {
+    it('migrates Won deals to Closed on init', async () => {
       const deal = await repo.createDeal({
         title: 'Signed earlier',
         contactName: 'Petr',
         value: '5 000 Kč',
         rawAmount: 5000,
-        stage: 'Won',
+        stage: 'Closed',
         next: 'Kickoff',
         color: 'green',
       })
+      await db.updateTable('deals').set({ stage: 'Won' }).where('id', '=', deal.id).execute()
       await ensureDbInitialized(true)
       const data = await repo.getWorkspaceData()
-      assert.equal(data.deals.find((d) => d.id === deal.id)?.stage, 'Won')
+      assert.equal(data.deals.find((d) => d.id === deal.id)?.stage, 'Closed')
     })
 
-    it('migrates legacy Paid deals to Won on init', async () => {
+    it('migrates legacy Paid deals to Closed on init', async () => {
       const deal = await repo.createDeal({
         title: 'Legacy finished project',
         contactName: 'Old Client',
         value: '10 000 Kč',
         rawAmount: 10000,
-        stage: 'Won',
+        stage: 'Closed',
         next: '',
         color: 'green',
       })
@@ -267,7 +268,7 @@ describe('CRM Database Repository', () => {
 
       const data = await repo.getWorkspaceData()
       const migrated = data.deals.find((d) => d.id === deal.id)
-      assert.equal(migrated?.stage, 'Won')
+      assert.equal(migrated?.stage, 'Closed')
       assert.ok(!data.deals.some((d) => (d.stage as string) === 'Paid'))
     })
 

@@ -6,30 +6,30 @@ import { buildToday } from '@/components/home/today-list'
 import type { Deal } from '@/lib/crm-types'
 
 describe('Deal stages', () => {
-  it('pipeline is Lead … Won, then the PM stages through Warranty', () => {
+  it('pipeline is Lead … Closed, then the PM stages through Completed', () => {
     assert.deepEqual(
       [...DEAL_STAGES],
-      ['Lead', 'Qualified', 'Proposal', 'Won', 'Deposit', 'Materials', 'Build', 'Handoff', 'Revisions', 'Warranty']
+      ['Lead', 'Qualified', 'Proposal', 'Closed', 'Deposit', 'Materials', 'Build', 'Handoff', 'Revisions', 'Completed']
     )
     assert.deepEqual(OPEN_DEAL_STAGES, ['Lead', 'Qualified', 'Proposal'])
-    assert.deepEqual(PM_STAGES, ['Won', 'Deposit', 'Materials', 'Build', 'Handoff', 'Revisions', 'Warranty'])
-    assert.ok(!ACTIVE_PROJECT_STAGES.includes('Warranty'))
+    assert.deepEqual(PM_STAGES, ['Closed', 'Deposit', 'Materials', 'Build', 'Handoff', 'Revisions', 'Completed'])
+    assert.ok(!ACTIVE_PROJECT_STAGES.includes('Completed'))
   })
 
-  it('Won starts PM; nextDealStage walks the pipeline', () => {
+  it('Closed starts PM; nextDealStage walks the pipeline', () => {
     assert.equal(isPmStage('Proposal'), false)
-    assert.equal(isPmStage('Won'), true)
-    assert.equal(nextDealStage('Proposal'), 'Won')
-    assert.equal(nextDealStage('Won'), 'Deposit')
+    assert.equal(isPmStage('Closed'), true)
+    assert.equal(nextDealStage('Proposal'), 'Closed')
+    assert.equal(nextDealStage('Closed'), 'Deposit')
     assert.equal(nextDealStage('Deposit'), 'Materials')
-    assert.equal(nextDealStage('Warranty'), null)
+    assert.equal(nextDealStage('Completed'), null)
   })
 
   it('accepts every pipeline stage and rejects Paid/Lost on create', () => {
     for (const stage of DEAL_STAGES) {
       assert.ok(DealCreateInputSchema.safeParse({ title: 'X', contactName: 'Y', stage }).success, stage)
     }
-    for (const stage of ['Paid', 'Lost', 'Discovery', 'Zaloha']) {
+    for (const stage of ['Paid', 'Lost', 'Discovery', 'Zaloha', 'Won', 'Warranty']) {
       assert.ok(!DealCreateInputSchema.safeParse({ title: 'X', contactName: 'Y', stage }).success, stage)
     }
   })
@@ -37,8 +37,10 @@ describe('Deal stages', () => {
   it('maps legacy stages when restoring a backup', () => {
     const base = { id: 'd1', title: 'X', contactName: 'Y' }
     assert.equal(DealBackupSchema.parse({ ...base, stage: 'Záloha' }).stage, 'Deposit')
-    assert.equal(DealBackupSchema.parse({ ...base, stage: 'Vady' }).stage, 'Warranty')
-    assert.equal(DealBackupSchema.parse({ ...base, stage: 'Paid' }).stage, 'Won')
+    assert.equal(DealBackupSchema.parse({ ...base, stage: 'Vady' }).stage, 'Completed')
+    assert.equal(DealBackupSchema.parse({ ...base, stage: 'Won' }).stage, 'Closed')
+    assert.equal(DealBackupSchema.parse({ ...base, stage: 'Warranty' }).stage, 'Completed')
+    assert.equal(DealBackupSchema.parse({ ...base, stage: 'Paid' }).stage, 'Closed')
     assert.equal(DealBackupSchema.parse({ ...base, stage: 'Discovery' }).stage, 'Qualified')
     assert.equal(DealBackupSchema.parse({ ...base, stage: 'Materials' }).stage, 'Materials')
   })

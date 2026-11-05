@@ -2,7 +2,7 @@ import { sql } from 'kysely'
 import { normalizeDueDate } from '@/lib/due-date'
 import { db } from './client'
 
-const SCHEMA_VERSION = 11
+const SCHEMA_VERSION = 12
 
 const globalForInit = globalThis as unknown as {
   dbInitPromise?: Promise<void>
@@ -94,6 +94,10 @@ export async function ensureDbInitialized(force = false): Promise<void> {
     await sql`UPDATE deals SET stage = 'Deposit' WHERE stage = 'Záloha';`.execute(db)
     await sql`UPDATE deals SET stage = 'Materials' WHERE stage = 'Podklady';`.execute(db)
     await sql`UPDATE deals SET stage = 'Warranty' WHERE stage = 'Vady';`.execute(db)
+
+    // Migration (v12): Won renamed to Closed; Warranty replaced by Completed
+    await sql`UPDATE deals SET stage = 'Closed' WHERE stage = 'Won';`.execute(db)
+    await sql`UPDATE deals SET stage = 'Completed' WHERE stage = 'Warranty';`.execute(db)
 
     // 3. Activities
     await sql`

@@ -544,7 +544,7 @@ export default function Page() {
 
   const handleMoveDealStage = async (dealId: string, newStage: DealStage) => {
     setDeals((prev) => prev.map((d) => (d.id === dealId ? { ...d, stage: newStage } : d)))
-    addToast(newStage === 'Won' ? 'Deal won: contract signed, PM starts' : `Moved deal to ${newStage}`)
+    addToast(newStage === 'Closed' ? 'Deal closed: contract signed, PM starts' : `Moved deal to ${newStage}`)
 
     try {
       const updated = await moveDealStageAction(dealId, newStage)
@@ -601,7 +601,7 @@ export default function Page() {
     (sum, d) => sum + (d.rawAmount || parseInt(d.value.replace(/[^0-9]/g, '')) || 0),
     0
   )
-  // Won = contract signed, so every PM stage (Won…Warranty) counts as won
+  // Closed = contract signed, so every PM stage (Closed…Completed) counts as closed
   const wonDealsCount = deals.filter((d) => isPmStage(d.stage)).length
   const winRate = deals.length > 0 ? `${Math.round((wonDealsCount / deals.length) * 100)}%` : '0%'
 
@@ -813,9 +813,9 @@ export default function Page() {
                   </small>
                 </div>
                 <div>
-                  <span className="metric-label">Win rate</span>
+                  <span className="metric-label">Close rate</span>
                   <strong>{winRate}</strong>
-                  <small>Closed won / total</small>
+                  <small>Closed / total</small>
                 </div>
               </section>
 

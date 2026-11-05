@@ -413,7 +413,7 @@ export async function moveDealStage(dealId: string, stage: DealStage): Promise<D
 
   if (!existing) return null
 
-  // Moving stages only changes the stage. Won = contract signed; the next
+  // Moving stages only changes the stage. Closed = contract signed; the next
   // action and deliverables carry over into project work untouched.
   const now = new Date().toISOString()
   const dealColor = (existing.color as Deal['color']) || 'blue'

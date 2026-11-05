@@ -143,7 +143,7 @@ export function DealList({
             {query.trim() || stageFilter === 'All'
               ? 'No deals match this filter.'
               : stageFilter === 'PM'
-                ? 'No signed deals yet. A deal moves to PM once it is Won (contract signed).'
+                ? 'No signed deals yet. A deal moves to PM once it is Closed (contract signed).'
                 : `No deals in ${stageFilter}.`}
           </div>
         ) : (

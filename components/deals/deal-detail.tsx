@@ -30,7 +30,7 @@ function waitingSinceLabel(iso: string, locale?: string): string {
   if (Number.isNaN(since.getTime())) return ''
   const days = Math.floor((Date.now() - since.getTime()) / 86_400_000)
   const date = since.toLocaleDateString(locale || undefined, { day: 'numeric', month: 'short' })
-  if (days <= 0) return 'Since today'
+  if (days <= 0) return `Since ${date}`
   return `Since ${date} · ${days === 1 ? '1 day' : `${days} days`}`
 }
 

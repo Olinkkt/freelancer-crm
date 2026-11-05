@@ -1650,7 +1650,7 @@ button {
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: 12vh 16px 0;
+  padding: 6vh 16px 0;
 }
 .notes-modal-backdrop::before {
   content: '';
@@ -1661,7 +1661,10 @@ button {
 .notes-modal-panel {
   width: 100%;
   position: relative;
-  max-width: 640px;
+  max-width: 920px;
+  height: 84vh;
+  display: flex;
+  flex-direction: column;
   background: #fff;
   border: 1px solid #e4e7ec;
   border-radius: 12px;

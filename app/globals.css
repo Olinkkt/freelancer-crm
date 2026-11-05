@@ -1188,6 +1188,133 @@ button {
 }
 
 /* Responsive queries */
+
+/* Deal subpage (one deal: CRM info + PM progress) */
+.deal-stage-track {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-top: 16px;
+}
+
+.deal-stage-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.deal-stage-group-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: #b0b5bc;
+}
+
+.deal-stage-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.deal-stage-step {
+  padding: 4px 9px;
+  border: 1px solid #e4e7ec;
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--color-slate-600);
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.12s ease, color 0.12s ease;
+}
+
+.deal-stage-step:hover {
+  border-color: var(--blue);
+  color: var(--blue);
+}
+
+.deal-stage-step.current {
+  border-color: var(--blue);
+  background: var(--blue);
+  color: #ffffff;
+  cursor: default;
+}
+
+.deal-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.3fr;
+  gap: 14px;
+}
+
+/* Home: Today list */
+.today-group + .today-group {
+  margin-top: 22px;
+}
+
+.today-group-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #f0f1f3;
+  color: var(--color-slate-600);
+}
+
+.today-group-head h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-ink-black);
+}
+
+.today-group-head span {
+  font-size: 11px;
+  color: #8f99a8;
+}
+
+.today-empty {
+  padding: 10px 0;
+  font-size: 12px;
+  color: #8f99a8;
+}
+
+.today-row-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  padding: 6px 0;
+  text-align: left;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.today-row-main:disabled {
+  cursor: default;
+}
+
+.today-row-main strong, .today-row-main span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.today-row-main strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-ink-black);
+}
+
+.today-row-main span {
+  font-size: 11px;
+  color: var(--color-slate-600);
+}
+
+.today-row-main:not(:disabled):hover strong {
+  color: var(--blue);
+}
+
 @media (max-width: 1050px) {
   .sidebar { width: 210px; }
   .topbar { padding: 0 28px; }
@@ -1197,6 +1324,7 @@ button {
 
 @media (max-width: 760px) {
   .sidebar { display: none; }
+  .deal-detail-grid { grid-template-columns: 1fr; }
   .mobile-nav {
     display: flex;
     position: fixed;

@@ -2,11 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import {
-  AlertCircle,
   ArrowUpRight,
-  Building2,
-  CalendarDays,
-  Check,
   CirclePlus,
   FileText,
   LayoutDashboard,
@@ -14,7 +10,6 @@ import {
   Settings2,
   Users,
   WalletCards,
-  Clock,
   UserPlus,
   Keyboard,
   Download,
@@ -33,8 +28,8 @@ import {
   exportFollowUpsCSV,
 } from '@/lib/csv-export'
 import { getFormattedToday, getDynamicGreeting } from '@/lib/date-utils'
-import { OPERATOR_CONFIG, formatMoney, formatDealValue, getOperatorInitials } from '@/lib/config'
-import { Deal, Contact, Activity, FollowUpItem, DealStage, DEAL_STAGES, OPEN_DEAL_STAGES } from '@/lib/crm-types'
+import { OPERATOR_CONFIG, formatMoney, getOperatorInitials } from '@/lib/config'
+import { Deal, Contact, Activity, FollowUpItem, DealStage, DeliverableItem, OPEN_DEAL_STAGES, isPmStage } from '@/lib/crm-types'
 import { useModKey } from '@/lib/use-mod-key'
 import {
   INITIAL_CONTACTS,
@@ -52,6 +47,8 @@ import { NewContactModal } from '@/components/modals/new-contact-modal'
 import { EditFollowUpModal } from '@/components/modals/edit-follow-up-modal'
 import { EditSettingsModal } from '@/components/modals/edit-settings-modal'
 import { DealList } from '@/components/deals/deal-list'
+import { DealDetail } from '@/components/deals/deal-detail'
+import { TodayList, buildToday } from '@/components/home/today-list'
 import { ToastHUD, ToastHUDItem } from '@/components/ui/toast-hud'
 import { OperatorGate } from '@/components/auth/operator-gate'
 import { SetupWizard } from '@/components/auth/setup-wizard'
@@ -63,6 +60,7 @@ import {
   updateDealAction,
   deleteDealAction,
   moveDealStageAction,
+  updateDealChecklistAction,
   createContactAction,
   updateContactAction,
   deleteContactAction,
@@ -107,7 +105,9 @@ export default function Page() {
   const modKey = useModKey()
   // Navigation & View State
   const [activeView, setActiveView] = useState<string>('Home')
-  const [activeTab, setActiveTab] = useState<string>('Overview')
+  /** Deal shown in the 'Deal' view, and the view Back returns to */
+  const [openDealId, setOpenDealId] = useState<string | null>(null)
+  const [dealReturnView, setDealReturnView] = useState<string>('Deals')
 
   // Dynamic Dashboard Date & Greeting
   const [formattedToday, setFormattedToday] = useState<string>('')
@@ -126,8 +126,6 @@ export default function Page() {
 
   // Search in sub-views
   const [contactSearch, setContactSearch] = useState('')
-  const [dealSearch, setDealSearch] = useState('')
-  const [isDealSearchOpen, setIsDealSearchOpen] = useState(false)
   // Modals State
   const [isPaletteOpen, setIsPaletteOpen] = useState(false)
   /** Deal whose notes the palette should open on (set by "Notes" on a deal row) */
@@ -265,6 +263,10 @@ export default function Page() {
         if (isShortcutsOpen) setIsShortcutsOpen(false)
         if (isNewDealOpen) setIsNewDealOpen(false)
         if (isNewContactOpen) setIsNewContactOpen(false)
+        if (!isBlockingModalOpen && activeView === 'Deal') {
+          setOpenDealId(null)
+          setActiveView(dealReturnView)
+        }
         return
       }
 
@@ -344,13 +346,26 @@ export default function Page() {
     isNewDealOpen,
     isNewContactOpen,
     addToast,
+    activeView,
+    dealReturnView,
   ])
 
-  // Deal detail page removed; open the edit modal until it's rebuilt
+  // Clicking a deal opens its in-app subpage; Back / Esc returns to where you were
   const openDeal = (deal: Deal) => {
-    setEditingDeal(deal)
-    setIsNewDealOpen(true)
+    setOpenDealId(deal.id)
+    if (activeView !== 'Deal') setDealReturnView(activeView)
+    setActiveView('Deal')
   }
+  const closeDeal = () => {
+    setOpenDealId(null)
+    setActiveView(dealReturnView)
+  }
+  const openedDeal = openDealId ? deals.find((d) => d.id === openDealId) ?? null : null
+
+  // The open deal was deleted (here or from the palette): go back
+  useEffect(() => {
+    if (activeView === 'Deal' && !openedDeal) setActiveView(dealReturnView)
+  }, [activeView, openedDeal, dealReturnView])
 
   // Forget the notes target however the palette closes (Esc, ⌘K, click-out)
   useEffect(() => {
@@ -529,7 +544,7 @@ export default function Page() {
 
   const handleMoveDealStage = async (dealId: string, newStage: DealStage) => {
     setDeals((prev) => prev.map((d) => (d.id === dealId ? { ...d, stage: newStage } : d)))
-    addToast(newStage === 'Won' ? 'Deal won: contract signed' : `Moved deal to ${newStage}`)
+    addToast(newStage === 'Won' ? 'Deal won: contract signed, PM starts' : `Moved deal to ${newStage}`)
 
     try {
       const updated = await moveDealStageAction(dealId, newStage)
@@ -538,6 +553,16 @@ export default function Page() {
       }
     } catch (err: any) {
       addToast(err?.message || 'Failed to move deal stage', undefined, 'warning')
+    }
+  }
+
+  const handleChecklistChange = async (dealId: string, items: DeliverableItem[]) => {
+    setDeals((prev) => prev.map((d) => (d.id === dealId ? { ...d, deliverables: items } : d)))
+    try {
+      const updated = await updateDealChecklistAction(dealId, items)
+      if (updated) setDeals((prev) => prev.map((d) => (d.id === updated.id ? updated : d)))
+    } catch (err: any) {
+      addToast(err?.message || 'Failed to save checklist', undefined, 'warning')
     }
   }
 
@@ -576,33 +601,11 @@ export default function Page() {
     (sum, d) => sum + (d.rawAmount || parseInt(d.value.replace(/[^0-9]/g, '')) || 0),
     0
   )
-  const activeProjectsCount = deals.filter(
-    (d) => d.stage === 'Won'
-  ).length
-  const pendingFollowUps = followUps.filter(
-    (f) => !completedFollowUps.includes(f.id)
-  )
-  const pendingFollowUpsCount = pendingFollowUps.length
-  const dueTodayFollowUpsCount = pendingFollowUps.filter(
-    (f) => f.day.toLowerCase() === 'today'
-  ).length
-  const winRate =
-    deals.length > 0
-      ? `${Math.round((deals.filter((d) => d.stage === 'Won').length / deals.length) * 100)}%`
-      : '0%'
+  // Won = contract signed, so every PM stage (Won…Vady) counts as won
+  const wonDealsCount = deals.filter((d) => isPmStage(d.stage)).length
+  const winRate = deals.length > 0 ? `${Math.round((wonDealsCount / deals.length) * 100)}%` : '0%'
 
-  const pipelineStagesSummary: { label: DealStage; count: number; amount: string }[] = DEAL_STAGES.map((st) => {
-    const stageDeals = deals.filter((d) => d.stage === st)
-    const stageSum = stageDeals.reduce(
-      (sum, d) => sum + (d.rawAmount || parseInt(d.value.replace(/[^0-9]/g, '')) || 0),
-      0
-    )
-    return {
-      label: st as DealStage,
-      count: stageDeals.length,
-      amount: formatMoney(stageSum, currentSettings),
-    }
-  })
+  const todayGroups = buildToday(deals, followUps, completedFollowUps)
 
   if (isLoading) {
     return (
@@ -721,7 +724,17 @@ export default function Page() {
           <div className="breadcrumbs">
             <span>Workspace</span>
             <span>/</span>
-            <strong>{activeView}</strong>
+            {activeView === 'Deal' && openedDeal ? (
+              <>
+                <button type="button" onClick={closeDeal} className="cursor-pointer hover:text-[#1c1d1f]">
+                  {dealReturnView}
+                </button>
+                <span>/</span>
+                <strong className="truncate max-w-[40ch]">{openedDeal.title}</strong>
+              </>
+            ) : (
+              <strong>{activeView}</strong>
+            )}
           </div>
 
           <div className="top-actions">
@@ -744,7 +757,25 @@ export default function Page() {
 
         {/* VIEW CONTAINER */}
         <div className="content-wrap">
-          {activeView === 'Deals' ? (
+          {activeView === 'Deal' && openedDeal ? (
+            /* DEAL VIEW: one deal, CRM info + PM progress */
+            <DealDetail
+              deal={openedDeal}
+              settings={currentSettings}
+              onBack={closeDeal}
+              onEdit={(deal) => {
+                setEditingDeal(deal)
+                setIsNewDealOpen(true)
+              }}
+              onOpenNotes={openDealNotes}
+              onMoveStage={handleMoveDealStage}
+              onChecklistChange={handleChecklistChange}
+              onDelete={(id) => {
+                closeDeal()
+                handleDeleteDeal(id)
+              }}
+            />
+          ) : activeView === 'Deals' ? (
             /* DEALS VIEW (list) */
             <>
               <section className="page-heading">
@@ -1559,405 +1590,26 @@ export default function Page() {
             </>
 
           ) : (
-            /* HOME VIEW */
+            /* HOME VIEW: Today */
             <>
               <section className="page-heading">
                 <div>
                   <p className="eyebrow" suppressHydrationWarning>{formattedToday || getFormattedToday()}</p>
                   <h1 suppressHydrationWarning>{greeting}</h1>
-                  <p className="subcopy">Follow-ups due and deals in progress.</p>
+                  <p className="subcopy">
+                    Today: what’s due, who you’re waiting on, and what needs a next step.
+                  </p>
                 </div>
               </section>
 
-              {/* Metric Cards */}
-              <section className="metric-grid" aria-label="Summary metrics">
-                <div className="metric-card">
-                  <div className="metric-icon dark">
-                    <WalletCards size={18} />
-                  </div>
-                  <span className="metric-label">Pipeline value</span>
-                  <strong className="font-mono tabular-nums">
-                    {formatMoney(totalPipelineAmount, currentSettings)}
-                  </strong>
-                  <small>
-                    {deals.length === 0 ? 'No active deals' : `${deals.length} total deals`}
-                  </small>
-                </div>
-
-                <div className="metric-card">
-                  <div className="metric-icon blue">
-                    <CalendarDays size={18} />
-                  </div>
-                  <span className="metric-label">This month</span>
-                  <strong className="font-mono tabular-nums">
-                    {formatMoney(expectedCloseAmount, currentSettings)}
-                  </strong>
-                  <small>
-                    {closingDeals.length > 0
-                      ? `${closingDeals.length} deal${closingDeals.length === 1 ? '' : 's'} closing soon`
-                      : 'Expected close'}
-                  </small>
-                </div>
-
-                <div className="metric-card">
-                  <div className="metric-icon green">
-                    <Building2 size={18} />
-                  </div>
-                  <span className="metric-label">Active projects</span>
-                  <strong>{activeProjectsCount}</strong>
-                  <small>
-                    {activeProjectsCount === 0
-                      ? 'No active client projects'
-                      : `${activeProjectsCount} active project${activeProjectsCount === 1 ? '' : 's'}`}
-                  </small>
-                </div>
-
-                <div className="metric-card">
-                  <div className="metric-icon amber">
-                    <Clock size={18} />
-                  </div>
-                  <span className="metric-label">Follow-ups</span>
-                  <strong>{pendingFollowUpsCount}</strong>
-                  <small>
-                    {dueTodayFollowUpsCount > 0 ? (
-                      <>
-                        <span className="warning">{dueTodayFollowUpsCount} due today</span> · Keep momentum
-                      </>
-                    ) : pendingFollowUpsCount > 0 ? (
-                      `${pendingFollowUpsCount} upcoming`
-                    ) : (
-                      'All caught up'
-                    )}
-                  </small>
-                </div>
-              </section>
-
-              {/* Dashboard Grid: Follow-ups & Pipeline stages */}
-              <div className="dashboard-grid">
-                {/* Follow-ups panel */}
-                <section className="panel followups-panel">
-                  <div className="panel-heading">
-                    <div>
-                      <p className="section-kicker">Your next actions</p>
-                      <h2>Follow-ups</h2>
-                    </div>
-                  </div>
-
-                  <div className="followup-list">
-                    {followUps.length === 0 ? (
-                      <div className="py-8 px-4 text-center">
-                        <div className="w-8 h-8 rounded-full bg-[#f4f5f6] text-[#8f99a8] flex items-center justify-center mx-auto mb-2">
-                          <Check size={16} className="text-[#43a878]" />
-                        </div>
-                        <h4 className="text-[12px] font-semibold text-[#1c1d1f] mb-0.5">All caught up</h4>
-                        <p className="text-[11px] text-[#8f99a8]">No pending follow-ups or next actions.</p>
-                      </div>
-                    ) : (
-                      followUps.map((item, index) => {
-                        const done = completedFollowUps.includes(item.id)
-                        return (
-                          <div
-                            className={`followup-row ${done ? 'done' : ''}`}
-                            key={item.id}
-                          >
-                            <button
-                              className="check-button"
-                              onClick={() => toggleFollowUp(item.id)}
-                              aria-label={`Mark ${item.action} complete`}
-                            >
-                              {done && <Check size={13} />}
-                            </button>
-                            <div className="followup-copy">
-                              <span className="followup-day">
-                                {index === 0 || followUps[index - 1].day !== item.day
-                                  ? item.day
-                                  : ''}
-                              </span>
-                              <strong>{item.company}</strong>
-                              <span>{item.action}</span>
-                            </div>
-                            <time>{item.time}</time>
-                            <RowActionMenu
-                              triggerLabel={`Options for ${item.action}`}
-                              items={[
-                                {
-                                  label: 'Edit follow-up',
-                                  icon: Edit3,
-                                  onClick: () => setEditingFollowUp(item),
-                                },
-                                {
-                                  label: done ? 'Mark incomplete' : 'Mark complete',
-                                  icon: Check,
-                                  onClick: () => toggleFollowUp(item.id),
-                                },
-                                {
-                                  label: 'Delete follow-up',
-                                  icon: Trash2,
-                                  destructive: true,
-                                  divider: true,
-                                  onClick: () => handleDeleteFollowUp(item.id),
-                                },
-                              ]}
-                            />
-                          </div>
-                        )
-                      })
-                    )}
-                  </div>
-                </section>
-
-                {/* Pipeline breakdown panel */}
-                <section className="panel pipeline-panel">
-                  <div className="panel-heading">
-                    <div>
-                      <p className="section-kicker">Sales overview</p>
-                      <h2>Pipeline</h2>
-                    </div>
-                    <button
-                      className="text-button"
-                      onClick={() => setActiveView('Deals')}
-                    >
-                      All deals <ArrowUpRight size={14} />
-                    </button>
-                  </div>
-
-                  <div className="pipeline-list">
-                    {pipelineStagesSummary.map((item, index) => (
-                      <div
-                        className="pipeline-row cursor-pointer hover:bg-[#fafbfc] rounded px-1 -mx-1"
-                        key={item.label}
-                        onClick={() => setActiveView('Deals')}
-                      >
-                        <div className="pipeline-name">
-                          <span className={`stage-dot dot-${(index % 5) + 1}`} />
-                          <strong>{item.label}</strong>
-                        </div>
-                        <div className="pipeline-bar">
-                          <span
-                            style={{
-                              width:
-                                deals.length > 0 && item.count > 0
-                                  ? `${Math.min(100, Math.max(12, (item.count / deals.length) * 100))}%`
-                                  : '0%',
-                            }}
-                          />
-                        </div>
-                        <span className="pipeline-count">{item.count}</span>
-                        <span className="pipeline-amount font-mono tabular-nums">
-                          {item.amount}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="pipeline-footer">
-                    <span>{deals.length} active deals</span>
-                  </div>
-                </section>
-              </div>
-
-              {/* Active Deals Directory in Dashboard */}
-              <section className="panel deals-panel">
-                <div className="panel-heading">
-                  <div>
-                    <p className="section-kicker">Keep an eye on</p>
-                    <h2>Active deals</h2>
-                  </div>
-                  <div className="panel-heading-actions">
-                    {isDealSearchOpen ? (
-                      <label className="search-field animate-in fade-in duration-150">
-                        <Search size={14} />
-                        <input
-                          autoFocus
-                          value={dealSearch}
-                          onChange={(e) => setDealSearch(e.target.value)}
-                          placeholder="Search deals..."
-                          onKeyDown={(e) => {
-                            if (e.key === 'Escape') {
-                              setDealSearch('')
-                              setIsDealSearchOpen(false)
-                            }
-                          }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setDealSearch('')
-                            setIsDealSearchOpen(false)
-                          }}
-                          className="text-xs text-[#8f99a8] hover:text-[#1c1d1f] ml-0.5 px-0.5"
-                          aria-label="Close search"
-                        >
-                          ×
-                        </button>
-                      </label>
-                    ) : (
-                      <button
-                        className="icon-button"
-                        onClick={() => setIsDealSearchOpen(true)}
-                        title="Search active deals"
-                        aria-label="Search active deals"
-                      >
-                        <Search size={16} />
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="tabs">
-                  {['Overview', 'Closing soon', 'Recently added'].map((tab) => (
-                    <button
-                      key={tab}
-                      className={activeTab === tab ? 'tab-active' : ''}
-                      onClick={() => setActiveTab(tab)}
-                    >
-                      {tab}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="deal-table">
-                  <div className="table-head">
-                    <span>Deal</span>
-                    <span>Stage</span>
-                    <span>Value</span>
-                    <span>Next action</span>
-                    <span />
-                  </div>
-                  {deals.length === 0 ? (
-                    <div className="py-12 px-4 text-center">
-                      <div className="w-10 h-10 rounded-full bg-[#f4f5f6] text-[#8f99a8] flex items-center justify-center mx-auto mb-2.5">
-                        <WalletCards size={18} />
-                      </div>
-                      <h3 className="text-[13px] font-semibold text-[#1c1d1f] mb-1">No deals in pipeline</h3>
-                      <p className="text-[11px] text-[#8f99a8] max-w-xs mx-auto mb-3">
-                        Track client scopes, estimated value, and next steps.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => setIsNewDealOpen(true)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#232529] hover:bg-[#101113] text-white text-[11px] font-medium rounded-[8px] transition-colors cursor-pointer"
-                      >
-                        <CirclePlus size={13} />
-                        <span>Add first deal</span>
-                        <kbd className="ml-1 px-1 bg-[#3a3e45] text-white rounded text-[10px] font-mono">
-                          N
-                        </kbd>
-                      </button>
-                    </div>
-                  ) : (
-                    deals
-                      .filter((deal) => {
-                        if (dealSearch.trim()) {
-                          const q = dealSearch.toLowerCase().trim()
-                          const matches =
-                            deal.title.toLowerCase().includes(q) ||
-                            deal.contactName.toLowerCase().includes(q) ||
-                            deal.stage.toLowerCase().includes(q) ||
-                            (deal.next && deal.next.toLowerCase().includes(q)) ||
-                            deal.value.toLowerCase().includes(q)
-                          if (!matches) return false
-                        }
-                        if (activeTab === 'Closing soon') {
-                          return deal.stage === 'Proposal'
-                        }
-                        if (activeTab === 'Recently added') {
-                          return deal.stage === 'Lead'
-                        }
-                        return true
-                      })
-                      .map((deal) => (
-                        <div
-                          className="deal-row cursor-pointer hover:bg-[#fafbfc] transition-colors"
-                          key={deal.id}
-                          onClick={() => openDeal(deal)}
-                        >
-                          <div className="deal-title min-w-0">
-                            <span className={`deal-avatar shrink-0 ${deal.color}`}>
-                              {deal.contactName.charAt(0)}
-                            </span>
-                            <div className="min-w-0">
-                              <strong className="truncate block" title={deal.title}>{deal.title}</strong>
-                              <span className="truncate block" title={deal.contactName}>{deal.contactName}</span>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="stage-pill">{deal.stage}</span>
-                            {deal.stage === 'Won' && deal.deliverables && deal.deliverables.length > 0 && (
-                              <span className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded-[5px] bg-[#e9f0ff] text-[#266df0] border border-[#d2e3fc]">
-                                {deal.deliverables.filter((d) => d.status === 'Done').length}/{deal.deliverables.length} done
-                              </span>
-                            )}
-                          </div>
-                          <strong className="font-mono tabular-nums">{formatDealValue(deal.value, currentSettings)}</strong>
-                          <span className="next-action flex items-center gap-1">
-                            {deal.next ? (
-                              <>
-                                <Clock size={12} className="text-[#266df0] shrink-0" />
-                                <span className="truncate">{deal.next}</span>
-                              </>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#b54708] bg-[#fff9f0] border border-[#fedf89] px-2 py-0.5 rounded-[6px]">
-                                <AlertCircle size={11} className="shrink-0" />
-                                <span>Needs action</span>
-                              </span>
-                            )}
-                          </span>
-                          <RowActionMenu
-                            triggerLabel={`More options for ${deal.title}`}
-                            items={[
-                              {
-                                label: 'Edit deal',
-                                icon: Edit3,
-                                onClick: () => {
-                                  setEditingDeal(deal)
-                                  setIsNewDealOpen(true)
-                                },
-                              },
-                              {
-                                label: 'Notes',
-                                icon: FileText,
-                                onClick: () => openDealNotes(deal),
-                              },
-                              ...(deal.stage !== 'Won'
-                                ? [
-                                    {
-                                      label: 'Mark as Won',
-                                      icon: Check,
-                                      onClick: () => handleMoveDealStage(deal.id, 'Won'),
-                                    },
-                                  ]
-                                : []),
-                              {
-                                label: 'Delete deal',
-                                icon: Trash2,
-                                destructive: true,
-                                divider: true,
-                                onClick: () => handleDeleteDeal(deal.id),
-                              },
-                            ]}
-                          />
-                        </div>
-                      ))
-                  )}
-                  {deals.length > 0 &&
-                    dealSearch.trim() &&
-                    deals.filter((deal) => {
-                      const q = dealSearch.toLowerCase().trim()
-                      return (
-                        deal.title.toLowerCase().includes(q) ||
-                        deal.contactName.toLowerCase().includes(q) ||
-                        deal.stage.toLowerCase().includes(q) ||
-                        (deal.next && deal.next.toLowerCase().includes(q)) ||
-                        deal.value.toLowerCase().includes(q)
-                      )
-                    }).length === 0 && (
-                      <div className="py-8 text-center text-[#8f99a8] text-[12px]">
-                        No deals matching &ldquo;{dealSearch}&rdquo;
-                      </div>
-                    )}
-                </div>
-              </section>
+              <TodayList
+                groups={todayGroups}
+                onOpenDeal={openDeal}
+                onToggleFollowUp={toggleFollowUp}
+                onEditFollowUp={setEditingFollowUp}
+                onDeleteFollowUp={handleDeleteFollowUp}
+                onAddDeal={() => setIsNewDealOpen(true)}
+              />
             </>
           )}
         </div>

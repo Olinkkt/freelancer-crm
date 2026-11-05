@@ -30,7 +30,7 @@ export function ShortcutsModal({ isOpen, onClose }: ShortcutsModalProps) {
       items: [
         { keys: [modKey, 'K'], label: 'Open Command Palette' },
         { keys: ['?'], label: 'Show this keyboard cheatsheet' },
-        { keys: ['Esc'], label: 'Dismiss modal or palette' },
+        { keys: ['Esc'], label: 'Dismiss modal or palette, or go back from a deal' },
       ],
     },
     {
@@ -47,7 +47,7 @@ export function ShortcutsModal({ isOpen, onClose }: ShortcutsModalProps) {
       icon: <LayoutGrid size={15} className="text-[#6f7988]" />,
       items: [
         { keys: ['Tab'], label: 'Focus the next deal' },
-        { keys: ['↵'], label: 'Edit the focused deal' },
+        { keys: ['↵'], label: 'Open the focused deal' },
       ],
     },
     {

@@ -1,7 +1,7 @@
 'use client'
 
 import { formatDue, isOverdue } from '@/lib/due-date'
-import React, { useMemo, useState } from 'react'
+import React, { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Search, CirclePlus, ExternalLink, Edit3, Trash2, Clock, WalletCards, FileText, ArrowRight, Check } from 'lucide-react'
 import { Deal, DealStage, DEAL_STAGES, DEAL_STAGE_HINTS, OPEN_DEAL_STAGES, PM_STAGES, isPmStage, nextDealStage, WorkspaceSettings } from '@/lib/crm-types'
 import { RowActionMenu } from '@/components/ui/row-action-menu'
@@ -45,6 +45,8 @@ export function DealList({
 }: DealListProps) {
   const [query, setQuery] = useState('')
   const [stageFilter, setStageFilter] = useState<StageFilter>('All')
+  const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({})
+  const [indicator, setIndicator] = useState<{ x: number; w: number } | null>(null)
 
   const countByStage = useMemo(() => {
     const counts = new Map<DealStage, number>()
@@ -75,6 +77,14 @@ export function DealList({
     { key: 'PM', label: 'In PM', count: PM_STAGES.reduce((n, s) => n + (countByStage.get(s) || 0), 0) },
   ]
 
+  // Slide the underline to the active tab (re-measured each render; counts change tab widths)
+  useLayoutEffect(() => {
+    const el = tabRefs.current[stageFilter]
+    if (!el) return
+    const next = { x: el.offsetLeft, w: el.offsetWidth }
+    setIndicator((prev) => (prev && prev.x === next.x && prev.w === next.w ? prev : next))
+  })
+
   return (
     <section className="panel deals-list-panel">
       <div className="deals-list-toolbar">
@@ -92,9 +102,19 @@ export function DealList({
       </div>
 
       <div className="tabs deals-stage-filter" role="tablist" aria-label="Filter by stage">
+        {indicator && (
+          <span
+            className="tab-indicator"
+            aria-hidden
+            style={{ transform: `translateX(${indicator.x}px)`, width: indicator.w }}
+          />
+        )}
         {filters.map((f) => (
           <button
             key={f.key}
+            ref={(el) => {
+              tabRefs.current[f.key] = el
+            }}
             type="button"
             role="tab"
             aria-selected={stageFilter === f.key}

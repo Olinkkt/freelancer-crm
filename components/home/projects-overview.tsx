@@ -89,6 +89,13 @@ interface ProjectsOverviewProps {
 
 const PROJECTS_CAP = 5
 
+function waitingFor(deal: Deal): string {
+  const diff = daysUntil(deal.waitingSince)
+  if (diff === null) return 'Paused until the client replies'
+  const days = -diff
+  return days <= 0 ? 'Waiting since today' : `Waiting ${days} ${days === 1 ? 'day' : 'days'}`
+}
+
 export function ProjectsOverview({ rows, onOpenDeal, onAddDeal }: ProjectsOverviewProps) {
   const [showAll, setShowAll] = useState(false)
   const visibleRows = showAll ? rows : rows.slice(0, PROJECTS_CAP)
@@ -124,7 +131,7 @@ export function ProjectsOverview({ rows, onOpenDeal, onAddDeal }: ProjectsOvervi
                 </span>
                 <span className="project-next">
                   {deal.waiting
-                    ? 'Waiting on client'
+                    ? waitingFor(deal)
                     : deal.next
                       ? `${deal.next}${row.due ? ` · ${formatDue(row.due)}` : ''}`
                       : 'No next action'}
@@ -153,7 +160,7 @@ export function ProjectsOverview({ rows, onOpenDeal, onAddDeal }: ProjectsOvervi
                 <span>{row.tasksTotal ? `${row.tasksDone}/${row.tasksTotal} tasks` : 'No tasks'}</span>
               </div>
 
-              <div className="project-value font-mono">{deal.value}</div>
+              <div className="project-value">{deal.value}</div>
 
               <div className="project-flag">
                 {row.flag && <span className={`project-flag-pill ${row.flag}`}>{row.flagLabel}</span>}

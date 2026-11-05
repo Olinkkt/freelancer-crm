@@ -1500,14 +1500,16 @@ button {
 }
 
 .project-stage > span {
-  font-size: 10px;
+  font-size: 11px;
   color: #8f99a8;
   white-space: nowrap;
 }
 
 .project-value {
-  font-size: 11px;
-  color: var(--color-slate-600);
+  font-size: 12px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ink-black);
   text-align: right;
   white-space: nowrap;
 }

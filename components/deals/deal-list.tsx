@@ -2,7 +2,7 @@
 
 import { formatDue, isOverdue } from '@/lib/due-date'
 import React, { useMemo, useState } from 'react'
-import { Search, CirclePlus, ExternalLink, Edit3, Trash2, Clock, WalletCards, FileText, ArrowRight } from 'lucide-react'
+import { Search, CirclePlus, ExternalLink, Edit3, Trash2, Clock, WalletCards, FileText, ArrowRight, Check } from 'lucide-react'
 import { Deal, DealStage, DEAL_STAGES, DEAL_STAGE_HINTS, OPEN_DEAL_STAGES, PM_STAGES, isPmStage, nextDealStage, WorkspaceSettings } from '@/lib/crm-types'
 import { StageOptions } from '@/components/deals/stage-options'
 import { RowActionMenu } from '@/components/ui/row-action-menu'
@@ -237,7 +237,7 @@ export function DealList({
                       ? [
                           {
                             label: `Move to ${nextDealStage(deal.stage)}`,
-                            icon: ArrowRight,
+                            icon: nextDealStage(deal.stage) === 'Completed' ? Check : ArrowRight,
                             onClick: () => onMoveDealStage(deal.id, nextDealStage(deal.stage)!),
                           },
                         ]

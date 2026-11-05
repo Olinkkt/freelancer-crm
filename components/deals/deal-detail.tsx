@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useRef, useState } from 'react'
-import { ArrowLeft, Check, ChevronDown, Clock, Edit3, FileText, Plus, Trash2, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, ChevronDown, Clock, Edit3, FileText, Plus, Trash2, X } from 'lucide-react'
 import {
   ChecklistSection,
   Deal,
@@ -94,7 +94,7 @@ export function DealDetail({
               onClick={() => onMoveStage(deal.id, next)}
               title={DEAL_STAGE_HINTS[next]}
             >
-              <Check size={15} />
+              {next === 'Completed' ? <Check size={15} /> : <ArrowRight size={15} />}
               <span>Move to {next}</span>
             </button>
           )}

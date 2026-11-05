@@ -1432,7 +1432,7 @@ button {
 
 .project-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 96px 110px 130px;
+  grid-template-columns: minmax(0, 1fr) 110px 100px 84px auto;
   align-items: center;
   gap: 16px;
   padding: 8px 0;
@@ -1445,9 +1445,8 @@ button {
 
 .project-main {
   display: flex;
-  flex-direction: row;
-  align-items: baseline;
-  gap: 8px;
+  flex-direction: column;
+  gap: 2px;
   min-width: 0;
   text-align: left;
   background: none;
@@ -1470,6 +1469,46 @@ button {
 .project-main span {
   font-size: 11px;
   color: var(--color-slate-600);
+}
+
+.project-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.project-title em {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--color-slate-600);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-next {
+  font-size: 11px;
+  color: var(--color-slate-600);
+}
+
+.project-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.project-stage > span {
+  font-size: 10px;
+  color: #8f99a8;
+  white-space: nowrap;
+}
+
+.project-value {
+  font-size: 11px;
+  color: var(--color-slate-600);
+  text-align: right;
+  white-space: nowrap;
 }
 
 .project-main:hover strong {

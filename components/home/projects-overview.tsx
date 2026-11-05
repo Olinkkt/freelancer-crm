@@ -118,21 +118,32 @@ export function ProjectsOverview({ rows, onOpenDeal, onAddDeal }: ProjectsOvervi
           return (
             <li key={deal.id} className="project-row">
               <button type="button" className="project-main" onClick={() => onOpenDeal(deal)}>
-                <strong>{deal.title}</strong>
-                <span>
-                  {deal.stage}
-                  {row.due ? ` · ${formatDue(row.due)}` : ''}
+                <span className="project-title">
+                  <strong>{deal.title}</strong>
+                  <em>{deal.contactName}</em>
+                </span>
+                <span className="project-next">
+                  {deal.waiting
+                    ? 'Waiting on client'
+                    : deal.next
+                      ? `${deal.next}${row.due ? ` · ${formatDue(row.due)}` : ''}`
+                      : 'No next action'}
                 </span>
               </button>
 
-              <div
-                className="project-steps"
-                role="img"
-                aria-label={`Stage ${row.stageIndex + 1} of ${ACTIVE_PROJECT_STAGES.length}: ${deal.stage}`}
-              >
-                {ACTIVE_PROJECT_STAGES.map((stage, i) => (
-                  <i key={stage} className={i < row.stageIndex ? 'done' : i === row.stageIndex ? 'current' : ''} />
-                ))}
+              <div className="project-stage">
+                <div
+                  className="project-steps"
+                  role="img"
+                  aria-label={`Stage ${row.stageIndex + 1} of ${ACTIVE_PROJECT_STAGES.length}: ${deal.stage}`}
+                >
+                  {ACTIVE_PROJECT_STAGES.map((stage, i) => (
+                    <i key={stage} className={i < row.stageIndex ? 'done' : i === row.stageIndex ? 'current' : ''} />
+                  ))}
+                </div>
+                <span>
+                  {deal.stage} · {row.stageIndex + 1}/{ACTIVE_PROJECT_STAGES.length}
+                </span>
               </div>
 
               <div className="project-tasks" title={`${row.tasksDone} of ${row.tasksTotal} tasks done`}>
@@ -149,6 +160,8 @@ export function ProjectsOverview({ rows, onOpenDeal, onAddDeal }: ProjectsOvervi
                   <span className="project-none">No tasks</span>
                 )}
               </div>
+
+              <div className="project-value font-mono">{deal.value}</div>
 
               <div className="project-flag">
                 {row.flag && <span className={`project-flag-pill ${row.flag}`}>{row.flagLabel}</span>}

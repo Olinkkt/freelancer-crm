@@ -169,6 +169,25 @@ pnpm test
 
 ---
 
+## 🤖 AI Agents: REST API & MCP
+
+Let Claude, Cursor or your own scripts work the CRM: check what's due, log leads, move deals, add tasks and invoices.
+
+1. **Settings → API → Create token** (read-only by default).
+2. Connect Claude Code:
+   ```bash
+   claude mcp add --transport http freelancer-crm http://localhost:3000/api/mcp \
+     --header "Authorization: Bearer fcrm_..."
+   ```
+3. Ask: *"What's due today?"* or *"Run a weekly review."*
+
+- **MCP:** `/api/mcp` (Streamable HTTP) or the stdio proxy in `packages/mcp-stdio`. Setup for each client: [`docs/mcp.md`](./docs/mcp.md)
+- **REST:** `/api/v1`, interactive reference at `/api/docs`, OpenAPI at `/api/v1/openapi.json`. Recipes: [`docs/api.md`](./docs/api.md)
+- **For LLMs:** `/llms.txt` and `/llms-full.txt`
+- Scoped tokens, dry run on every write, idempotent retries, and an audit log of every agent write.
+
+---
+
 ## 🐳 Self-Hosting & Deployment
 
 ### Production Docker Container

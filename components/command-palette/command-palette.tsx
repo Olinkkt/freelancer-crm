@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useRef, useMemo } from 'react'
+import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react'
 import {
   Search,
   PlusCircle,
@@ -89,23 +89,27 @@ export function CommandPalette({
   const dealsRef = useRef(deals)
   dealsRef.current = deals
 
-  // Focus input when opened and reset query
+  // Reset state before paint so opening straight into notes never flashes the main list
+  useLayoutEffect(() => {
+    if (!isOpen) return
+    setQuery('')
+    setSelectedIndex(0)
+    setSelectedCategory('All')
+    const notesDeal = notesDealId ? dealsRef.current.find((d) => d.id === notesDealId) : undefined
+    const initialDeal = notesDeal || dealsRef.current[0]
+    setSubpage(notesDeal ? 'scratchpad' : 'main')
+    setTargetDealId(initialDeal?.id || 'general')
+    setScratchpadNotes(initialDeal?.notes || '')
+    setIsSavedToast(false)
+  }, [isOpen, notesDealId])
+
+  // Focus input when opened
   useEffect(() => {
-    if (isOpen) {
-      setQuery('')
-      setSelectedIndex(0)
-      setSelectedCategory('All')
-      const notesDeal = notesDealId ? dealsRef.current.find((d) => d.id === notesDealId) : undefined
-      const initialDeal = notesDeal || dealsRef.current[0]
-      setSubpage(notesDeal ? 'scratchpad' : 'main')
-      setTargetDealId(initialDeal?.id || 'general')
-      setScratchpadNotes(initialDeal?.notes || '')
-      setIsSavedToast(false)
-      const timer = setTimeout(() => {
-        inputRef.current?.focus()
-      }, 30)
-      return () => clearTimeout(timer)
-    }
+    if (!isOpen) return
+    const timer = setTimeout(() => {
+      inputRef.current?.focus()
+    }, 30)
+    return () => clearTimeout(timer)
   }, [isOpen, notesDealId])
 
   // Build searchable items

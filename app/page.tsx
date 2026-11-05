@@ -48,6 +48,7 @@ import { EditSettingsModal } from '@/components/modals/edit-settings-modal'
 import { DealList } from '@/components/deals/deal-list'
 import { DealDetail } from '@/components/deals/deal-detail'
 import { TodayList, buildToday } from '@/components/home/today-list'
+import { ProjectsOverview, buildProjects } from '@/components/home/projects-overview'
 import { ToastHUD, ToastHUDItem } from '@/components/ui/toast-hud'
 import { OperatorGate } from '@/components/auth/operator-gate'
 import { SetupWizard } from '@/components/auth/setup-wizard'
@@ -564,6 +565,7 @@ export default function Page() {
   const winRate = deals.length > 0 ? `${Math.round((wonDealsCount / deals.length) * 100)}%` : '0%'
 
   const todayGroups = buildToday(deals, followUps, completedFollowUps)
+  const projectRows = buildProjects(deals)
 
   if (isLoading) {
     return (
@@ -1375,6 +1377,8 @@ export default function Page() {
                 onDeleteFollowUp={handleDeleteFollowUp}
                 onAddDeal={() => setIsNewDealOpen(true)}
               />
+
+              <ProjectsOverview rows={projectRows} onOpenDeal={openDeal} />
             </>
           )}
         </div>

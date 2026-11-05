@@ -99,7 +99,7 @@ export function DealDetail({
           <p className="section-kicker">Next action</p>
           {deal.next ? (
             <>
-              <h2 className="text-[15px] font-semibold text-[#1c1d1f] mt-1">{deal.next}</h2>
+              <h2 className="text-[22px] leading-snug font-semibold text-[#1c1d1f] mt-1">{deal.next}</h2>
               {deal.nextDueDate && !deal.waiting && (
                 <p
                   className={`mt-1 flex items-center gap-1 text-[12px] ${

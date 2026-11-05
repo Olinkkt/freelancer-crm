@@ -24,7 +24,7 @@ const LEGACY_STAGES: Record<string, (typeof DEAL_STAGES)[number]> = {
 }
 
 /** One checklist item on a deal (stored in the deliverables JSON column) */
-const ChecklistItemSchema = z.object({
+export const ChecklistItemSchema = z.object({
   id: z.string().min(1),
   title: z.string().trim().min(1, 'Item cannot be empty').max(200),
   description: z.string().max(10000).optional(),
@@ -38,6 +38,20 @@ const ChecklistItemSchema = z.object({
 export const ChecklistSchema = z.array(ChecklistItemSchema).max(200)
 
 export const DealStageSchema = z.enum(DEAL_STAGES)
+
+/** One invoice milestone on a deal (stored in the invoices JSON column) */
+export const InvoiceSchema = z.object({
+  id: z.string().min(1),
+  type: z.enum(['Deposit', 'Progress', 'Final']),
+  label: z.string().trim().min(1).max(200),
+  amount: z.number().min(0),
+  formattedAmount: z.string(),
+  percentage: z.number().min(0).max(100),
+  status: z.enum(['Draft', 'Sent', 'Paid', 'Overdue']),
+  dueDate: z.string().optional(),
+  paidAt: z.string().optional(),
+  paymentLink: z.string().optional(),
+})
 
 export const DealBackupSchema = z.object({
   id: z.string().min(1),
@@ -135,8 +149,8 @@ const DealInputBaseSchema = z.object({
   notes: z.string().nullable().optional(),
   startDate: z.string().nullable().optional(),
   endDate: z.string().nullable().optional(),
-  deliverables: z.array(z.any()).optional(),
-  invoices: z.array(z.any()).optional(),
+  deliverables: ChecklistSchema.optional(),
+  invoices: z.array(InvoiceSchema).max(50).optional(),
 })
 
 export const DealCreateInputSchema = DealInputBaseSchema.refine(

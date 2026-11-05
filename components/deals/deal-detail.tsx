@@ -12,6 +12,8 @@ import {
   isPmStage,
   nextDealStage,
 } from '@/lib/crm-types'
+import { DealBoard } from '@/components/deals/deal-board'
+import { DeliverableItem } from '@/lib/crm-types'
 import { formatDealValue } from '@/lib/config'
 import { formatDue, isOverdue } from '@/lib/due-date'
 
@@ -22,6 +24,7 @@ interface DealDetailProps {
   onEdit: (deal: Deal) => void
   onOpenNotes: (deal: Deal) => void
   onMoveStage: (dealId: string, stage: DealStage) => void
+  onChecklistChange: (dealId: string, items: DeliverableItem[]) => void
   onDelete: (dealId: string) => void
 }
 
@@ -41,6 +44,7 @@ export function DealDetail({
   onEdit,
   onOpenNotes,
   onMoveStage,
+  onChecklistChange,
   onDelete,
 }: DealDetailProps) {
   const next = nextDealStage(deal.stage)
@@ -144,6 +148,8 @@ export function DealDetail({
           </button>
         </section>
       </div>
+
+      <DealBoard items={deal.deliverables ?? []} onChange={(items) => onChecklistChange(deal.id, items)} />
     </>
   )
 }

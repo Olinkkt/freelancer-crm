@@ -28,6 +28,7 @@ export const ChecklistItemSchema = z.object({
   id: z.string().min(1),
   title: z.string().trim().min(1, 'Item cannot be empty').max(200),
   status: z.enum(['Pending', 'In Progress', 'Done']),
+  column: z.enum(['todo', 'waiting', 'blocked', 'done']).optional(),
   section: z.enum(['podklady', 'deliverables']).optional(),
   clientSignOff: z.boolean().optional(),
   dueDate: z.string().optional(),

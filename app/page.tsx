@@ -28,7 +28,7 @@ import {
 } from '@/lib/csv-export'
 import { getFormattedToday, getDynamicGreeting } from '@/lib/date-utils'
 import { OPERATOR_CONFIG, formatMoney, getOperatorInitials } from '@/lib/config'
-import { Deal, Contact, FollowUpItem, DealStage, OPEN_DEAL_STAGES, isPmStage } from '@/lib/crm-types'
+import { Deal, DeliverableItem, Contact, FollowUpItem, DealStage, OPEN_DEAL_STAGES, isPmStage } from '@/lib/crm-types'
 import { useModKey } from '@/lib/use-mod-key'
 import {
   INITIAL_CONTACTS,
@@ -60,6 +60,7 @@ import {
   updateDealAction,
   deleteDealAction,
   moveDealStageAction,
+  updateDealChecklistAction,
   createContactAction,
   updateContactAction,
   deleteContactAction,
@@ -523,6 +524,15 @@ export default function Page() {
     }
   }
 
+  const handleChecklistChange = async (dealId: string, items: DeliverableItem[]) => {
+    setDeals((prev) => prev.map((d) => (d.id === dealId ? { ...d, deliverables: items } : d)))
+    try {
+      await updateDealChecklistAction(dealId, items)
+    } catch (err: any) {
+      addToast(err?.message || 'Failed to save board', undefined, 'warning')
+    }
+  }
+
   // Follow-up toggle complete
   const toggleFollowUp = async (id: string) => {
     setCompletedFollowUps((prev) =>
@@ -726,6 +736,7 @@ export default function Page() {
               }}
               onOpenNotes={openDealNotes}
               onMoveStage={handleMoveDealStage}
+              onChecklistChange={handleChecklistChange}
               onDelete={(id) => {
                 closeDeal()
                 handleDeleteDeal(id)

@@ -63,10 +63,26 @@ export const DEAL_STAGE_HINTS: Record<DealStage, string> = {
 /** Checklist groups on a deal. 'podklady' (stored key) = client materials, what the client owes you. */
 export type ChecklistSection = 'podklady' | 'deliverables'
 
+/** Task board columns on a deal, in order (Trello-style) */
+export const BOARD_COLUMNS = [
+  { id: 'todo', label: 'To do' },
+  { id: 'waiting', label: 'Waiting' },
+  { id: 'blocked', label: 'Blocked' },
+  { id: 'done', label: 'Done' },
+] as const
+export type BoardColumnId = (typeof BOARD_COLUMNS)[number]['id']
+
+/** Column a card sits in; cards saved before the board existed fall back to their status */
+export function cardColumn(item: DeliverableItem): BoardColumnId {
+  return item.column ?? (item.status === 'Done' ? 'done' : 'todo')
+}
+
 export interface DeliverableItem {
   id: string
   title: string
   status: 'Pending' | 'In Progress' | 'Done'
+  /** Task board column; kept in step with status (done column = Done) */
+  column?: BoardColumnId
   /** Checklist group; items without one are deliverables */
   section?: ChecklistSection
   clientSignOff?: boolean

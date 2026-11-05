@@ -723,7 +723,7 @@ export default function Page() {
         </header>
 
         {/* VIEW CONTAINER */}
-        <div className="content-wrap">
+        <div className="content-wrap" key={activeView}>
           {activeView === 'Deal' && openedDeal ? (
             /* DEAL VIEW: one deal, CRM info + PM progress */
             <DealDetail

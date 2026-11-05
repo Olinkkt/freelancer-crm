@@ -3,18 +3,17 @@
 import React, { useEffect, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { AlignLeft, Check, X } from 'lucide-react'
-import { BoardColumnId, DeliverableItem, cardColumn } from '@/lib/crm-types'
+import { X } from 'lucide-react'
+import { DeliverableItem } from '@/lib/crm-types'
 
 interface TaskModalProps {
   card: DeliverableItem | null
   onClose: () => void
   onChange: (patch: Partial<DeliverableItem>) => void
-  onMove: (column: BoardColumnId) => void
 }
 
 /** Card details: column, title and a markdown description. */
-export function TaskModal({ card, onClose, onChange, onMove }: TaskModalProps) {
+export function TaskModal({ card, onClose, onChange }: TaskModalProps) {
   const [title, setTitle] = useState('')
   const [editing, setEditing] = useState(false)
   const [desc, setDesc] = useState('')
@@ -43,8 +42,6 @@ export function TaskModal({ card, onClose, onChange, onMove }: TaskModalProps) {
   }, [cardId])
 
   if (!card) return null
-  const col = cardColumn(card)
-  const isDone = col === 'done'
 
   const commitTitle = () => {
     const t = title.trim()
@@ -73,14 +70,6 @@ export function TaskModal({ card, onClose, onChange, onMove }: TaskModalProps) {
 
         <div className="task-modal-body">
           <div className="task-title-row">
-            <button
-              type="button"
-              className={`board-check lg ${isDone ? 'on' : ''}`}
-              aria-label={isDone ? 'Mark as to do' : 'Mark as done'}
-              onClick={() => onMove(isDone ? 'todo' : 'done')}
-            >
-              <Check size={13} strokeWidth={3} />
-            </button>
             <input
               className="task-title-input"
               value={title}
@@ -93,9 +82,7 @@ export function TaskModal({ card, onClose, onChange, onMove }: TaskModalProps) {
           </div>
 
           <div className="task-desc-head">
-            <span>
-              <AlignLeft size={15} /> Description
-            </span>
+            <span>Description</span>
           </div>
 
           {editing ? (

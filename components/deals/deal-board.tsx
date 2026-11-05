@@ -199,7 +199,6 @@ export function DealBoard({ items, onChange }: DealBoardProps) {
         card={openCard}
         onClose={() => setOpenId(null)}
         onChange={(patch) => openCard && onChange(items.map((i) => (i.id === openCard.id ? { ...i, ...patch } : i)))}
-        onMove={(col) => openCard && moveCard(openCard.id, col)}
       />
     </section>
   )

@@ -1879,27 +1879,49 @@ button {
   .board { grid-template-columns: repeat(4, 240px); }
 }
 
-/* Composer open/close: height + fade + slight lift. Exit is faster than enter. */
+/* Composer open/close: scale + fade + slight blur from the Add card button.
+   Closed = out of flow instantly (no layout shift), then fades out in place. */
+.board-col {
+  position: relative;
+}
 .board-composer {
-  display: grid;
-  grid-template-rows: 0fr;
+  display: none;
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  pointer-events: none;
   opacity: 0;
-  transform: translateY(-4px);
-  visibility: hidden;
-  transition: grid-template-rows 140ms cubic-bezier(0.23, 1, 0.32, 1),
-    opacity 120ms ease-out, transform 140ms cubic-bezier(0.23, 1, 0.32, 1), visibility 0s linear 140ms;
+  transform: scale(0.96);
+  filter: blur(2px);
+  transform-origin: top left;
+  transition: opacity 100ms ease-out, transform 100ms ease-out, filter 100ms ease-out,
+    display 100ms allow-discrete;
 }
 .board-composer[data-open='true'] {
-  grid-template-rows: 1fr;
+  display: block;
+  position: static;
+  pointer-events: auto;
   opacity: 1;
-  transform: translateY(0);
-  visibility: visible;
-  transition: grid-template-rows 220ms cubic-bezier(0.23, 1, 0.32, 1),
-    opacity 180ms ease-out, transform 220ms cubic-bezier(0.23, 1, 0.32, 1), visibility 0s;
+  transform: none;
+  filter: none;
+  transition: opacity 160ms cubic-bezier(0.23, 1, 0.32, 1), transform 160ms cubic-bezier(0.23, 1, 0.32, 1),
+    filter 160ms cubic-bezier(0.23, 1, 0.32, 1), display 160ms allow-discrete;
 }
-.board-composer-inner {
-  min-height: 0;
-  overflow: hidden;
+@starting-style {
+  .board-composer[data-open='true'] {
+    opacity: 0;
+    transform: scale(0.96);
+    filter: blur(2px);
+  }
+}
+.board-card {
+  animation: board-card-in 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+@keyframes board-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
 }
 .board-add-submit:active {
   transform: scale(0.97);
@@ -1908,6 +1930,9 @@ button {
   .board-composer,
   .board-composer[data-open='true'] {
     transform: none;
-    transition: opacity 120ms ease-out, visibility 0s;
+    filter: none;
+  }
+  .board-card {
+    animation: none;
   }
 }

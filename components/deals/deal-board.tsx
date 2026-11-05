@@ -118,7 +118,6 @@ export function DealBoard({ items, onChange }: DealBoardProps) {
             </div>
 
             <div className="board-composer" data-open={addingIn === col.id} data-composer={col.id} inert={addingIn !== col.id}>
-              <div className="board-composer-inner">
               <form
                 className="board-add-form"
                 onSubmit={(e) => {
@@ -163,7 +162,6 @@ export function DealBoard({ items, onChange }: DealBoardProps) {
                   </button>
                 </div>
               </form>
-              </div>
             </div>
             {addingIn !== col.id && (
               <button

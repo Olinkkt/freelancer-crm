@@ -45,6 +45,8 @@ export function DealList({
 }: DealListProps) {
   const [query, setQuery] = useState('')
   const [stageFilter, setStageFilter] = useState<StageFilter>('All')
+  // Only fade rows after a tab click, not when the view first mounts
+  const [filterTouched, setFilterTouched] = useState(false)
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({})
   const [indicator, setIndicator] = useState<{ x: number; w: number } | null>(null)
 
@@ -118,7 +120,10 @@ export function DealList({
             role="tab"
             aria-selected={stageFilter === f.key}
             className={stageFilter === f.key ? 'tab-active' : ''}
-            onClick={() => setStageFilter(f.key)}
+            onClick={() => {
+              setStageFilter(f.key)
+              setFilterTouched(true)
+            }}
             title={FILTER_HINTS[f.key]}
           >
             {f.label} <span className="text-[#8f99a8] font-mono">{f.count}</span>
@@ -160,7 +165,7 @@ export function DealList({
                 : `No deals in ${stageFilter}.`}
           </div>
         ) : (
-          <div key={stageFilter} className="deals-list-body">
+          <div key={stageFilter} className={filterTouched ? 'deals-list-body' : undefined}>
           {visibleDeals.map((deal) => (
             <div
               key={deal.id}

@@ -43,6 +43,7 @@ import { NotesModal } from '@/components/modals/notes-modal'
 import { ShortcutsModal } from '@/components/modals/shortcuts-modal'
 import { NewDealModal } from '@/components/modals/new-deal-modal'
 import { NewContactModal } from '@/components/modals/new-contact-modal'
+import { ContactPreviewModal } from '@/components/modals/contact-preview-modal'
 import { EditFollowUpModal } from '@/components/modals/edit-follow-up-modal'
 import { EditSettingsModal } from '@/components/modals/edit-settings-modal'
 import { DealList } from '@/components/deals/deal-list'
@@ -134,6 +135,7 @@ export default function Page() {
   // Editing state for entities
   const [editingDeal, setEditingDeal] = useState<Deal | null>(null)
   const [editingContact, setEditingContact] = useState<Contact | null>(null)
+  const [previewContact, setPreviewContact] = useState<Contact | null>(null)
   const [editingFollowUp, setEditingFollowUp] = useState<FollowUpItem | null>(null)
   const [isEditSettingsOpen, setIsEditSettingsOpen] = useState(false)
   const [settingsModalInitialTab, setSettingsModalInitialTab] = useState<'profile' | 'calendar'>('profile')
@@ -888,17 +890,13 @@ export default function Page() {
                             key={contact.id}
                             role="button"
                             tabIndex={0}
-                            aria-label={`Edit ${contact.name}`}
-                            onClick={() => {
-                              setEditingContact(contact)
-                              setIsNewContactOpen(true)
-                            }}
+                            aria-label={`View ${contact.name}`}
+                            onClick={() => setPreviewContact(contact)}
                             onKeyDown={(e) => {
                               if (e.target !== e.currentTarget) return
                               if (e.key === 'Enter' || e.key === ' ') {
                                 e.preventDefault()
-                                setEditingContact(contact)
-                                setIsNewContactOpen(true)
+                                setPreviewContact(contact)
                               }
                             }}
                           >
@@ -1589,6 +1587,12 @@ export default function Page() {
         dealToEdit={editingDeal}
         onUpdateDeal={handleUpdateDeal}
         settings={currentSettings}
+      />
+
+      <ContactPreviewModal
+        contact={previewContact}
+        openDealsCount={previewContact ? getContactOpenDealsCount(previewContact) : 0}
+        onClose={() => setPreviewContact(null)}
       />
 
       {/* QUICK ADD / EDIT CONTACT MODAL (C) */}

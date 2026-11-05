@@ -1,4 +1,4 @@
-# Freelancer CRM
+<img src="./brand/logo-horizontal.svg" alt="Freelancer CRM" height="56">
 
 A keyboard-first, local-first CRM and project tracker for solo freelancers. It keeps leads, clients and active projects in one place, on your own machine.
 

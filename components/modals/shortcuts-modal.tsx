@@ -47,7 +47,7 @@ export function ShortcutsModal({ isOpen, onClose }: ShortcutsModalProps) {
       icon: <LayoutGrid size={15} className="text-[#6f7988]" />,
       items: [
         { keys: ['Tab'], label: 'Focus the next deal' },
-        { keys: ['↵'], label: 'Open the focused deal' },
+        { keys: ['↵'], label: 'Edit the focused deal' },
       ],
     },
     {
@@ -55,7 +55,7 @@ export function ShortcutsModal({ isOpen, onClose }: ShortcutsModalProps) {
       icon: <Navigation size={15} className="text-[#6f7988]" />,
       items: [
         { keys: ['G', 'D'], label: 'Go to Home' },
-        { keys: ['G', 'P'], label: 'Go to Deals & Pipeline' },
+        { keys: ['G', 'P'], label: 'Go to Deals' },
         { keys: ['G', 'U'], label: 'Go to Clients' },
         { keys: ['G', 'S'], label: 'Go to Settings' },
       ],

@@ -109,7 +109,6 @@ export function CommandPalette({
         category: 'Notes',
         title: 'Open Scratchpad & Meeting Notes',
         subtitle: 'Fast slash-command notes, /call, /scope, /quote, /todo',
-        shortcut: 'Ctrl+N',
         icon: <FileText size={15} className="text-[#266df0]" />,
         actionType: 'open_scratchpad',
       },
@@ -155,7 +154,7 @@ export function CommandPalette({
         id: 'action-new-deal',
         category: 'Actions',
         title: 'Create new deal',
-        subtitle: 'Quick capture pipeline opportunity',
+        subtitle: 'Add a deal to a client',
         shortcut: 'N',
         icon: <PlusCircle size={15} className="text-[#266df0]" />,
         actionType: 'new_deal',
@@ -757,7 +756,7 @@ export function CommandPalette({
               <kbd className="px-1 bg-white border border-[#e4e7ec] rounded font-bold">C</kbd> contact
             </span>
             <span className="flex items-center gap-1">
-              <kbd className="px-1 bg-white border border-[#e4e7ec] rounded font-bold">L</kbd> log
+              <kbd className="px-1 bg-white border border-[#e4e7ec] rounded font-bold">?</kbd> help
             </span>
           </div>
         </div>

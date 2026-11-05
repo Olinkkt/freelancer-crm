@@ -294,7 +294,7 @@ export default function Page() {
         } else if (key === 'p') {
           e.preventDefault()
           setActiveView('Deals')
-          addToast('Navigated to Deals & Pipeline', 'G P')
+          addToast('Navigated to Deals', 'G P')
           return
         } else if (key === 'u') {
           e.preventDefault()
@@ -1349,7 +1349,7 @@ export default function Page() {
                       category: 'Deals',
                       items: [
                         { label: 'Move between deals', keys: ['Tab'], note: 'Focus the next deal row' },
-                        { label: 'Open deal', keys: ['↵'], note: 'Open the focused deal' },
+                        { label: 'Edit deal', keys: ['↵'], note: 'Edit the focused deal' },
                       ],
                     },
                     {

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { ArrowLeft, ArrowRight, Check, ChevronDown, Clock, Edit3, FileText, Plus } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, Clock, Edit3, FileText, Plus } from 'lucide-react'
 import {
   Deal,
   DealStage,
@@ -184,11 +184,11 @@ function CrmStagePicker({ stage, onPick }: { stage: DealStage; onPick: (stage: D
         aria-haspopup="menu"
         aria-expanded={open}
         title="Sales (CRM) stages"
-        className={`deal-stage-step inline-flex items-center gap-1 ${inCrm ? 'current' : ''}`}
+        className={`deal-stage-step ${inCrm ? 'current' : ''}`}
+        style={{ cursor: 'pointer' }}
         onClick={() => setOpen((v) => !v)}
       >
-        {inCrm ? stage : <Plus size={13} aria-label="CRM stages" />}
-        <ChevronDown size={12} />
+        {inCrm ? stage : <Plus size={12} className="inline align-[-1px]" aria-label="CRM stages" />}
       </button>
       {open && (
         <div role="menu" className="deal-stage-menu">

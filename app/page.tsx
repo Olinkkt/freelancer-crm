@@ -41,6 +41,7 @@ import {
   CommandPalette,
   PaletteActionType,
 } from '@/components/command-palette/command-palette'
+import { NotesModal } from '@/components/modals/notes-modal'
 import { ShortcutsModal } from '@/components/modals/shortcuts-modal'
 import { NewDealModal } from '@/components/modals/new-deal-modal'
 import { NewContactModal } from '@/components/modals/new-contact-modal'
@@ -129,7 +130,7 @@ export default function Page() {
   // Modals State
   const [isPaletteOpen, setIsPaletteOpen] = useState(false)
   /** Deal whose notes the palette should open on (set by "Notes" on a deal row) */
-  const [paletteNotesDealId, setPaletteNotesDealId] = useState<string | null>(null)
+  const [notesDealId, setNotesDealId] = useState<string | null>(null)
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false)
   const [isNewDealOpen, setIsNewDealOpen] = useState(false)
   const [isNewContactOpen, setIsNewContactOpen] = useState(false)
@@ -254,6 +255,7 @@ export default function Page() {
       // If any modal/drawer is open, handle ESC to close
       const isBlockingModalOpen =
         isPaletteOpen ||
+        notesDealId !== null ||
         isShortcutsOpen ||
         isNewDealOpen ||
         isNewContactOpen
@@ -342,6 +344,7 @@ export default function Page() {
     }
   }, [
     isPaletteOpen,
+    notesDealId,
     isShortcutsOpen,
     isNewDealOpen,
     isNewContactOpen,
@@ -367,16 +370,8 @@ export default function Page() {
     if (activeView === 'Deal' && !openedDeal) setActiveView(dealReturnView)
   }, [activeView, openedDeal, dealReturnView])
 
-  // Forget the notes target however the palette closes (Esc, ⌘K, click-out)
-  useEffect(() => {
-    if (!isPaletteOpen) setPaletteNotesDealId(null)
-  }, [isPaletteOpen])
-
-  // Deal notes live in the ⌘K scratchpad; open it already pointed at this deal
-  const openDealNotes = (deal: Deal) => {
-    setPaletteNotesDealId(deal.id)
-    setIsPaletteOpen(true)
-  }
+  // Deal notes open in their own light modal
+  const openDealNotes = (deal: Deal) => setNotesDealId(deal.id)
 
   // Handle Command Palette Selection
   const handlePaletteAction = (actionType: PaletteActionType, payload?: any) => {
@@ -404,6 +399,9 @@ export default function Page() {
       case 'open_contact':
         setActiveView('Clients')
         if (payload?.name) setContactSearch(payload.name)
+        break
+      case 'open_deal_notes':
+        setNotesDealId(payload)
         break
       case 'open_scratchpad':
         setIsPaletteOpen(true)
@@ -1619,12 +1617,17 @@ export default function Page() {
       <CommandPalette
         isOpen={isPaletteOpen}
         onClose={() => setIsPaletteOpen(false)}
-        notesDealId={paletteNotesDealId}
         onSelectAction={handlePaletteAction}
         deals={deals}
         contacts={contacts}
         onUpdateDeal={handleUpdateDeal}
         onAddActivity={(act) => handleLogActivity(act)}
+      />
+
+      <NotesModal
+        deal={deals.find((d) => d.id === notesDealId) ?? null}
+        onClose={() => setNotesDealId(null)}
+        onSave={handleUpdateDeal}
       />
 
       {/* SHORTCUTS CHEATSHEET MODAL (?) */}

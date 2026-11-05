@@ -396,8 +396,8 @@ export function CommandPalette({
       return
     }
     if (item.actionType === 'open_deal_notes') {
-      handleSelectTargetDeal(item.payload)
-      setSubpage('scratchpad')
+      onClose()
+      onSelectAction('open_deal_notes', item.payload)
       return
     }
     onClose()

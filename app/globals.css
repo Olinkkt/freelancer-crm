@@ -1642,3 +1642,38 @@ button {
 .panel.p-0 {
   padding: 0 !important;
 }
+
+/* Deal notes modal: opacity/transform only so it opens without jank */
+.notes-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 12vh 16px 0;
+  background: rgb(16 20 28 / 0.3);
+  animation: notes-fade 140ms ease-out;
+}
+.notes-modal-panel {
+  width: 100%;
+  max-width: 640px;
+  background: #fff;
+  border: 1px solid #e4e7ec;
+  border-radius: 12px;
+  box-shadow: 0 20px 40px -12px rgb(16 20 28 / 0.25);
+  overflow: hidden;
+  animation: notes-rise 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, opacity;
+}
+@keyframes notes-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes notes-rise {
+  from { opacity: 0; transform: translateY(8px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .notes-modal-backdrop, .notes-modal-panel { animation: none; }
+}

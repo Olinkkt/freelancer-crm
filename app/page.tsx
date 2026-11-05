@@ -44,6 +44,7 @@ import { EditFollowUpModal } from '@/components/modals/edit-follow-up-modal'
 import { useShortcuts } from '@/lib/use-shortcuts'
 import { ShortcutId, bindingLabel, eventToStep, hasModifier } from '@/lib/shortcuts'
 import { ShortcutsSettings } from '@/components/settings/shortcuts-settings'
+import { ApiTokensSettings } from '@/components/settings/api-tokens-settings'
 import { EditSettingsModal } from '@/components/modals/edit-settings-modal'
 import { DealList } from '@/components/deals/deal-list'
 import { DealDetail } from '@/components/deals/deal-detail'
@@ -140,7 +141,7 @@ export default function Page() {
   const [editingFollowUp, setEditingFollowUp] = useState<FollowUpItem | null>(null)
   const [isEditSettingsOpen, setIsEditSettingsOpen] = useState(false)
   const [settingsModalInitialTab, setSettingsModalInitialTab] = useState<'profile' | 'calendar'>('profile')
-  const [settingsTab, setSettingsTab] = useState<'profile' | 'shortcuts' | 'export'>('profile')
+  const [settingsTab, setSettingsTab] = useState<'profile' | 'shortcuts' | 'export' | 'api'>('profile')
 
   // Floating Toasts / HUD
   const [toasts, setToasts] = useState<ToastHUDItem[]>([])
@@ -1035,6 +1036,13 @@ export default function Page() {
                 >
                   Data
                 </button>
+                <button
+                  type="button"
+                  className={settingsTab === 'api' ? 'tab-active' : ''}
+                  onClick={() => setSettingsTab('api')}
+                >
+                  API
+                </button>
               </div>
 
               {/* TAB 1: GENERAL & PROFILE */}
@@ -1209,6 +1217,8 @@ export default function Page() {
 
               {/* TAB 2: KEYBOARD SHORTCUTS */}
               {settingsTab === 'shortcuts' && <ShortcutsSettings />}
+
+              {settingsTab === 'api' && <ApiTokensSettings />}
 
               {/* TAB 3: DATA & PORTABILITY */}
               {settingsTab === 'export' && (

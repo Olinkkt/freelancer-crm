@@ -1,0 +1,25 @@
+name: Bug report
+description: Something is broken or behaves wrong
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, what did you get?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: "1. Press N\n2. ..."
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+  - type: dropdown
+    id: setup
+    attributes:
+      label: How are you running it?
+      options: [Docker, pnpm dev, Other]

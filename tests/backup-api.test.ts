@@ -38,7 +38,7 @@ test('Backup & Restore API (/api/backup)', async (t) => {
     assert.ok(Array.isArray(data.deals))
     assert.equal(data.companies, undefined)
     assert.ok(Array.isArray(data.contacts))
-    assert.ok(Array.isArray(data.activities))
+    assert.equal(data.activities, undefined)
     assert.ok(Array.isArray(data.followUps))
   })
 

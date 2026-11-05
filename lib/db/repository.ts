@@ -6,7 +6,6 @@ import { ensureDbInitialized } from './init'
 import {
   Deal,
   Contact,
-  Activity,
   FollowUpItem,
   DealStage,
   WorkspaceData,
@@ -112,10 +111,9 @@ export function mapDealRow(r: any): Deal {
 export async function getWorkspaceData(): Promise<WorkspaceData> {
   await ensureDbInitialized()
 
-  const [dealRows, contactRows, activityRows, followUpRows, settingsRow] = await Promise.all([
+  const [dealRows, contactRows, followUpRows, settingsRow] = await Promise.all([
     db.selectFrom('deals').selectAll().orderBy('created_at', 'desc').execute(),
     db.selectFrom('contacts').selectAll().orderBy('name', 'asc').execute(),
-    db.selectFrom('activities').selectAll().orderBy('created_at', 'desc').execute(),
     db.selectFrom('follow_ups').selectAll().orderBy('created_at', 'desc').execute(),
     db.selectFrom('workspace_settings').selectAll().where('id', '=', 'current').executeTakeFirst(),
   ])
@@ -131,19 +129,6 @@ export async function getWorkspaceData(): Promise<WorkspaceData> {
     deals: Number(r.deals) || 0,
     lastTouch: r.last_touch,
     color: r.color as Contact['color'],
-  }))
-
-  const activities: Activity[] = activityRows.map((r) => ({
-    id: r.id,
-    dealId: r.deal_id ?? undefined,
-    type: r.type as Activity['type'],
-    title: r.title,
-    person: r.person,
-    company: r.company,
-    date: r.date,
-    status: r.status as Activity['status'],
-    color: r.color as Activity['color'],
-    summary: r.summary ?? undefined,
   }))
 
   const followUps: FollowUpItem[] = followUpRows.map((r) => ({
@@ -172,7 +157,6 @@ export async function getWorkspaceData(): Promise<WorkspaceData> {
   return {
     deals,
     contacts,
-    activities,
     followUps,
     settings,
   }
@@ -359,32 +343,6 @@ export async function getDealById(idOrSlug: string): Promise<Deal | null> {
   return mapDealRow(match)
 }
 
-export async function getDealActivities(dealId: string): Promise<Activity[]> {
-  await ensureDbInitialized()
-
-  const rows = await db
-    .selectFrom('activities')
-    .selectAll()
-    .where('deal_id', '=', dealId)
-    .orderBy('created_at', 'desc')
-    .execute()
-
-  return rows.map((r) => ({
-    id: r.id,
-    dealId: r.deal_id ?? undefined,
-    type: r.type as Activity['type'],
-    title: r.title,
-    person: r.person,
-    company: r.company,
-    date: r.date,
-    status: r.status as Activity['status'],
-    color: r.color as Activity['color'],
-    summary: r.summary ?? undefined,
-    notes: r.summary ?? undefined,
-    createdAt: r.created_at,
-  }))
-}
-
 export async function deleteDeal(id: string): Promise<boolean> {
   await ensureDbInitialized()
 
@@ -399,8 +357,7 @@ export async function deleteDeal(id: string): Promise<boolean> {
   // Delete deal
   await db.deleteFrom('deals').where('id', '=', id).execute()
 
-  // Unlink associated activities & follow-ups
-  await db.updateTable('activities').set({ deal_id: null }).where('deal_id', '=', id).execute()
+  // Unlink associated follow-ups
   await db.updateTable('follow_ups').set({ deal_id: null }).where('deal_id', '=', id).execute()
 
   return true
@@ -559,154 +516,8 @@ export async function deleteContact(id: string): Promise<boolean> {
 }
 
 // -------------------------------------------------------------
-// ACTIVITIES & FOLLOW-UPS REPOSITORY
+// FOLLOW-UPS REPOSITORY
 // -------------------------------------------------------------
-export async function logActivity(
-  activityData: Omit<Activity, 'id'>,
-  followUpData?: Omit<FollowUpItem, 'id'>,
-  dealId?: string
-): Promise<{
-  activity: Activity
-  followUp?: FollowUpItem
-  updatedDeal?: Deal
-}> {
-  await ensureDbInitialized()
-
-  const targetDealId = dealId || activityData.dealId
-  const actId = generateId('act')
-  const now = new Date().toISOString()
-
-  // 1. Insert Activity
-  await db
-    .insertInto('activities')
-    .values({
-      id: actId,
-      deal_id: targetDealId || null,
-      type: activityData.type,
-      title: activityData.title,
-      person: activityData.person,
-      company: activityData.company,
-      date: activityData.date,
-      status: activityData.status,
-      color: activityData.color || 'blue',
-      summary: activityData.summary || null,
-      created_at: now,
-    })
-    .execute()
-
-  const createdActivity: Activity = {
-    ...activityData,
-    id: actId,
-    dealId: targetDealId,
-  }
-
-  // 2. Insert Follow-up if requested
-  let createdFollowUp: FollowUpItem | undefined
-  if (followUpData) {
-    const fuId = generateId('fu')
-    await db
-      .insertInto('follow_ups')
-      .values({
-        id: fuId,
-        deal_id: targetDealId || null,
-        day: followUpData.day,
-        company: followUpData.company,
-        action: followUpData.action,
-        time: followUpData.time,
-        tone: followUpData.tone,
-        completed: followUpData.completed ? 1 : 0,
-        created_at: now,
-      })
-      .execute()
-
-    createdFollowUp = {
-      ...followUpData,
-      id: fuId,
-      completed: Boolean(followUpData.completed),
-    }
-  }
-
-  // 3. Sync to linked deal notes & next action
-  let updatedDeal: Deal | undefined
-  if (targetDealId) {
-    const existingDealRow = await db
-      .selectFrom('deals')
-      .selectAll()
-      .where('id', '=', targetDealId)
-      .executeTakeFirst()
-
-    if (existingDealRow) {
-      let workspaceLocale = 'en-US'
-      try {
-        const settings = await getWorkspaceSettings()
-        if (settings?.locale) {
-          workspaceLocale = settings.locale
-        }
-      } catch {
-        // Fallback to en-US
-      }
-      const timeStr = new Date().toLocaleDateString(workspaceLocale, {
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      })
-      const noteHeading = `### 📞 ${createdActivity.type}: ${createdActivity.title} (${timeStr})\n`
-      const noteContent = createdActivity.summary
-        ? `${noteHeading}${createdActivity.summary}`
-        : noteHeading.trim()
-
-      const newNotes = existingDealRow.notes
-        ? `${existingDealRow.notes}\n\n${noteContent}`
-        : noteContent
-
-      const newNext = followUpData?.action || existingDealRow.next
-      const newNextDueDate = normalizeDueDate(followUpData?.time) || existingDealRow.next_due_date
-      // A fresh next action means the ball is back with you
-      const newWaiting = followUpData?.action ? 0 : Number(existingDealRow.waiting) || 0
-
-      await db
-        .updateTable('deals')
-        .set({
-          notes: newNotes,
-          next: newNext,
-          next_due_date: newNextDueDate,
-          waiting: newWaiting,
-          updated_at: now,
-        })
-        .where('id', '=', targetDealId)
-        .execute()
-
-      updatedDeal = {
-        id: existingDealRow.id,
-        title: existingDealRow.title,
-        value: existingDealRow.value,
-        rawAmount: Number(existingDealRow.raw_amount) || 0,
-        stage: existingDealRow.stage as DealStage,
-        next: newNext,
-        nextDueDate: newNextDueDate ?? undefined,
-        waiting: newWaiting === 1,
-        color: (existingDealRow.color as Deal['color']) || 'blue',
-        contactId: existingDealRow.contact_id ?? undefined,
-        contactName: existingDealRow.contact_name ?? '',
-        contactEmail: existingDealRow.contact_email ?? undefined,
-        notes: newNotes,
-        startDate: existingDealRow.start_date ?? undefined,
-        endDate: existingDealRow.end_date ?? undefined,
-        deliverables: safeParseJson<DeliverableItem[]>(existingDealRow.deliverables, []),
-        invoices: safeParseJson<InvoiceMilestone[]>(existingDealRow.invoices, []),
-        createdAt: existingDealRow.created_at,
-      }
-    }
-  }
-
-  return {
-    activity: createdActivity,
-    followUp: createdFollowUp,
-    updatedDeal,
-  }
-}
-
 export async function toggleFollowUp(id: string): Promise<boolean> {
   await ensureDbInitialized()
 
@@ -773,26 +584,6 @@ export async function syncTodos(
   return created
 }
 
-export async function updateActivity(activity: Activity): Promise<Activity> {
-  await ensureDbInitialized()
-  await db
-    .updateTable('activities')
-    .set({
-      title: activity.title,
-      type: activity.type,
-      person: activity.person,
-      company: activity.company,
-      date: activity.date,
-      status: activity.status,
-      summary: activity.notes || activity.summary || null,
-      color: activity.color || 'blue',
-      deal_id: activity.dealId || null,
-    })
-    .where('id', '=', activity.id)
-    .execute()
-  return activity
-}
-
 export async function updateFollowUp(followUp: FollowUpItem): Promise<FollowUpItem> {
   await ensureDbInitialized()
   await db
@@ -807,12 +598,6 @@ export async function updateFollowUp(followUp: FollowUpItem): Promise<FollowUpIt
     .where('id', '=', followUp.id)
     .execute()
   return followUp
-}
-
-export async function deleteActivity(id: string): Promise<boolean> {
-  await ensureDbInitialized()
-  const result = await db.deleteFrom('activities').where('id', '=', id).execute()
-  return Number(result[0]?.numDeletedRows ?? 0) > 0
 }
 
 export async function deleteFollowUp(id: string): Promise<boolean> {
@@ -1070,13 +855,11 @@ export async function regenerateCalendarFeedToken(): Promise<string> {
 export async function restoreWorkspaceData(snapshot: {
   deals?: Deal[]
   contacts?: Contact[]
-  activities?: Activity[]
   followUps?: FollowUpItem[]
   settings?: WorkspaceSettings
 }): Promise<{
   dealsCount: number
   contactsCount: number
-  activitiesCount: number
   followUpsCount: number
 }> {
   await ensureDbInitialized()
@@ -1084,7 +867,6 @@ export async function restoreWorkspaceData(snapshot: {
   const totalItems =
     (snapshot.contacts?.length ?? 0) +
     (snapshot.deals?.length ?? 0) +
-    (snapshot.activities?.length ?? 0) +
     (snapshot.followUps?.length ?? 0)
 
   if (totalItems === 0) {
@@ -1096,7 +878,6 @@ export async function restoreWorkspaceData(snapshot: {
   return await db.transaction().execute(async (trx) => {
     // 1. Wipe existing tables cleanly inside transaction
     await trx.deleteFrom('follow_ups').execute()
-    await trx.deleteFrom('activities').execute()
     await trx.deleteFrom('deals').execute()
     await trx.deleteFrom('contacts').execute()
 
@@ -1152,29 +933,7 @@ export async function restoreWorkspaceData(snapshot: {
       }
     }
 
-    // 4. Insert activities
-    if (snapshot.activities && snapshot.activities.length > 0) {
-      for (const a of snapshot.activities) {
-        await trx
-          .insertInto('activities')
-          .values({
-            id: a.id,
-            deal_id: a.dealId ?? null,
-            type: a.type,
-            title: a.title,
-            person: a.person,
-            company: a.company,
-            date: a.date,
-            status: a.status,
-            color: a.color ?? 'blue',
-            summary: a.summary ?? null,
-            created_at: now,
-          })
-          .execute()
-      }
-    }
-
-    // 5. Insert follow_ups
+    // 4. Insert follow_ups
     if (snapshot.followUps && snapshot.followUps.length > 0) {
       for (const f of snapshot.followUps) {
         await trx
@@ -1194,7 +953,7 @@ export async function restoreWorkspaceData(snapshot: {
       }
     }
 
-    // 6. Update workspace settings if provided
+    // 5. Update workspace settings if provided
     if (snapshot.settings) {
       await updateWorkspaceSettings(snapshot.settings)
     }
@@ -1202,7 +961,6 @@ export async function restoreWorkspaceData(snapshot: {
     return {
       dealsCount: snapshot.deals?.length || 0,
       contactsCount: snapshot.contacts?.length || 0,
-      activitiesCount: snapshot.activities?.length || 0,
       followUpsCount: snapshot.followUps?.length || 0,
     }
   })

@@ -5,7 +5,6 @@ import * as repo from '@/lib/db/repository'
 import {
   Deal,
   Contact,
-  Activity,
   FollowUpItem,
   DealStage,
   DeliverableItem,
@@ -90,15 +89,6 @@ export async function fetchDealByIdAction(idOrSlug: string): Promise<Deal | null
   }
 }
 
-export async function fetchDealActivitiesAction(dealId: string): Promise<Activity[]> {
-  await assertAuth()
-  try {
-    return await repo.getDealActivities(dealId)
-  } catch (err: any) {
-    throw new Error(sanitizeErrorMessage(err, 'Failed to fetch deal activities'))
-  }
-}
-
 export async function moveDealStageAction(dealId: string, stage: DealStage): Promise<Deal | null> {
   await assertAuth()
   try {
@@ -156,24 +146,7 @@ export async function deleteContactAction(id: string): Promise<boolean> {
   }
 }
 
-// 4. Activities & Follow-ups actions
-export async function logActivityAction(
-  activityData: Omit<Activity, 'id'>,
-  followUpData?: Omit<FollowUpItem, 'id'>,
-  dealId?: string
-): Promise<{
-  activity: Activity
-  followUp?: FollowUpItem
-  updatedDeal?: Deal
-}> {
-  await assertAuth()
-  try {
-    return await repo.logActivity(activityData, followUpData, dealId)
-  } catch (err: any) {
-    throw new Error(sanitizeErrorMessage(err, 'Failed to log activity'))
-  }
-}
-
+// 4. Follow-ups actions
 export async function toggleFollowUpAction(id: string): Promise<boolean> {
   await assertAuth()
   try {
@@ -196,34 +169,12 @@ export async function syncTodosAction(
   }
 }
 
-export async function updateActivityAction(activity: Activity): Promise<Activity> {
-  await assertAuth()
-  try {
-    return await repo.updateActivity(activity)
-  } catch (err: any) {
-    throw new Error(sanitizeErrorMessage(err, 'Failed to update activity'))
-  }
-}
-
 export async function updateFollowUpAction(followUp: FollowUpItem): Promise<FollowUpItem> {
   await assertAuth()
   try {
     return await repo.updateFollowUp(followUp)
   } catch (err: any) {
     throw new Error(sanitizeErrorMessage(err, 'Failed to update follow-up'))
-  }
-}
-
-export async function deleteActivityAction(id: string): Promise<boolean> {
-  await assertAuth()
-  try {
-    const success = await repo.deleteActivity(id)
-    if (!success) {
-      throw new Error('Activity not found')
-    }
-    return success
-  } catch (err: any) {
-    throw new Error(sanitizeErrorMessage(err, 'Failed to delete activity'))
   }
 }
 

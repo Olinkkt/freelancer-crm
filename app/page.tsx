@@ -24,18 +24,16 @@ import {
 import {
   exportDealsCSV,
   exportContactsCSV,
-  exportActivitiesCSV,
   exportFollowUpsCSV,
 } from '@/lib/csv-export'
 import { getFormattedToday, getDynamicGreeting } from '@/lib/date-utils'
 import { OPERATOR_CONFIG, formatMoney, getOperatorInitials } from '@/lib/config'
-import { Deal, Contact, Activity, FollowUpItem, DealStage, OPEN_DEAL_STAGES, isPmStage } from '@/lib/crm-types'
+import { Deal, Contact, FollowUpItem, DealStage, OPEN_DEAL_STAGES, isPmStage } from '@/lib/crm-types'
 import { useModKey } from '@/lib/use-mod-key'
 import {
   INITIAL_CONTACTS,
   INITIAL_DEALS,
   INITIAL_FOLLOW_UPS,
-  INITIAL_ACTIVITIES,
 } from '@/lib/crm-data'
 import {
   CommandPalette,
@@ -66,7 +64,6 @@ import {
   deleteContactAction,
   deleteFollowUpAction,
   updateFollowUpAction,
-  logActivityAction,
   toggleFollowUpAction,
 } from '@/app/actions/crm'
 import {
@@ -120,7 +117,6 @@ export default function Page() {
   // CRM Data State
   const [deals, setDeals] = useState<Deal[]>(INITIAL_DEALS)
   const [contacts, setContacts] = useState<Contact[]>(INITIAL_CONTACTS)
-  const [activities, setActivities] = useState<Activity[]>(INITIAL_ACTIVITIES)
   const [followUps, setFollowUps] = useState<FollowUpItem[]>(INITIAL_FOLLOW_UPS)
   const [completedFollowUps, setCompletedFollowUps] = useState<string[]>([])
 
@@ -195,7 +191,6 @@ export default function Page() {
         const data = await fetchWorkspaceData()
         setDeals(data.deals)
         setContacts(data.contacts)
-        setActivities(data.activities)
         setFollowUps(data.followUps)
         setCompletedFollowUps(
           data.followUps.filter((f) => f.completed).map((f) => f.id)
@@ -429,33 +424,6 @@ export default function Page() {
       addToast(`Added client "${newContact.name}"`, 'C')
     } catch (err: any) {
       addToast(err?.message || 'Failed to create client', undefined, 'warning')
-    }
-  }
-
-  // Log a deal note (from the command palette scratchpad)
-  const handleLogActivity = async (activityData: Omit<Activity, 'id'>) => {
-    const targetDealId = activityData.dealId
-    try {
-      const result = await logActivityAction(activityData, undefined, targetDealId)
-      setActivities((prev) => [result.activity, ...prev])
-
-      if (result.followUp) {
-        setFollowUps((prev) => [result.followUp!, ...prev])
-      }
-
-      if (result.updatedDeal) {
-        setDeals((prev) =>
-          prev.map((d) => (d.id === result.updatedDeal!.id ? result.updatedDeal! : d))
-        )
-      }
-
-      const linkedDeal = deals.find((d) => d.id === targetDealId)
-      const toastMsg = linkedDeal
-        ? `Logged ${result.activity.type} & synced to ${linkedDeal.title}`
-        : `Logged ${result.activity.type} with ${result.activity.person}`
-      addToast(toastMsg)
-    } catch (err: any) {
-      addToast(err?.message || 'Failed to log activity', undefined, 'warning')
     }
   }
 
@@ -1376,14 +1344,13 @@ export default function Page() {
                       onClick={() => {
                         exportDealsCSV(deals, currentSettings.currency)
                         exportContactsCSV(contacts)
-                        exportActivitiesCSV(activities)
                         exportFollowUpsCSV(followUps)
-                        addToast('All workspace data exported (4 CSV files)', 'Export')
+                        addToast('All workspace data exported (3 CSV files)', 'Export')
                       }}
                       className="primary-button text-[12px] py-1.5 px-3 min-h-0 shrink-0"
                     >
                       <Download size={13} />
-                      <span>Export All (4 CSVs)</span>
+                      <span>Export All (3 CSVs)</span>
                     </button>
                   </div>
 
@@ -1406,15 +1373,6 @@ export default function Page() {
                           action: () => {
                             exportContactsCSV(contacts)
                             addToast(`Exported ${contacts.length} contacts to CSV`, 'CSV')
-                          },
-                        },
-                        {
-                          title: 'Activity History',
-                          desc: 'Meeting notes, call summaries, status audits, linked deal references',
-                          count: activities.length,
-                          action: () => {
-                            exportActivitiesCSV(activities)
-                            addToast(`Exported ${activities.length} activities to CSV`, 'CSV')
                           },
                         },
                         {
@@ -1609,7 +1567,6 @@ export default function Page() {
         deals={deals}
         contacts={contacts}
         onUpdateDeal={handleUpdateDeal}
-        onAddActivity={(act) => handleLogActivity(act)}
       />
 
       <NotesModal

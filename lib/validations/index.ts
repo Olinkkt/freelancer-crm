@@ -57,19 +57,6 @@ export const DealBackupSchema = z.object({
   invoices: z.array(z.any()).optional(),
 })
 
-export const ActivityBackupSchema = z.object({
-  id: z.string().min(1),
-  dealId: z.string().nullable().optional(),
-  type: z.string(),
-  title: z.string(),
-  person: z.string(),
-  company: z.string(),
-  date: z.string(),
-  status: z.string(),
-  color: z.string().optional(),
-  summary: z.string().nullable().optional(),
-})
-
 export const FollowUpBackupSchema = z.object({
   id: z.string().min(1),
   dealId: z.string().nullable().optional(),
@@ -98,7 +85,6 @@ export const BackupPayloadSchema = z
     exportedAt: z.string().optional(),
     contacts: z.array(ContactBackupSchema).optional(),
     deals: z.array(DealBackupSchema).optional(),
-    activities: z.array(ActivityBackupSchema).optional(),
     followUps: z.array(FollowUpBackupSchema).optional(),
     settings: WorkspaceSettingsBackupSchema.optional(),
   })
@@ -107,7 +93,6 @@ export const BackupPayloadSchema = z
       const totalItems =
         (data.contacts?.length ?? 0) +
         (data.deals?.length ?? 0) +
-        (data.activities?.length ?? 0) +
         (data.followUps?.length ?? 0)
       return totalItems > 0
     },

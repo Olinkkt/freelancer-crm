@@ -10,7 +10,7 @@ import {
   getRelativeDayLabel,
 } from '../lib/date-utils'
 import { generateCSV } from '../lib/csv-export'
-import { Deal, Contact, Activity, FollowUpItem } from '../lib/crm-types'
+import { Deal, Contact, FollowUpItem } from '../lib/crm-types'
 
 describe('Date Utilities & Workweek Navigation', () => {
   it('getDateString formats dates as YYYY-MM-DD', () => {

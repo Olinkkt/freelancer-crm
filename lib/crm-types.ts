@@ -120,22 +120,6 @@ export interface Contact {
   color: 'blue' | 'violet' | 'amber' | 'green'
 }
 
-export interface Activity {
-  id: string
-  dealId?: string
-  type: 'Call' | 'Meeting' | 'Email' | 'Follow-up' | 'Note'
-  title: string
-  person: string
-  company: string
-  date: string
-  status: 'Due today' | 'Upcoming' | 'Completed'
-  color: 'blue' | 'violet' | 'amber' | 'green'
-  summary?: string
-  notes?: string
-  dueDate?: string
-  createdAt?: string
-}
-
 export interface FollowUpItem {
   id: string
   day: 'Today' | 'Tomorrow' | 'This week' | 'Next week' | 'Later' | string
@@ -161,7 +145,6 @@ export interface WorkspaceSettings {
 export interface WorkspaceData {
   deals: Deal[]
   contacts: Contact[]
-  activities: Activity[]
   followUps: FollowUpItem[]
   settings?: WorkspaceSettings
 }

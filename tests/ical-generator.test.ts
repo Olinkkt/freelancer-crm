@@ -7,7 +7,7 @@ import {
   formatIcsDateOnly,
   generateIcsCalendar,
 } from '../lib/calendar/ical-generator'
-import { Activity, Deal } from '../lib/crm-types'
+import { Deal } from '../lib/crm-types'
 
 describe('iCalendar (RFC 5545) Generator', () => {
   describe('escapeIcsText', () => {
@@ -108,47 +108,6 @@ describe('iCalendar (RFC 5545) Generator', () => {
       // A next action marked Done should be excluded
       assert.ok(!ics.includes('deal-done'))
       assert.ok(!ics.includes('Finished Corp'))
-    })
-
-    it('includes scheduled activities and omits Completed activities', () => {
-      const activities: Activity[] = [
-        {
-          id: 'act-1',
-          type: 'Call',
-          person: 'John Smith',
-          company: 'TechFlow Ltd',
-          title: 'Contract kickoff',
-          date: '2026-10-25T14:00:00.000Z',
-          status: 'Upcoming',
-          color: 'blue',
-          summary: 'Review payment schedule and project milestones',
-        },
-        {
-          id: 'act-completed',
-          type: 'Meeting',
-          person: 'Alice',
-          company: 'Past Corp',
-          title: 'Past meeting',
-          date: '2026-10-10T10:00:00.000Z',
-          status: 'Completed',
-          color: 'blue',
-        },
-      ]
-
-      const ics = generateIcsCalendar({
-        activities,
-        now: new Date('2026-10-21T12:00:00Z'),
-      })
-
-      assert.ok(ics.includes('UID:activity-act-1@freelancercrm.local\r\n'))
-      assert.ok(ics.includes('SUMMARY:Call: John Smith - Contract kickoff\r\n'))
-      assert.ok(ics.includes('DTSTART:20261025T140000Z\r\n'))
-      assert.ok(ics.includes('DTEND:20261025T150000Z\r\n'))
-      assert.ok(ics.includes('CATEGORIES:Call,Freelancer CRM\r\n'))
-
-      // Completed activity should be excluded
-      assert.ok(!ics.includes('act-completed'))
-      assert.ok(!ics.includes('Past Corp'))
     })
   })
 })

@@ -2,7 +2,7 @@ import { sql } from 'kysely'
 import { normalizeDueDate } from '@/lib/due-date'
 import { db } from './client'
 
-const SCHEMA_VERSION = 13
+const SCHEMA_VERSION = 14
 
 const globalForInit = globalThis as unknown as {
   dbInitPromise?: Promise<void>
@@ -102,24 +102,7 @@ export async function ensureDbInitialized(force = false): Promise<void> {
     await sql`UPDATE deals SET stage = 'Closed' WHERE stage = 'Won';`.execute(db)
     await sql`UPDATE deals SET stage = 'Completed' WHERE stage = 'Warranty';`.execute(db)
 
-    // 3. Activities
-    await sql`
-      CREATE TABLE IF NOT EXISTS activities (
-        id TEXT PRIMARY KEY,
-        deal_id TEXT,
-        type TEXT NOT NULL DEFAULT 'Note',
-        title TEXT NOT NULL,
-        person TEXT NOT NULL DEFAULT '',
-        company TEXT NOT NULL DEFAULT '',
-        date TEXT NOT NULL,
-        status TEXT NOT NULL DEFAULT 'Upcoming',
-        color TEXT NOT NULL DEFAULT 'blue',
-        summary TEXT,
-        created_at TEXT NOT NULL
-      );
-    `.execute(db)
-
-    // 4. Follow-ups
+    // 3. Follow-ups
     await sql`
       CREATE TABLE IF NOT EXISTS follow_ups (
         id TEXT PRIMARY KEY,
@@ -163,11 +146,13 @@ export async function ensureDbInitialized(force = false): Promise<void> {
     await sql`DROP TABLE IF EXISTS google_calendar_events;`.execute(db)
     await sql`DROP TABLE IF EXISTS google_calendar_integrations;`.execute(db)
 
+    // Migration (v14): activities removed; next action + one note per deal are the whole model
+    await sql`DROP TABLE IF EXISTS activities;`.execute(db)
+
     // Helpful query indexes for fast lookups
     try {
       await sql`CREATE INDEX IF NOT EXISTS idx_deals_stage ON deals(stage);`.execute(db)
       await sql`CREATE INDEX IF NOT EXISTS idx_deals_contact ON deals(contact_id);`.execute(db)
-      await sql`CREATE INDEX IF NOT EXISTS idx_activities_deal ON activities(deal_id);`.execute(db)
       await sql`CREATE INDEX IF NOT EXISTS idx_follow_ups_deal ON follow_ups(deal_id);`.execute(db)
     } catch {
       // Ignore index creation errors if dialect differs

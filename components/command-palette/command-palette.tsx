@@ -25,7 +25,7 @@ import {
   CheckSquare,
   Save,
 } from 'lucide-react'
-import { Deal, Contact, Activity } from '@/lib/crm-types'
+import { Deal, Contact } from '@/lib/crm-types'
 import { fuzzyScoreFields } from '@/lib/fuzzy'
 import { ScratchpadEditor } from '../drawers/scratchpad-editor'
 import { formatMoney, OPERATOR_CONFIG } from '@/lib/config'
@@ -60,7 +60,6 @@ interface CommandPaletteProps {
   deals: Deal[]
   contacts: Contact[]
   onUpdateDeal?: (deal: Deal, opts?: { silent?: boolean }) => void
-  onAddActivity?: (activity: Omit<Activity, 'id'>) => void
   /** Open straight into the notes editor for this deal */
   notesDealId?: string | null
 }
@@ -74,7 +73,6 @@ export function CommandPalette({
   deals,
   contacts,
   onUpdateDeal,
-  onAddActivity,
   notesDealId,
 }: CommandPaletteProps) {
   const [query, setQuery] = useState('')
@@ -83,7 +81,6 @@ export function CommandPalette({
   const [subpage, setSubpage] = useState<'main' | 'scratchpad'>('main')
   const [targetDealId, setTargetDealId] = useState<string>('')
   const [scratchpadNotes, setScratchpadNotes] = useState<string>('')
-  const [isSavedToast, setIsSavedToast] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
 
@@ -112,7 +109,7 @@ export function CommandPalette({
 
   const handleChangeNotes = (value: string) => {
     setScratchpadNotes(value)
-    if (!targetDealId || targetDealId === 'general') return
+    if (!targetDealId) return
     pendingNotesRef.current = { dealId: targetDealId, notes: value }
     setSaveState('saving')
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
@@ -134,9 +131,8 @@ export function CommandPalette({
     const notesDeal = notesDealId ? dealsRef.current.find((d) => d.id === notesDealId) : undefined
     const initialDeal = notesDeal || dealsRef.current[0]
     setSubpage(notesDeal ? 'scratchpad' : 'main')
-    setTargetDealId(initialDeal?.id || 'general')
+    setTargetDealId(initialDeal?.id || '')
     setScratchpadNotes(initialDeal?.notes || '')
-    setIsSavedToast(false)
     setSaveState('idle')
   }, [isOpen, notesDealId])
 
@@ -157,7 +153,7 @@ export function CommandPalette({
         id: 'action-scratchpad',
         category: 'Notes',
         title: 'Open Scratchpad',
-        subtitle: 'Notes for a deal, or a general workspace note',
+        subtitle: 'The note attached to a deal',
         icon: <FileText size={15} className="text-[#266df0]" />,
         actionType: 'open_scratchpad',
       },
@@ -351,43 +347,8 @@ export function CommandPalette({
     flushNotes()
     setSaveState('idle')
     setTargetDealId(dealId)
-    if (dealId === 'general') {
-      setScratchpadNotes('')
-    } else {
-      const d = deals.find((x) => x.id === dealId)
-      setScratchpadNotes(d?.notes || '')
-    }
-  }
-
-  const handleSaveNotes = () => {
-
-    const now = new Date()
-    const timeStr = 'Today, ' + now.toLocaleTimeString(OPERATOR_CONFIG.locale || 'en-US', { hour: '2-digit', minute: '2-digit' })
-
-    if (targetDealId && targetDealId !== 'general') {
-      const d = deals.find((x) => x.id === targetDealId)
-      // Deal notes live on the deal itself; saving doesn't log an activity
-      if (d && onUpdateDeal) {
-        onUpdateDeal({ ...d, notes: scratchpadNotes }, { silent: true })
-      }
-    } else if (targetDealId === 'general') {
-      if (!scratchpadNotes.trim()) return
-      if (onAddActivity) {
-        onAddActivity({
-          type: 'Note',
-          title: 'Workspace Scratchpad Note',
-          person: 'Workspace',
-          company: 'Workspace',
-          date: timeStr,
-          status: 'Completed',
-          color: 'blue',
-          summary: scratchpadNotes.trim(),
-        })
-      }
-    }
-
-    setIsSavedToast(true)
-    setTimeout(() => setIsSavedToast(false), 2500)
+    const d = deals.find((x) => x.id === dealId)
+    setScratchpadNotes(d?.notes || '')
   }
 
   // Keyboard navigation within the palette
@@ -399,8 +360,7 @@ export function CommandPalette({
         setSubpage('main')
       } else if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
         e.preventDefault()
-        if (targetDealId === 'general') handleSaveNotes()
-        else flushNotes()
+        flushNotes()
       }
       return
     }
@@ -499,7 +459,6 @@ export function CommandPalette({
                   onChange={(e) => handleSelectTargetDeal(e.target.value)}
                   className="px-2.5 py-1 text-[11px] font-medium bg-white border border-[#e4e7ec] rounded-[7px] text-[#1c1d1f] focus:outline-none focus:border-[#266df0] max-w-[200px] truncate"
                 >
-                  <option value="general">Workspace General Note</option>
                   {deals.map((d) => (
                     <option key={d.id} value={d.id}>
                       {d.contactName}: {d.title}
@@ -534,19 +493,9 @@ export function CommandPalette({
                 </span>
               </div>
 
-              {targetDealId === 'general' ? (
-                <button
-                  type="button"
-                  onClick={handleSaveNotes}
-                  className="px-3 py-1 bg-[#232529] hover:bg-[#101113] text-white font-medium rounded-[7px] shadow-xs transition-colors cursor-pointer"
-                >
-                  {isSavedToast ? 'Saved!' : 'Save Note'}
-                </button>
-              ) : (
-                <span className="text-[#8f99a8]" aria-live="polite">
-                  {saveState === 'saving' ? 'Saving…' : saveState === 'saved' ? 'Saved' : 'Autosaves'}
-                </span>
-              )}
+              <span className="text-[#8f99a8]" aria-live="polite">
+                {saveState === 'saving' ? 'Saving…' : saveState === 'saved' ? 'Saved' : 'Autosaves'}
+              </span>
             </div>
           </div>
         ) : (

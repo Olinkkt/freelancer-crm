@@ -35,20 +35,6 @@ export interface DealTable {
   updated_at: string
 }
 
-export interface ActivityTable {
-  id: string
-  deal_id: string | null
-  type: string
-  title: string
-  person: string
-  company: string
-  date: string
-  status: string
-  color: string
-  summary: string | null
-  created_at: string
-}
-
 export interface FollowUpTable {
   id: string
   deal_id: string | null
@@ -79,7 +65,6 @@ export interface WorkspaceSettingsTable {
 export interface Database {
   contacts: ContactTable
   deals: DealTable
-  activities: ActivityTable
   follow_ups: FollowUpTable
   workspace_settings: WorkspaceSettingsTable
 }

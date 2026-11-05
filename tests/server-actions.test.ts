@@ -16,7 +16,6 @@ import {
   moveDealStageAction,
   updateDealChecklistAction,
   createContactAction,
-  logActivityAction,
   toggleFollowUpAction,
   syncTodosAction,
 } from '@/app/actions/crm'
@@ -29,14 +28,12 @@ describe('Server Actions Integration', () => {
   })
 
   after(async () => {
-    await db.deleteFrom('activities').execute()
     await db.deleteFrom('follow_ups').execute()
     await db.deleteFrom('deals').execute()
     await db.deleteFrom('contacts').execute()
   })
 
   beforeEach(async () => {
-    await db.deleteFrom('activities').execute()
     await db.deleteFrom('follow_ups').execute()
     await db.deleteFrom('deals').execute()
     await db.deleteFrom('contacts').execute()
@@ -152,35 +149,15 @@ describe('Server Actions Integration', () => {
       })
       assert.ok(contact.id)
 
-      // 6. Log activity action
-      const actResult = await logActivityAction(
-        {
-          type: 'Call',
-          title: 'Contract signing',
-          person: 'George Retail',
-          company: 'RetailHub',
-          date: '2026-09-25',
-          status: 'Completed',
-          color: 'blue',
-        },
-        {
-          day: 'Tomorrow',
-          company: 'RetailHub',
-          action: 'Send invoice #1',
-          time: '09:00',
-          tone: 'urgent',
-          completed: false,
-        },
-        deal.id
-      )
-      assert.ok(actResult.activity.id)
-      assert.ok(actResult.followUp)
+      // 6. Sync todos action (creates a follow-up)
+      const created = await syncTodosAction(['Send invoice #1'], 'RetailHub', deal.id)
+      assert.equal(created.length, 1)
 
       // 7. Toggle follow up action
-      const toggled = await toggleFollowUpAction(actResult.followUp.id)
+      const toggled = await toggleFollowUpAction(created[0].id)
       assert.equal(toggled, true)
 
-      // 8. Sync todos action
+      // 8. Sync more todos
       const todos = await syncTodosAction(['Prepare kickoff meeting'], 'RetailHub', deal.id)
       assert.equal(todos.length, 1)
 

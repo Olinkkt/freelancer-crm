@@ -7,7 +7,6 @@ import {
   regenerateCalendarFeedToken,
   claimWorkspace,
   createDeal,
-  logActivity,
 } from '../lib/db/repository'
 import { GET as getFeedRoute } from '../app/api/calendar/feed/[token]/route'
 import {
@@ -23,7 +22,6 @@ describe('Calendar Subscription Feed (iCal / RFC 5545)', () => {
     await ensureDbInitialized(true)
 
     // Clean up test tables
-    await db.deleteFrom('activities').execute()
     await db.deleteFrom('follow_ups').execute()
     await db.deleteFrom('deals').execute()
     await db.deleteFrom('workspace_settings').execute()
@@ -44,7 +42,6 @@ describe('Calendar Subscription Feed (iCal / RFC 5545)', () => {
     } else {
       delete process.env.AUTH_SECRET
     }
-    await db.deleteFrom('activities').execute()
     await db.deleteFrom('follow_ups').execute()
     await db.deleteFrom('deals').execute()
     await db.deleteFrom('workspace_settings').execute()
@@ -101,18 +98,6 @@ describe('Calendar Subscription Feed (iCal / RFC 5545)', () => {
         color: 'blue',
       })
 
-      // Seed an upcoming activity
-      await logActivity({
-        type: 'Call',
-        person: 'Sarah Connor',
-        company: 'Cyberdyne',
-        title: 'Security audit sync',
-        date: '2026-10-28T16:00:00.000Z',
-        status: 'Upcoming',
-        color: 'amber',
-        summary: 'Review pentest findings',
-      })
-
       const req = new Request(`http://localhost:3000/api/calendar/feed/${token}`)
       const res = await getFeedRoute(req, {
         params: Promise.resolve({ token }),
@@ -125,7 +110,6 @@ describe('Calendar Subscription Feed (iCal / RFC 5545)', () => {
       const ics = await res.text()
       assert.ok(ics.startsWith('BEGIN:VCALENDAR\r\n'))
       assert.ok(ics.includes('SUMMARY:Milestone: Client design review (Apex Labs)'))
-      assert.ok(ics.includes('SUMMARY:Call: Sarah Connor - Security audit sync'))
       assert.ok(ics.endsWith('END:VCALENDAR\r\n'))
     })
 

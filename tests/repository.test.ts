@@ -10,7 +10,6 @@ describe('CRM Database Repository', () => {
   })
 
   after(async () => {
-    await db.deleteFrom('activities').execute()
     await db.deleteFrom('follow_ups').execute()
     await db.deleteFrom('deals').execute()
     await db.deleteFrom('contacts').execute()
@@ -19,7 +18,6 @@ describe('CRM Database Repository', () => {
 
   beforeEach(async () => {
     // Clean test tables between runs
-    await db.deleteFrom('activities').execute()
     await db.deleteFrom('follow_ups').execute()
     await db.deleteFrom('deals').execute()
     await db.deleteFrom('contacts').execute()
@@ -33,7 +31,6 @@ describe('CRM Database Repository', () => {
       const data = await repo.getWorkspaceData()
       assert.deepEqual(data.deals, [])
       assert.deepEqual(data.contacts, [])
-      assert.deepEqual(data.activities, [])
       assert.deepEqual(data.followUps, [])
     })
   })
@@ -272,7 +269,7 @@ describe('CRM Database Repository', () => {
       assert.ok(!data.deals.some((d) => (d.stage as string) === 'Paid'))
     })
 
-    it('deleteDeal unlinks activities and follow-ups', async () => {
+    it('deleteDeal unlinks follow-ups', async () => {
       const deal = await repo.createDeal({
         title: 'SEO Audit',
         contactName: 'Omega Corp',
@@ -283,32 +280,11 @@ describe('CRM Database Repository', () => {
         color: 'green',
       })
 
-      // Log activity linked to deal
-      await repo.logActivity(
-        {
-          type: 'Call',
-          title: 'Initial brief',
-          person: 'John Omega',
-          company: 'Omega Corp',
-          date: '2026-09-25',
-          status: 'Completed',
-          color: 'blue',
-          summary: 'Discussed keywords',
-        },
-        {
-          day: 'Today',
-          company: 'Omega Corp',
-          action: 'Send audit report',
-          time: '15:00',
-          tone: 'urgent',
-          completed: false,
-        },
-        deal.id
-      )
+      await repo.syncTodos(['Send audit report'], 'Omega Corp', deal.id)
 
       const preData = await repo.getWorkspaceData()
       assert.equal(preData.deals.length, 1)
-      assert.equal(preData.activities[0].dealId, deal.id)
+      assert.equal(preData.followUps.length, 1)
 
       // Delete deal
       const success = await repo.deleteDeal(deal.id)
@@ -316,14 +292,12 @@ describe('CRM Database Repository', () => {
 
       const postData = await repo.getWorkspaceData()
       assert.equal(postData.deals.length, 0)
-      // Activity and follow-up still exist but unlinked
-      assert.equal(postData.activities.length, 1)
-      assert.equal(postData.activities[0].dealId, undefined)
+      // Follow-up still exists but unlinked
       assert.equal(postData.followUps.length, 1)
 
     })
 
-    it('retrieves a deal by ID or slug and fetches linked activities', async () => {
+    it('retrieves a deal by ID or slug', async () => {
       const deal = await repo.createDeal({
         title: 'Full Stack App Development',
         contactName: 'Stripe Europe',
@@ -344,24 +318,6 @@ describe('CRM Database Repository', () => {
       const bySlug = await repo.getDealById('full-stack-app-development')
       assert.ok(bySlug)
       assert.equal(bySlug.id, deal.id)
-
-      // Log an activity linked to deal
-      await repo.logActivity({
-        dealId: deal.id,
-        type: 'Call',
-        title: 'Technical Scope Sync',
-        person: 'Tech Lead',
-        company: 'Stripe Europe',
-        date: 'Today',
-        status: 'Completed',
-        color: 'blue',
-        summary: 'Discussed API endpoints and schemas',
-      })
-
-      const acts = await repo.getDealActivities(deal.id)
-      assert.equal(acts.length, 1)
-      assert.equal(acts[0].title, 'Technical Scope Sync')
-      assert.equal(acts[0].dealId, deal.id)
     })
   })
 
@@ -418,52 +374,7 @@ describe('CRM Database Repository', () => {
     })
   })
 
-  describe('Activities, Follow-ups, and Scratchpad Todos', () => {
-    it('logActivity updates linked deal notes and next action', async () => {
-      const deal = await repo.createDeal({
-        title: 'App Design',
-        contactName: 'DesignHub',
-        value: '30 000 Kč',
-        rawAmount: 30000,
-        stage: 'Lead',
-        next: 'Old action',
-        color: 'blue',
-      })
-
-      const res = await repo.logActivity(
-        {
-          type: 'Call',
-          title: 'Requirement gathering',
-          person: 'Eva Design',
-          company: 'DesignHub',
-          date: '2026-09-25',
-          status: 'Completed',
-          color: 'blue',
-          summary: 'Client needs dark mode support.',
-        },
-        {
-          day: 'Tomorrow',
-          company: 'DesignHub',
-          action: 'Send dark mode mockups',
-          time: '11:00',
-          tone: 'urgent',
-          completed: false,
-        },
-        deal.id
-      )
-
-      assert.ok(res.activity.id.startsWith('act-'))
-      assert.ok(res.followUp)
-      assert.equal(res.followUp.action, 'Send dark mode mockups')
-
-      assert.ok(res.updatedDeal)
-      assert.equal(res.updatedDeal.next, 'Send dark mode mockups')
-      // follow-up time-of-day is not a date, so the deal's due date is left alone
-      assert.equal(res.updatedDeal.nextDueDate, undefined)
-      assert.ok(res.updatedDeal.notes?.includes('Requirement gathering'))
-      assert.ok(res.updatedDeal.notes?.includes('Client needs dark mode support.'))
-    })
-
+  describe('Follow-ups and Scratchpad Todos', () => {
     it('toggleFollowUp flips completed state', async () => {
       const items = await repo.syncTodos(['Prepare invoice'], 'Acme')
       assert.equal(items.length, 1)

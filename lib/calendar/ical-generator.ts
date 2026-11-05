@@ -1,4 +1,4 @@
-import { Activity, Deal } from '@/lib/crm-types'
+import { Deal } from '@/lib/crm-types'
 import { resolveEventDates } from '@/lib/calendar/web-links'
 
 /**
@@ -51,19 +51,17 @@ export function formatIcsDateOnly(dateStr: string): string {
 export interface IcsCalendarOptions {
   calendarName?: string
   calendarDescription?: string
-  activities?: Activity[]
   deals?: Deal[]
   now?: Date
 }
 
 /**
- * Generates an RFC 5545 compliant .ics string for CRM activities and deal milestones.
+ * Generates an RFC 5545 compliant .ics string for deal milestones.
  */
 export function generateIcsCalendar(options: IcsCalendarOptions = {}): string {
   const {
     calendarName = 'Freelancer CRM',
     calendarDescription = 'Milestones, calls, and client meetings from Freelancer CRM',
-    activities = [],
     deals = [],
     now = new Date(),
   } = options
@@ -113,42 +111,6 @@ export function generateIcsCalendar(options: IcsCalendarOptions = {}): string {
     lines.push(`DESCRIPTION:${escapeIcsText(descriptionLines.join('\n'))}`)
     lines.push('STATUS:CONFIRMED')
     lines.push('CATEGORIES:Milestone,Freelancer CRM')
-    lines.push('END:VEVENT')
-  }
-
-  // 2. Process Activities (Calls, Meetings, Follow-ups)
-  for (const act of activities) {
-    if (!act.date || act.status === 'Completed') {
-      continue
-    }
-
-    const { start, end } = resolveEventDates(act.date)
-    const uid = `activity-${act.id}@freelancercrm.local`
-    const summary = `${act.type}: ${act.person || act.company}${act.title ? ` - ${act.title}` : ''}`
-    const descriptionLines: string[] = [
-      `Type: ${act.type}`,
-      `Person: ${act.person}`,
-      `Company: ${act.company}`,
-      `Status: ${act.status}`,
-      act.summary ? `\nSummary:\n${act.summary}` : '',
-    ].filter(Boolean)
-
-    lines.push('BEGIN:VEVENT')
-    lines.push(`UID:${uid}`)
-    lines.push(`DTSTAMP:${dtstamp}`)
-
-    if (start.date && end.date) {
-      lines.push(`DTSTART;VALUE=DATE:${formatIcsDateOnly(start.date)}`)
-      lines.push(`DTEND;VALUE=DATE:${formatIcsDateOnly(end.date)}`)
-    } else {
-      lines.push(`DTSTART:${formatIcsUtcDateTime(start.dateTime || now)}`)
-      lines.push(`DTEND:${formatIcsUtcDateTime(end.dateTime || now)}`)
-    }
-
-    lines.push(`SUMMARY:${escapeIcsText(summary)}`)
-    lines.push(`DESCRIPTION:${escapeIcsText(descriptionLines.join('\n'))}`)
-    lines.push('STATUS:CONFIRMED')
-    lines.push(`CATEGORIES:${escapeIcsText(act.type)},Freelancer CRM`)
     lines.push('END:VEVENT')
   }
 

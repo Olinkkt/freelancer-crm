@@ -32,7 +32,7 @@ Single-operator, local-first CRM: Next.js App Router, React 19, Kysely, SQLite v
 - Deal stages are **Lead · Qualified · Proposal · Won**. Won means contract signed, i.e. handoff to project work. There is no Paid and no Lost stage. Payment and project tracking belong to a later PM stage.
 - Deals are a list or table with stage filters. Don't bring back Kanban.
 - Every deal is expected to have a next action and due date (GTD rule from `CONTRIBUTING.md`). A deal can instead be **waiting on client** (`deal.waiting`): no next action or date is shown, there's no warning, and it sits in Today's waiting group until you clear it.
-- Deal notes are `deal.notes`, edited in the ⌘K scratchpad. Open it on a specific deal through `notesDealId` / "Notes" in the row menu. Activities attach to a deal, and there is no global feed.
+- Deal notes are `deal.notes`, edited in `components/modals/notes-modal.tsx` (also reachable from the ⌘K scratchpad). Open it on a specific deal through `notesDealId` / "Notes" in the row menu or "Open notes" on the deal detail. A deal is just its next action plus one markdown note (`NotesModal`, autosaves). There are no activities: the table was dropped in schema v14 and there is no feed or log. Old backups that still carry an `activities` key import fine, the key is ignored.
 - Keyboard-first: core actions get a shortcut. The shortcut list is in `components/modals/shortcuts-modal.tsx`.
 
 ## Gotchas

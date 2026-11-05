@@ -37,14 +37,12 @@ describe('API Route Handlers', () => {
 
   after(async () => {
     process.env.AUTH_SECRET = originalSecret
-    await db.deleteFrom('activities').execute()
     await db.deleteFrom('follow_ups').execute()
     await db.deleteFrom('deals').execute()
     await db.deleteFrom('contacts').execute()
   })
 
   beforeEach(async () => {
-    await db.deleteFrom('activities').execute()
     await db.deleteFrom('follow_ups').execute()
     await db.deleteFrom('deals').execute()
     await db.deleteFrom('contacts').execute()
@@ -255,26 +253,8 @@ describe('API Route Handlers', () => {
 
   describe('Follow-ups API', () => {
     it('lists and toggles a follow-up via /api/follow-ups', async () => {
-      const actBody = await repo.logActivity(
-        {
-          type: 'Meeting',
-          title: 'Quarterly Review',
-          person: 'Alice',
-          company: 'Acme',
-          date: '2026-09-25',
-          status: 'Completed',
-          color: 'blue',
-        },
-        {
-          day: 'Tomorrow',
-          company: 'Acme',
-          action: 'Send presentation summary',
-          time: '10:00',
-          tone: 'urgent',
-          completed: false,
-        }
-      )
-      assert.ok(actBody.followUp?.id)
+      const [seeded] = await repo.syncTodos(['Send presentation summary'], 'Acme')
+      assert.ok(seeded?.id)
 
       // Verify follow-up in GET /api/follow-ups
       const fuGet = await getFollowUps(createAuthedRequest('http://localhost:3000/api/follow-ups'))
@@ -283,7 +263,7 @@ describe('API Route Handlers', () => {
 
       // Toggle follow-up
       const patchReq = createAuthedRequest('http://localhost:3000/api/follow-ups', 'PATCH', {
-        id: actBody.followUp!.id,
+        id: seeded.id,
       })
       const patchRes = await patchFollowUp(patchReq)
       assert.equal(patchRes.status, 200)

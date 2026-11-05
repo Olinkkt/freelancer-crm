@@ -34,7 +34,6 @@ export async function GET(
     const icsContent = generateIcsCalendar({
       calendarName: `${operatorName} — Freelancer CRM`,
       calendarDescription: `Client meetings, calls, and active deal milestones for ${operatorName}`,
-      activities: workspace.activities || [],
       deals: workspace.deals || [],
     })
 

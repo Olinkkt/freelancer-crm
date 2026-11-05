@@ -102,26 +102,6 @@ async function run() {
   await page.keyboard.press('Escape')
   await page.waitForTimeout(300)
 
-  // 6. Activities View: RowActionMenu
-  console.log('6. Testing Activities timeline RowActionMenu...')
-  const activitiesNav = page.locator('button:has-text("Activities")').first()
-  await activitiesNav.click()
-  await page.waitForTimeout(300)
-
-  const activityMenuBtn = page.locator('.company-table .company-row button[aria-haspopup="menu"]').first()
-  await activityMenuBtn.waitFor({ state: 'visible' })
-  await activityMenuBtn.click()
-
-  const actLogItem = page.locator('button[role="menuitem"]:has-text("Log interaction")')
-  await actLogItem.waitFor({ state: 'visible' })
-  console.log('  ✓ Activity RowActionMenu opened successfully!')
-
-  await actLogItem.click()
-  await page.waitForSelector('text=Quick Log Call & Deal Note', { timeout: 3000 })
-  console.log('  ✓ Quick-log modal opened from activity menu item!')
-  await page.keyboard.press('Escape')
-  await page.waitForTimeout(300)
-
   console.log('\n--- ALL ROW ACTION MENUS VERIFIED SUCCESSFULLY WITH 0 DEAD CLICKS! ---')
   await browser.close()
 }

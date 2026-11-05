@@ -943,24 +943,6 @@ button {
   }
 }
 
-/* Subtle enter when switching views (content-wrap is re-keyed per view) */
-.content-wrap {
-  animation: view-in 180ms cubic-bezier(0.23, 1, 0.32, 1);
-}
-
-@keyframes view-in {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .content-wrap {
-    animation: none;
-  }
-}
-
 .deals-list {
   margin-top: 8px;
 }

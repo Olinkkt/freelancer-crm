@@ -32,12 +32,10 @@ export function NewDealModal({
   settings,
 }: NewDealModalProps) {
   const modKey = useModKey()
-  const [mode, setMode] = useState<'quick' | 'detailed'>('quick')
   const [title, setTitle] = useState('')
   const [clientName, setClientName] = useState('')
   const [value, setValue] = useState('')
   const [stage, setStage] = useState<DealStage>('Lead')
-  const [probability, setProbability] = useState('20%')
   const [nextAction, setNextAction] = useState('')
   const [nextDueDate, setNextDueDate] = useState('Tomorrow, 10:00')
   const [notes, setNotes] = useState('')
@@ -48,22 +46,18 @@ export function NewDealModal({
     if (isOpen) {
       setError(null)
       if (dealToEdit) {
-        setMode('detailed')
         setTitle(dealToEdit.title || '')
         setClientName(dealToEdit.contactName || initialClientName || '')
         setValue(dealToEdit.value || '')
         setStage(dealToEdit.stage || 'Lead')
-        setProbability(dealToEdit.probability || STAGE_DEFAULT_PROBABILITIES[dealToEdit.stage || 'Lead'] || '20%')
         setNextAction(dealToEdit.next || '')
         setNextDueDate(dealToEdit.nextDueDate || '')
         setNotes(dealToEdit.notes || '')
       } else {
-        setMode('quick')
         setTitle('')
         setClientName(initialClientName || '')
         setValue(formatMoney(25000, settings))
         setStage('Lead')
-        setProbability(STAGE_DEFAULT_PROBABILITIES['Lead'])
         setNextAction('Discovery call & initial scope review')
         setNextDueDate('Tomorrow, 10:00')
         setNotes('')
@@ -120,7 +114,7 @@ export function NewDealModal({
         value: formattedVal || '—',
         rawAmount: numeric,
         stage,
-        probability,
+        probability: STAGE_DEFAULT_PROBABILITIES[stage],
         next: isPaid ? '' : nextAction.trim(),
         nextDueDate: isPaid ? undefined : nextDueDate.trim(),
         color: colorMap[stage] || dealToEdit.color || 'blue',
@@ -132,11 +126,11 @@ export function NewDealModal({
         ...clientFields,
         value: formattedVal || '—',
         rawAmount: numeric,
-        stage: mode === 'quick' ? 'Lead' : stage,
-        probability: mode === 'quick' ? '20%' : probability,
+        stage,
+        probability: STAGE_DEFAULT_PROBABILITIES[stage],
         next: isPaid ? '' : (nextAction.trim() || 'Schedule next step'),
         nextDueDate: isPaid ? undefined : (nextDueDate.trim() || 'This week'),
-        color: colorMap[mode === 'quick' ? 'Lead' : stage] || 'blue',
+        color: colorMap[stage] || 'blue',
         notes: notes.trim(),
         createdAt: 'Just now',
       })
@@ -176,32 +170,6 @@ export function NewDealModal({
           </div>
 
           <div className="flex items-center gap-2">
-            {!dealToEdit && (
-              <div className="flex items-center bg-[#f0f2f5] p-0.5 rounded-[8px] text-[11px] font-medium">
-                <button
-                  type="button"
-                  onClick={() => setMode('quick')}
-                  className={`px-2.5 py-1 rounded-[6px] transition-all cursor-pointer ${
-                    mode === 'quick'
-                      ? 'bg-white text-[#1c1d1f] font-semibold shadow-xs'
-                      : 'text-[#6f7988] hover:text-[#1c1d1f]'
-                  }`}
-                >
-                  ⚡ Quick (5s)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMode('detailed')}
-                  className={`px-2.5 py-1 rounded-[6px] transition-all cursor-pointer ${
-                    mode === 'detailed'
-                      ? 'bg-white text-[#1c1d1f] font-semibold shadow-xs'
-                      : 'text-[#6f7988] hover:text-[#1c1d1f]'
-                  }`}
-                >
-                  Detailed
-                </button>
-              </div>
-            )}
             <button
               onClick={onClose}
               className="w-7 h-7 rounded-[10px] flex items-center justify-center text-[#9fa1a7] hover:text-[#1c1d1f] hover:bg-[#edf0f3] transition-colors"
@@ -269,47 +237,22 @@ export function NewDealModal({
             </div>
           </div>
 
-          {/* Detailed Mode: Pipeline Stage & Probability */}
-          {mode === 'detailed' && (
-            <div className="grid grid-cols-2 gap-3 animate-in fade-in duration-150">
-              <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#505967] mb-1.5">
-                  Pipeline Stage
-                </label>
-                <select
-                  value={stage}
-                  onChange={(e) => {
-                    const newStage = e.target.value as DealStage
-                    setStage(newStage)
-                    setProbability(STAGE_DEFAULT_PROBABILITIES[newStage])
-                  }}
-                  className="w-full h-10 px-3 border border-[#e4e7ec] rounded-[10px] text-[13px] text-[#1c1d1f] bg-white focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
-                >
-                  {STAGES.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#505967] mb-1.5">
-                  Win Probability
-                </label>
-                <select
-                  value={probability}
-                  onChange={(e) => setProbability(e.target.value)}
-                  className="w-full h-10 px-3 border border-[#e4e7ec] rounded-[10px] text-[13px] text-[#1c1d1f] bg-white focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
-                >
-                  <option value="20%">20% — Lead</option>
-                  <option value="40%">40% — Qualified</option>
-                  <option value="70%">70% — Proposal</option>
-                  <option value="100%">100% — Won / Paid</option>
-                </select>
-              </div>
-            </div>
-          )}
+          <div>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-[#505967] mb-1.5">
+              Pipeline Stage
+            </label>
+            <select
+              value={stage}
+              onChange={(e) => setStage(e.target.value as DealStage)}
+              className="w-full h-10 px-3 border border-[#e4e7ec] rounded-[10px] text-[13px] text-[#1c1d1f] bg-white focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
+            >
+              {STAGES.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </div>
 
           {/* Mandatory Next Action GTD Prompt (hidden when stage is Paid) */}
           {stage !== 'Paid' && (
@@ -319,9 +262,6 @@ export function NewDealModal({
                   <AlertCircle size={14} />
                   <span>Next Action</span>
                 </div>
-                {mode === 'quick' && (
-                  <span className="text-[10px] lowercase font-normal text-[#6f7988]">auto-defaults to Lead</span>
-                )}
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <input
@@ -342,9 +282,7 @@ export function NewDealModal({
             </div>
           )}
 
-          {/* Detailed Mode: Operator Notes */}
-          {mode === 'detailed' && (
-            <div className="animate-in fade-in duration-150">
+          <div>
               <label className="block text-[11px] font-bold uppercase tracking-wider text-[#505967] mb-1.5">
                 Notes
               </label>
@@ -355,8 +293,7 @@ export function NewDealModal({
                 placeholder="Initial requirements, key contacts, or budget parameters..."
                 className="w-full p-3 border border-[#e4e7ec] rounded-[10px] text-[12px] text-[#1c1d1f] placeholder:text-[#9fa1a7] focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15 resize-none"
               />
-            </div>
-          )}
+          </div>
 
           <div className="pt-2 flex items-center justify-between">
             <span className="text-[11px] text-[#9fa1a7] font-mono">

@@ -140,7 +140,13 @@ export const NEXT_ACTION_PRESETS: Record<string, string[]> = {
   Lead: ['Discovery call', 'Send intro email', 'Share portfolio', 'Qualify budget'],
   Qualified: ['Send proposal', 'Scope review call', 'Share case studies', 'Confirm timeline'],
   Proposal: ['Follow up on proposal', 'Send revised scope', 'Answer questions', 'Send contract'],
-  Won: ['Kickoff meeting', 'Send deposit invoice', 'Collect assets', 'Share project plan'],
+  Won: ['Kickoff meeting', 'Send deposit invoice', 'Share project plan'],
+  Záloha: ['Send deposit invoice', 'Check deposit arrived', 'Chase deposit'],
+  Podklady: ['Chase client materials', 'Send materials checklist', 'Review received materials'],
+  Build: ['Share preview', 'Collect preview feedback', 'Finish build'],
+  Handoff: ['Hand over project', 'Send final invoice', 'Check final payment'],
+  Revisions: ['Apply revisions', 'Confirm revisions done'],
+  Vady: ['Fix reported defect', 'Check warranty end date'],
 }
 
 export function nextActionPresets(stage: string): string[] {

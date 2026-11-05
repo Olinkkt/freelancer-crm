@@ -8,10 +8,12 @@ import {
   Activity,
   FollowUpItem,
   DealStage,
+  DeliverableItem,
   WorkspaceData,
   WorkspaceSettings,
 } from '@/lib/crm-types'
 import { sanitizeErrorMessage } from '@/lib/errors'
+import { ChecklistSchema, DealStageSchema } from '@/lib/validations'
 
 async function assertAuth() {
   const isAuthed = await checkIsAuthenticated()
@@ -100,9 +102,21 @@ export async function fetchDealActivitiesAction(dealId: string): Promise<Activit
 export async function moveDealStageAction(dealId: string, stage: DealStage): Promise<Deal | null> {
   await assertAuth()
   try {
-    return await repo.moveDealStage(dealId, stage)
+    return await repo.moveDealStage(dealId, DealStageSchema.parse(stage))
   } catch (err: any) {
     throw new Error(sanitizeErrorMessage(err, 'Failed to update deal stage'))
+  }
+}
+
+export async function updateDealChecklistAction(
+  dealId: string,
+  items: DeliverableItem[]
+): Promise<Deal | null> {
+  await assertAuth()
+  try {
+    return await repo.setDealChecklist(dealId, ChecklistSchema.parse(items))
+  } catch (err: any) {
+    throw new Error(sanitizeErrorMessage(err, 'Failed to update checklist'))
   }
 }
 

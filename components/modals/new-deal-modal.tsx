@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useModKey } from '@/lib/use-mod-key'
 import { X, CirclePlus, ArrowUpRight, Calendar, AlertCircle } from 'lucide-react'
-import { Contact, Deal, DealStage, DEAL_STAGES, DEAL_STAGE_HINTS, WorkspaceSettings } from '@/lib/crm-types'
+import { Contact, Deal, DealStage, DEAL_STAGE_HINTS, WorkspaceSettings, isPmStage } from '@/lib/crm-types'
+import { StageOptions } from '@/components/deals/stage-options'
 import { formatMoney, OPERATOR_CONFIG } from '@/lib/config'
 import { Combobox } from '@/components/ui/combobox'
 import { NextActionFields } from '@/components/deals/next-action-fields'
@@ -21,8 +22,6 @@ interface NewDealModalProps {
   onUpdateDeal?: (deal: Deal) => void
   settings?: WorkspaceSettings
 }
-
-const STAGES = DEAL_STAGES
 
 export function NewDealModal({
   isOpen,
@@ -99,12 +98,8 @@ export function NewDealModal({
     const numeric = parseInt(value.replace(/[^0-9]/g, '')) || 0
     const formattedVal = formatMoney(numeric, settings)
 
-    const colorMap: Record<DealStage, Deal['color']> = {
-      Lead: 'blue',
-      Qualified: 'blue',
-      Proposal: 'blue',
-      Won: 'green',
-    }
+    // Signed deals (Won and every PM stage after it) are green
+    const stageColor: Deal['color'] = isPmStage(stage) ? 'green' : 'blue'
 
     if (dealToEdit && onUpdateDeal) {
       onUpdateDeal({
@@ -116,7 +111,7 @@ export function NewDealModal({
         stage,
         next: nextAction.trim(),
         nextDueDate: nextDueDate || undefined,
-        color: colorMap[stage] || dealToEdit.color || 'blue',
+        color: stageColor || dealToEdit.color || 'blue',
         notes: notes.trim(),
       })
     } else {
@@ -128,7 +123,7 @@ export function NewDealModal({
         stage,
         next: nextAction.trim() || 'Schedule next step',
         nextDueDate: nextDueDate || getDateString(addDays(new Date(), 1)),
-        color: colorMap[stage] || 'blue',
+        color: stageColor || 'blue',
         notes: notes.trim(),
         createdAt: 'Just now',
       })
@@ -250,11 +245,7 @@ export function NewDealModal({
               }}
               className="w-full h-10 px-3 border border-[#e4e7ec] rounded-[10px] text-[13px] text-[#1c1d1f] bg-white focus:outline-none focus:border-[#266df0] focus:ring-2 focus:ring-[#266df0]/15"
             >
-              {STAGES.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
+              <StageOptions />
             </select>
             <p className="mt-1 text-[11px] text-[#8f99a8]">{DEAL_STAGE_HINTS[stage]}</p>
           </div>

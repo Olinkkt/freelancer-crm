@@ -449,6 +449,21 @@ export async function moveDealStage(dealId: string, stage: DealStage): Promise<D
   }
 }
 
+/** Replace a deal's checklist (podklady + deliverables) without touching other fields */
+export async function setDealChecklist(dealId: string, items: DeliverableItem[]): Promise<Deal | null> {
+  await ensureDbInitialized()
+
+  const result = await db
+    .updateTable('deals')
+    .set({ deliverables: JSON.stringify(items), updated_at: new Date().toISOString() })
+    .where('id', '=', dealId)
+    .executeTakeFirst()
+  if (!Number(result.numUpdatedRows)) return null
+
+  const row = await db.selectFrom('deals').selectAll().where('id', '=', dealId).executeTakeFirst()
+  return row ? mapDealRow(row) : null
+}
+
 // -------------------------------------------------------------
 // CONTACTS REPOSITORY
 // -------------------------------------------------------------

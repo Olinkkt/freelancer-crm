@@ -2,8 +2,9 @@
 
 import { formatDue, isOverdue } from '@/lib/due-date'
 import React, { useMemo, useState } from 'react'
-import { Search, CirclePlus, ExternalLink, Edit3, Trash2, Clock, WalletCards, FileText } from 'lucide-react'
-import { Deal, DealStage, DEAL_STAGES, DEAL_STAGE_HINTS, WorkspaceSettings } from '@/lib/crm-types'
+import { Search, CirclePlus, ExternalLink, Edit3, Trash2, Clock, WalletCards, FileText, ArrowRight } from 'lucide-react'
+import { Deal, DealStage, DEAL_STAGES, DEAL_STAGE_HINTS, OPEN_DEAL_STAGES, PM_STAGES, isPmStage, nextDealStage, WorkspaceSettings } from '@/lib/crm-types'
+import { StageOptions } from '@/components/deals/stage-options'
 import { RowActionMenu } from '@/components/ui/row-action-menu'
 import { formatDealValue } from '@/lib/config'
 
@@ -19,7 +20,13 @@ interface DealListProps {
   settings?: WorkspaceSettings
 }
 
-type StageFilter = 'All' | DealStage
+/** Deals is the CRM list: one tab per open stage, and every signed deal under "In PM" */
+type StageFilter = 'All' | 'PM' | DealStage
+
+const FILTER_HINTS: Partial<Record<StageFilter, string>> = {
+  ...DEAL_STAGE_HINTS,
+  PM: `Contract signed: ${PM_STAGES.join(' · ')}`,
+}
 
 const stageRank = (stage: DealStage) => {
   const i = DEAL_STAGES.indexOf(stage)
@@ -49,7 +56,7 @@ export function DealList({
   const visibleDeals = useMemo(() => {
     const q = query.trim().toLowerCase()
     return deals
-      .filter((d) => stageFilter === 'All' || d.stage === stageFilter)
+      .filter((d) => stageFilter === 'All' || (stageFilter === 'PM' ? isPmStage(d.stage) : d.stage === stageFilter))
       .filter(
         (d) =>
           !q ||
@@ -65,7 +72,8 @@ export function DealList({
 
   const filters: { key: StageFilter; label: string; count: number }[] = [
     { key: 'All', label: 'All', count: deals.length },
-    ...DEAL_STAGES.map((s) => ({ key: s as StageFilter, label: s, count: countByStage.get(s) || 0 })),
+    ...OPEN_DEAL_STAGES.map((s) => ({ key: s as StageFilter, label: s, count: countByStage.get(s) || 0 })),
+    { key: 'PM', label: 'In PM', count: PM_STAGES.reduce((n, s) => n + (countByStage.get(s) || 0), 0) },
   ]
 
   return (
@@ -94,7 +102,7 @@ export function DealList({
             aria-selected={stageFilter === f.key}
             className={stageFilter === f.key ? 'tab-active' : ''}
             onClick={() => setStageFilter(f.key)}
-            title={f.key === 'All' ? undefined : DEAL_STAGE_HINTS[f.key]}
+            title={FILTER_HINTS[f.key]}
           >
             {f.label} <span className="text-[#8f99a8] font-mono">{f.count}</span>
           </button>
@@ -102,7 +110,7 @@ export function DealList({
       </div>
 
       {stageFilter !== 'All' && (
-        <p className="px-4 pt-2 text-[11px] text-[#8f99a8]">{DEAL_STAGE_HINTS[stageFilter]}</p>
+        <p className="px-4 pt-2 text-[11px] text-[#8f99a8]">{FILTER_HINTS[stageFilter]}</p>
       )}
 
       <div className="deals-list">
@@ -134,8 +142,8 @@ export function DealList({
           <div className="py-8 text-center text-[#8f99a8] text-[12px]">
             {query.trim() || stageFilter === 'All'
               ? 'No deals match this filter.'
-              : stageFilter === 'Won'
-                ? 'No won deals yet. A deal is won once the contract is signed.'
+              : stageFilter === 'PM'
+                ? 'No signed deals yet. A deal moves to PM once it is Won (contract signed).'
                 : `No deals in ${stageFilter}.`}
           </div>
         ) : (
@@ -191,11 +199,7 @@ export function DealList({
                   onChange={(e) => onMoveDealStage(deal.id, e.target.value as DealStage)}
                   className="stage-select"
                 >
-                  {DEAL_STAGES.map((s) => (
-                    <option key={s} value={s} title={DEAL_STAGE_HINTS[s]}>
-                      {s}
-                    </option>
-                  ))}
+                  <StageOptions />
                 </select>
               </div>
 
@@ -229,6 +233,15 @@ export function DealList({
                   items={[
                     ...(onOpenNotes ? [{ label: 'Notes', icon: FileText, onClick: () => onOpenNotes(deal) }] : []),
                     { label: 'Open deal', icon: ExternalLink, onClick: () => onOpenDeal(deal) },
+                    ...(nextDealStage(deal.stage)
+                      ? [
+                          {
+                            label: `Move to ${nextDealStage(deal.stage)}`,
+                            icon: ArrowRight,
+                            onClick: () => onMoveDealStage(deal.id, nextDealStage(deal.stage)!),
+                          },
+                        ]
+                      : []),
                     {
                       label: 'Edit deal',
                       icon: Edit3,

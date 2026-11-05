@@ -18,6 +18,20 @@ const LEGACY_STAGES: Record<string, (typeof DEAL_STAGES)[number]> = {
   Discovery: 'Qualified',
 }
 
+/** One checklist item on a deal (stored in the deliverables JSON column) */
+export const ChecklistItemSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().trim().min(1, 'Item cannot be empty').max(200),
+  status: z.enum(['Pending', 'In Progress', 'Done']),
+  section: z.enum(['podklady', 'deliverables']).optional(),
+  clientSignOff: z.boolean().optional(),
+  dueDate: z.string().optional(),
+})
+
+export const ChecklistSchema = z.array(ChecklistItemSchema).max(200)
+
+export const DealStageSchema = z.enum(DEAL_STAGES)
+
 export const DealBackupSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),

@@ -180,6 +180,61 @@ describe('CRM Database Repository', () => {
       assert.equal(won.invoices?.[0]?.status, 'Sent')
     })
 
+    it('moves a signed deal through the PM stages and keeps its checklist', async () => {
+      const deal = await repo.createDeal({
+        title: 'Portfolio site',
+        contactName: 'Jana',
+        value: '40 000 Kč',
+        rawAmount: 40000,
+        stage: 'Won',
+        next: 'Send deposit invoice',
+        color: 'green',
+      })
+
+      const checklist = await repo.setDealChecklist(deal.id, [
+        { id: 'p1', title: 'Logo SVG', status: 'Pending', section: 'podklady' },
+        { id: 'd1', title: 'Homepage', status: 'Pending', section: 'deliverables' },
+      ])
+      assert.equal(checklist?.deliverables?.length, 2)
+
+      for (const stage of ['Záloha', 'Podklady'] as const) {
+        const moved = await repo.moveDealStage(deal.id, stage)
+        assert.equal(moved?.stage, stage)
+      }
+
+      const ticked = await repo.setDealChecklist(deal.id, [
+        { id: 'p1', title: 'Logo SVG', status: 'Done', section: 'podklady' },
+        { id: 'd1', title: 'Homepage', status: 'Pending', section: 'deliverables' },
+      ])
+      assert.equal(ticked?.stage, 'Podklady')
+      assert.equal(ticked?.next, 'Send deposit invoice')
+
+      const data = await repo.getWorkspaceData()
+      const stored = data.deals.find((d) => d.id === deal.id)
+      assert.equal(stored?.stage, 'Podklady')
+      assert.equal(stored?.deliverables?.find((i) => i.id === 'p1')?.status, 'Done')
+      assert.equal(stored?.deliverables?.find((i) => i.id === 'p1')?.section, 'podklady')
+    })
+
+    it('setDealChecklist returns null for an unknown deal', async () => {
+      assert.equal(await repo.setDealChecklist('nope', []), null)
+    })
+
+    it('existing Won deals stay Won after init', async () => {
+      const deal = await repo.createDeal({
+        title: 'Signed earlier',
+        contactName: 'Petr',
+        value: '5 000 Kč',
+        rawAmount: 5000,
+        stage: 'Won',
+        next: 'Kickoff',
+        color: 'green',
+      })
+      await ensureDbInitialized(true)
+      const data = await repo.getWorkspaceData()
+      assert.equal(data.deals.find((d) => d.id === deal.id)?.stage, 'Won')
+    })
+
     it('migrates legacy Paid deals to Won on init', async () => {
       const deal = await repo.createDeal({
         title: 'Legacy finished project',

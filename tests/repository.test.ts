@@ -433,4 +433,39 @@ describe('CRM Database Repository', () => {
       assert.equal(created[0].tone, 'urgent')
     })
   })
+
+  describe('restoreWorkspaceData', () => {
+    // A deadlock (settings written outside the transaction connection) would hang, so cap it.
+    it('restores records and settings without deadlocking', { timeout: 10000 }, async () => {
+      await repo.claimWorkspace({
+        operatorName: 'Old Name',
+        operatorEmail: 'old@example.com',
+        operatorRole: 'Dev',
+        currency: 'USD',
+        currencySymbol: '$',
+        locale: 'en-US',
+      })
+
+      const result = await repo.restoreWorkspaceData({
+        contacts: [
+          { id: 'c1', name: 'Jana Nováková', email: 'jana@example.com', deals: 0, lastTouch: 'Today', color: 'blue' } as any,
+        ],
+        deals: [],
+        followUps: [],
+        settings: {
+          operatorName: 'New Name',
+          operatorEmail: 'new@example.com',
+          operatorRole: 'Student',
+          currency: 'CZK',
+          currencySymbol: 'Kč',
+          locale: 'cs-CZ',
+        } as any,
+      })
+
+      assert.equal(result.contactsCount, 1)
+      const settings = await repo.getWorkspaceSettings()
+      assert.equal(settings?.operatorName, 'New Name')
+      assert.equal(settings?.currency, 'CZK')
+    })
+  })
 })

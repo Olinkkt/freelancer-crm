@@ -889,7 +889,7 @@ export async function restoreWorkspaceData(snapshot: {
 
   const now = new Date().toISOString()
 
-  return await db.transaction().execute(async (trx) => {
+  const result = await db.transaction().execute(async (trx) => {
     // 1. Wipe existing tables cleanly inside transaction
     await trx.deleteFrom('follow_ups').execute()
     await trx.deleteFrom('deals').execute()
@@ -968,17 +968,21 @@ export async function restoreWorkspaceData(snapshot: {
       }
     }
 
-    // 5. Update workspace settings if provided
-    if (snapshot.settings) {
-      await updateWorkspaceSettings(snapshot.settings)
-    }
-
     return {
       dealsCount: snapshot.deals?.length || 0,
       contactsCount: snapshot.contacts?.length || 0,
       followUpsCount: snapshot.followUps?.length || 0,
     }
   })
+
+  // Settings go through the global `db`, so they must run after the transaction
+  // commits. Inside it they wait for the write lock the transaction holds and
+  // deadlock the only connection.
+  if (snapshot.settings) {
+    await updateWorkspaceSettings(snapshot.settings)
+  }
+
+  return result
 }
 
 

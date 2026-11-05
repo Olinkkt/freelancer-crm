@@ -95,9 +95,6 @@ export function NewContactModal({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#edf0f3] bg-[#fafbfc]">
           <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 text-[10px] font-mono font-medium bg-[#e9f0ff] text-[#266df0] rounded-[7px] border border-[#d6e3fc]">
-              Hotkey: C
-            </span>
             <h2 className="text-[16px] font-semibold text-[#1c1d1f] tracking-tight">
               {contactToEdit ? 'Edit Client' : 'Add Client'}
             </h2>

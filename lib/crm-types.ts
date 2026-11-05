@@ -3,13 +3,25 @@ export type DealStage =
   | 'Qualified'
   | 'Proposal'
   | 'Won'
-  | 'Paid'
 
-/** Pipeline stages in board order — the single source for columns, pickers and counts */
-export const DEAL_STAGES: DealStage[] = ['Lead', 'Qualified', 'Proposal', 'Won', 'Paid']
+/**
+ * Pipeline stages in order — the single source for types, validation, filters,
+ * pickers and counts.
+ * Lead = first contact · Qualified = call + scope · Proposal = contract sent ·
+ * Won = contract signed (handoff to project work).
+ */
+export const DEAL_STAGES = ['Lead', 'Qualified', 'Proposal', 'Won'] as const satisfies readonly DealStage[]
 
-/** Stages a deal is still being won in (Won/Paid are closed) */
-export const OPEN_DEAL_STAGES: DealStage[] = DEAL_STAGES.filter((s) => s !== 'Won' && s !== 'Paid')
+/** Stages a deal is still being won in (everything before Won) */
+export const OPEN_DEAL_STAGES: DealStage[] = DEAL_STAGES.filter((s) => s !== 'Won')
+
+/** One-line meaning of each stage, for helper copy */
+export const DEAL_STAGE_HINTS: Record<DealStage, string> = {
+  Lead: 'First contact',
+  Qualified: 'Call done, scope agreed',
+  Proposal: 'Contract sent',
+  Won: 'Contract signed, ready to start',
+}
 
 export interface DeliverableItem {
   id: string

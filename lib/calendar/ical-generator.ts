@@ -82,7 +82,7 @@ export function generateIcsCalendar(options: IcsCalendarOptions = {}): string {
 
   // 1. Process Deals with upcoming milestones
   for (const deal of deals) {
-    if (deal.stage === 'Paid' || !deal.next || !deal.nextDueDate || deal.nextDueDate === 'Done') {
+    if (!deal.next || !deal.nextDueDate || deal.nextDueDate === 'Done') {
       continue
     }
 

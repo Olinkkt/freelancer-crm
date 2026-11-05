@@ -1,9 +1,5 @@
-export type DealStage =
-  | 'Lead'
-  | 'Qualified'
-  | 'Proposal'
-  | 'Won'
-  | 'Paid'
+export type { DealStage } from '@/lib/crm-types'
+import type { DealStage } from '@/lib/crm-types'
 
 export type DealColor = 'blue' | 'violet' | 'amber' | 'green'
 

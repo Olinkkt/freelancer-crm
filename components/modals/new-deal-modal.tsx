@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useModKey } from '@/lib/use-mod-key'
 import { X, CirclePlus, ArrowUpRight, Calendar, AlertCircle } from 'lucide-react'
-import { Contact, Deal, DealStage, DEAL_STAGES, WorkspaceSettings } from '@/lib/crm-types'
+import { Contact, Deal, DealStage, DEAL_STAGES, DEAL_STAGE_HINTS, WorkspaceSettings } from '@/lib/crm-types'
 import { formatMoney, OPERATOR_CONFIG } from '@/lib/config'
 import { Combobox } from '@/components/ui/combobox'
 import { NextActionFields } from '@/components/deals/next-action-fields'
@@ -104,10 +104,7 @@ export function NewDealModal({
       Qualified: 'blue',
       Proposal: 'blue',
       Won: 'green',
-      Paid: 'green',
     }
-
-    const isPaid = stage === 'Paid'
 
     if (dealToEdit && onUpdateDeal) {
       onUpdateDeal({
@@ -117,8 +114,8 @@ export function NewDealModal({
         value: formattedVal || '—',
         rawAmount: numeric,
         stage,
-        next: isPaid ? '' : nextAction.trim(),
-        nextDueDate: isPaid ? undefined : nextDueDate || undefined,
+        next: nextAction.trim(),
+        nextDueDate: nextDueDate || undefined,
         color: colorMap[stage] || dealToEdit.color || 'blue',
         notes: notes.trim(),
       })
@@ -129,8 +126,8 @@ export function NewDealModal({
         value: formattedVal || '—',
         rawAmount: numeric,
         stage,
-        next: isPaid ? '' : (nextAction.trim() || 'Schedule next step'),
-        nextDueDate: isPaid ? undefined : nextDueDate || getDateString(addDays(new Date(), 1)),
+        next: nextAction.trim() || 'Schedule next step',
+        nextDueDate: nextDueDate || getDateString(addDays(new Date(), 1)),
         color: colorMap[stage] || 'blue',
         notes: notes.trim(),
         createdAt: 'Just now',
@@ -259,26 +256,25 @@ export function NewDealModal({
                 </option>
               ))}
             </select>
+            <p className="mt-1 text-[11px] text-[#8f99a8]">{DEAL_STAGE_HINTS[stage]}</p>
           </div>
 
-          {/* Mandatory Next Action GTD Prompt (hidden when stage is Paid) */}
-          {stage !== 'Paid' && (
-            <div className="p-3.5 bg-[#fafbfc] border border-[#e4e7ec] rounded-[12px] space-y-2">
-              <div className="flex items-center justify-between text-[11px] font-bold text-[#505967] uppercase tracking-wider">
-                <div className="flex items-center gap-1.5">
-                  <AlertCircle size={14} />
-                  <span>Next Action</span>
-                </div>
+          {/* Mandatory Next Action GTD Prompt */}
+          <div className="p-3.5 bg-[#fafbfc] border border-[#e4e7ec] rounded-[12px] space-y-2">
+            <div className="flex items-center justify-between text-[11px] font-bold text-[#505967] uppercase tracking-wider">
+              <div className="flex items-center gap-1.5">
+                <AlertCircle size={14} />
+                <span>Next Action</span>
               </div>
-              <NextActionFields
-                stage={stage}
-                action={nextAction}
-                dueDate={nextDueDate}
-                onActionChange={setNextAction}
-                onDueDateChange={setNextDueDate}
-              />
             </div>
-          )}
+            <NextActionFields
+              stage={stage}
+              action={nextAction}
+              dueDate={nextDueDate}
+              onActionChange={setNextAction}
+              onDueDateChange={setNextDueDate}
+            />
+          </div>
 
           <div>
               <label className="block text-[11px] font-bold uppercase tracking-wider text-[#505967] mb-1.5">

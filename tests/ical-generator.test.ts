@@ -67,7 +67,7 @@ describe('iCalendar (RFC 5545) Generator', () => {
       assert.ok(!ics.includes('BEGIN:VEVENT'))
     })
 
-    it('includes active deal milestones and omits Paid deals or completed milestones', () => {
+    it('includes deal next actions and omits deals with no due date or a completed one', () => {
       const deals: Deal[] = [
         {
           id: 'deal-1',
@@ -81,12 +81,12 @@ describe('iCalendar (RFC 5545) Generator', () => {
           color: 'blue',
         },
         {
-          id: 'deal-paid',
+          id: 'deal-done',
           title: 'Old Contract',
           contactName: 'Finished Corp',
           value: '$5,000',
           rawAmount: 5000,
-          stage: 'Paid',
+          stage: 'Won',
           next: 'Invoice settlement',
           nextDueDate: 'Done',
           color: 'green',
@@ -105,8 +105,8 @@ describe('iCalendar (RFC 5545) Generator', () => {
       assert.ok(ics.includes('DTEND;VALUE=DATE:20261106\r\n'))
       assert.ok(ics.includes('CATEGORIES:Milestone,Freelancer CRM\r\n'))
 
-      // Paid deal should be excluded
-      assert.ok(!ics.includes('deal-paid'))
+      // A next action marked Done should be excluded
+      assert.ok(!ics.includes('deal-done'))
       assert.ok(!ics.includes('Finished Corp'))
     })
 

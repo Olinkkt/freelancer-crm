@@ -146,13 +146,15 @@ describe('CRM Database Repository', () => {
       assert.equal(data.deals[0].color, 'violet')
     })
 
-    it('moveDealStage sets 100% and clears next on Paid stage', async () => {
+    it('moveDealStage to Won keeps next action, deliverables and invoices', async () => {
       const deal = await repo.createDeal({
         title: 'API Integration',
         contactName: 'Fintech Co',
         value: '60 000 Kč',
         rawAmount: 60000,
-        stage: 'Won',
+        stage: 'Proposal',
+        nextDueDate: '2026-12-01',
+        deliverables: [{ id: 'del-1', title: 'API spec', status: 'Pending' }],
         next: 'Deliver milestones',
         color: 'green',
         invoices: [
@@ -169,12 +171,33 @@ describe('CRM Database Repository', () => {
         ],
       })
 
-      const paid = await repo.moveDealStage(deal.id, 'Paid')
-      assert.ok(paid)
-      assert.equal(paid.stage, 'Paid')
-      assert.equal(paid.next, '')
-      assert.equal(paid.nextDueDate, undefined)
-      assert.equal(paid.invoices?.[0]?.status, 'Sent')
+      const won = await repo.moveDealStage(deal.id, 'Won')
+      assert.ok(won)
+      assert.equal(won.stage, 'Won')
+      assert.equal(won.next, 'Deliver milestones')
+      assert.equal(won.nextDueDate, '2026-12-01')
+      assert.equal(won.deliverables?.[0]?.status, 'Pending')
+      assert.equal(won.invoices?.[0]?.status, 'Sent')
+    })
+
+    it('migrates legacy Paid deals to Won on init', async () => {
+      const deal = await repo.createDeal({
+        title: 'Legacy finished project',
+        contactName: 'Old Client',
+        value: '10 000 Kč',
+        rawAmount: 10000,
+        stage: 'Won',
+        next: '',
+        color: 'green',
+      })
+      await db.updateTable('deals').set({ stage: 'Paid' }).where('id', '=', deal.id).execute()
+
+      await ensureDbInitialized(true)
+
+      const data = await repo.getWorkspaceData()
+      const migrated = data.deals.find((d) => d.id === deal.id)
+      assert.equal(migrated?.stage, 'Won')
+      assert.ok(!data.deals.some((d) => (d.stage as string) === 'Paid'))
     })
 
     it('deleteDeal unlinks activities and follow-ups', async () => {

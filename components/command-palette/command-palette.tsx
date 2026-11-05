@@ -37,6 +37,7 @@ export type PaletteActionType =
   | 'open_contact'
   | 'show_shortcuts'
   | 'open_scratchpad'
+  | 'open_deal_notes'
 
 export interface PaletteItem {
   id: string
@@ -59,6 +60,8 @@ interface CommandPaletteProps {
   contacts: Contact[]
   onUpdateDeal?: (deal: Deal) => void
   onAddActivity?: (activity: Omit<Activity, 'id'>) => void
+  /** Open straight into the notes editor for this deal */
+  notesDealId?: string | null
 }
 
 export function CommandPalette({
@@ -69,6 +72,7 @@ export function CommandPalette({
   contacts,
   onUpdateDeal,
   onAddActivity,
+  notesDealId,
 }: CommandPaletteProps) {
   const [query, setQuery] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
@@ -80,14 +84,20 @@ export function CommandPalette({
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
 
+  // Read deals through a ref so saving notes (which updates deals) doesn't
+  // reset the palette back to the main page mid-edit.
+  const dealsRef = useRef(deals)
+  dealsRef.current = deals
+
   // Focus input when opened and reset query
   useEffect(() => {
     if (isOpen) {
       setQuery('')
       setSelectedIndex(0)
       setSelectedCategory('All')
-      setSubpage('main')
-      const initialDeal = deals[0]
+      const notesDeal = notesDealId ? dealsRef.current.find((d) => d.id === notesDealId) : undefined
+      const initialDeal = notesDeal || dealsRef.current[0]
+      setSubpage(notesDeal ? 'scratchpad' : 'main')
       setTargetDealId(initialDeal?.id || 'general')
       setScratchpadNotes(initialDeal?.notes || '')
       setIsSavedToast(false)
@@ -96,7 +106,7 @@ export function CommandPalette({
       }, 30)
       return () => clearTimeout(timer)
     }
-  }, [isOpen, deals])
+  }, [isOpen, notesDealId])
 
   // Build searchable items
   const allItems: PaletteItem[] = useMemo(() => {
@@ -106,7 +116,7 @@ export function CommandPalette({
         id: 'action-scratchpad',
         category: 'Notes',
         title: 'Open Scratchpad',
-        subtitle: 'Jot down notes for a deal',
+        subtitle: 'Notes for a deal, or a general workspace note',
         icon: <FileText size={15} className="text-[#266df0]" />,
         actionType: 'open_scratchpad',
       },
@@ -190,7 +200,7 @@ export function CommandPalette({
         category: 'Deals',
         title: deal.title,
         subtitle:
-          deal.stage === 'Paid' || !deal.next
+          !deal.next
             ? `${deal.contactName} • ${deal.stage}`
             : `${deal.contactName} • ${deal.stage} • Next: ${deal.next}`,
         badge: deal.value,
@@ -202,6 +212,20 @@ export function CommandPalette({
         ),
         actionType: 'open_deal',
         payload: deal,
+      })
+    })
+
+    // Deal notes: type a deal or client name to jump straight into its notes
+    deals.forEach((deal) => {
+      const firstLine = deal.notes?.trim().split('\n')[0]
+      items.push({
+        id: `deal-notes-${deal.id}`,
+        category: 'Notes',
+        title: `Notes: ${deal.title}`,
+        subtitle: `${deal.contactName} • ${firstLine || 'No notes yet'}`,
+        icon: <FileText size={15} className="text-[#6f7988]" />,
+        actionType: 'open_deal_notes',
+        payload: deal.id,
       })
     })
 
@@ -291,32 +315,18 @@ export function CommandPalette({
   }
 
   const handleSaveNotes = () => {
-    if (!scratchpadNotes.trim()) return
 
     const now = new Date()
     const timeStr = 'Today, ' + now.toLocaleTimeString(OPERATOR_CONFIG.locale || 'en-US', { hour: '2-digit', minute: '2-digit' })
 
     if (targetDealId && targetDealId !== 'general') {
       const d = deals.find((x) => x.id === targetDealId)
-      if (d) {
-        if (onUpdateDeal) {
-          onUpdateDeal({ ...d, notes: scratchpadNotes })
-        }
-        if (onAddActivity) {
-          onAddActivity({
-            dealId: d.id,
-            type: 'Meeting',
-            title: `${d.contactName} Meeting Note`,
-            person: d.contactName,
-            company: d.contactName,
-            date: timeStr,
-            status: 'Completed',
-            color: d.color || 'blue',
-            summary: scratchpadNotes.trim(),
-          })
-        }
+      // Deal notes live on the deal itself; saving doesn't log an activity
+      if (d && onUpdateDeal) {
+        onUpdateDeal({ ...d, notes: scratchpadNotes })
       }
     } else if (targetDealId === 'general') {
+      if (!scratchpadNotes.trim()) return
       if (onAddActivity) {
         onAddActivity({
           type: 'Note',
@@ -378,6 +388,11 @@ export function CommandPalette({
 
   const executeItem = (item: PaletteItem) => {
     if (item.actionType === 'open_scratchpad') {
+      setSubpage('scratchpad')
+      return
+    }
+    if (item.actionType === 'open_deal_notes') {
+      handleSelectTargetDeal(item.payload)
       setSubpage('scratchpad')
       return
     }

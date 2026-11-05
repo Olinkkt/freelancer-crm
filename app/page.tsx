@@ -20,7 +20,6 @@ import {
   Download,
   Trash2,
   Mail,
-  Banknote,
   Edit3,
   Upload,
   Calendar,
@@ -33,10 +32,9 @@ import {
   exportActivitiesCSV,
   exportFollowUpsCSV,
 } from '@/lib/csv-export'
-import { getFormattedToday, getDynamicGreeting, getDateString } from '@/lib/date-utils'
-import { addDays } from '@/lib/due-date'
+import { getFormattedToday, getDynamicGreeting } from '@/lib/date-utils'
 import { OPERATOR_CONFIG, formatMoney, formatDealValue, getOperatorInitials } from '@/lib/config'
-import { Deal, Contact, Activity, FollowUpItem, DealStage, OPEN_DEAL_STAGES } from '@/lib/crm-types'
+import { Deal, Contact, Activity, FollowUpItem, DealStage, DEAL_STAGES, OPEN_DEAL_STAGES } from '@/lib/crm-types'
 import { useModKey } from '@/lib/use-mod-key'
 import {
   INITIAL_CONTACTS,
@@ -132,6 +130,8 @@ export default function Page() {
   const [isDealSearchOpen, setIsDealSearchOpen] = useState(false)
   // Modals State
   const [isPaletteOpen, setIsPaletteOpen] = useState(false)
+  /** Deal whose notes the palette should open on (set by "Notes" on a deal row) */
+  const [paletteNotesDealId, setPaletteNotesDealId] = useState<string | null>(null)
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false)
   const [isNewDealOpen, setIsNewDealOpen] = useState(false)
   const [isNewContactOpen, setIsNewContactOpen] = useState(false)
@@ -352,6 +352,17 @@ export default function Page() {
     setIsNewDealOpen(true)
   }
 
+  // Forget the notes target however the palette closes (Esc, ⌘K, click-out)
+  useEffect(() => {
+    if (!isPaletteOpen) setPaletteNotesDealId(null)
+  }, [isPaletteOpen])
+
+  // Deal notes live in the ⌘K scratchpad; open it already pointed at this deal
+  const openDealNotes = (deal: Deal) => {
+    setPaletteNotesDealId(deal.id)
+    setIsPaletteOpen(true)
+  }
+
   // Handle Command Palette Selection
   const handlePaletteAction = (actionType: PaletteActionType, payload?: any) => {
     switch (actionType) {
@@ -517,61 +528,8 @@ export default function Page() {
   }
 
   const handleMoveDealStage = async (dealId: string, newStage: DealStage) => {
-    const isClosed = newStage === 'Won' || newStage === 'Paid'
-    const isPaid = newStage === 'Paid'
-    const isWon = newStage === 'Won'
-    const targetDeal = deals.find((d) => d.id === dealId)
-
-    // If moving to Paid (Completed Project), ensure all existing milestones are marked done
-    let dealDeliverables = targetDeal?.deliverables
-
-    if (isPaid && targetDeal) {
-      if (dealDeliverables && dealDeliverables.length > 0) {
-        dealDeliverables = dealDeliverables.map((d) => ({
-          ...d,
-          status: 'Done' as const,
-          clientSignOff: true,
-        }))
-      }
-    }
-
-    setDeals((prev) =>
-      prev.map((d) => {
-        if (d.id === dealId) {
-          return {
-            ...d,
-            stage: newStage,
-            color: isClosed ? 'green' : 'blue',
-            deliverables: isPaid && dealDeliverables ? dealDeliverables : d.deliverables,
-            invoices: d.invoices,
-            next: isPaid ? 'Request testimonial & case study review' : isWon ? 'Kickoff meeting & design sprint' : d.next,
-            nextDueDate: isPaid
-              ? getDateString(addDays(new Date(), 3))
-              : isWon
-                ? getDateString(addDays(new Date(), 1))
-                : d.nextDueDate,
-          }
-        }
-        return d
-      })
-    )
-
-    if (isPaid) {
-      const deal = deals.find((d) => d.id === dealId)
-      if (deal) {
-        const toComplete = followUps
-          .filter((f) => f.company === deal.contactName && !completedFollowUps.includes(f.id))
-          .map((f) => f.id)
-        if (toComplete.length > 0) {
-          setCompletedFollowUps((prev) => [...new Set([...prev, ...toComplete])])
-        }
-      }
-      addToast('🎉 All milestones completed & invoices settled! Project finished.')
-    } else if (isWon) {
-      addToast('Deal Won! Active client project started.')
-    } else {
-      addToast(`Moved deal to ${newStage}`)
-    }
+    setDeals((prev) => prev.map((d) => (d.id === dealId ? { ...d, stage: newStage } : d)))
+    addToast(newStage === 'Won' ? 'Deal won: contract signed' : `Moved deal to ${newStage}`)
 
     try {
       const updated = await moveDealStageAction(dealId, newStage)
@@ -630,16 +588,10 @@ export default function Page() {
   ).length
   const winRate =
     deals.length > 0
-      ? `${Math.round((deals.filter((d) => d.stage === 'Won' || d.stage === 'Paid').length / deals.length) * 100)}%`
+      ? `${Math.round((deals.filter((d) => d.stage === 'Won').length / deals.length) * 100)}%`
       : '0%'
 
-  const pipelineStagesSummary: { label: DealStage; count: number; amount: string }[] = [
-    'Lead',
-    'Qualified',
-    'Proposal',
-    'Won',
-    'Paid',
-  ].map((st) => {
+  const pipelineStagesSummary: { label: DealStage; count: number; amount: string }[] = DEAL_STAGES.map((st) => {
     const stageDeals = deals.filter((d) => d.stage === st)
     const stageSum = stageDeals.reduce(
       (sum, d) => sum + (d.rawAmount || parseInt(d.value.replace(/[^0-9]/g, '')) || 0),
@@ -847,6 +799,7 @@ export default function Page() {
                 onAddDealClick={() => setIsNewDealOpen(true)}
                 onMoveDealStage={handleMoveDealStage}
                 onDeleteDeal={handleDeleteDeal}
+                onOpenNotes={openDealNotes}
               />
             </>
           ) : activeView === 'Clients' ? (
@@ -1938,9 +1891,7 @@ export default function Page() {
                           </div>
                           <strong className="font-mono tabular-nums">{formatDealValue(deal.value, currentSettings)}</strong>
                           <span className="next-action flex items-center gap-1">
-                            {deal.stage === 'Paid' ? (
-                              <span className="text-[#8f99a8]">—</span>
-                            ) : deal.next ? (
+                            {deal.next ? (
                               <>
                                 <Clock size={12} className="text-[#266df0] shrink-0" />
                                 <span className="truncate">{deal.next}</span>
@@ -1964,25 +1915,16 @@ export default function Page() {
                                 },
                               },
                               {
-                                label: 'Open deal',
+                                label: 'Notes',
                                 icon: FileText,
-                                onClick: () => openDeal(deal),
+                                onClick: () => openDealNotes(deal),
                               },
-                              ...(deal.stage !== 'Won' && deal.stage !== 'Paid'
+                              ...(deal.stage !== 'Won'
                                 ? [
                                     {
                                       label: 'Mark as Won',
                                       icon: Check,
                                       onClick: () => handleMoveDealStage(deal.id, 'Won'),
-                                    },
-                                  ]
-                                : []),
-                              ...(deal.stage !== 'Paid'
-                                ? [
-                                    {
-                                      label: 'Mark as Paid',
-                                      icon: Banknote,
-                                      onClick: () => handleMoveDealStage(deal.id, 'Paid'),
                                     },
                                   ]
                                 : []),
@@ -2025,6 +1967,7 @@ export default function Page() {
       <CommandPalette
         isOpen={isPaletteOpen}
         onClose={() => setIsPaletteOpen(false)}
+        notesDealId={paletteNotesDealId}
         onSelectAction={handlePaletteAction}
         deals={deals}
         contacts={contacts}

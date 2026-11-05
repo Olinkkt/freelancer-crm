@@ -2,8 +2,8 @@
 
 import { formatDue, isOverdue } from '@/lib/due-date'
 import React, { useMemo, useState } from 'react'
-import { Search, CirclePlus, ExternalLink, Edit3, Trash2, Clock, WalletCards } from 'lucide-react'
-import { Deal, DealStage, DEAL_STAGES, WorkspaceSettings } from '@/lib/crm-types'
+import { Search, CirclePlus, ExternalLink, Edit3, Trash2, Clock, WalletCards, FileText } from 'lucide-react'
+import { Deal, DealStage, DEAL_STAGES, DEAL_STAGE_HINTS, WorkspaceSettings } from '@/lib/crm-types'
 import { RowActionMenu } from '@/components/ui/row-action-menu'
 import { formatDealValue } from '@/lib/config'
 
@@ -14,6 +14,8 @@ interface DealListProps {
   onMoveDealStage: (dealId: string, newStage: DealStage) => void
   onDeleteDeal?: (dealId: string) => void
   onEditDeal?: (deal: Deal) => void
+  /** Open this deal's notes (⌘K scratchpad) */
+  onOpenNotes?: (deal: Deal) => void
   settings?: WorkspaceSettings
 }
 
@@ -32,6 +34,7 @@ export function DealList({
   onMoveDealStage,
   onDeleteDeal,
   onEditDeal,
+  onOpenNotes,
   settings,
 }: DealListProps) {
   const [query, setQuery] = useState('')
@@ -91,11 +94,16 @@ export function DealList({
             aria-selected={stageFilter === f.key}
             className={stageFilter === f.key ? 'tab-active' : ''}
             onClick={() => setStageFilter(f.key)}
+            title={f.key === 'All' ? undefined : DEAL_STAGE_HINTS[f.key]}
           >
             {f.label} <span className="text-[#8f99a8] font-mono">{f.count}</span>
           </button>
         ))}
       </div>
+
+      {stageFilter !== 'All' && (
+        <p className="px-4 pt-2 text-[11px] text-[#8f99a8]">{DEAL_STAGE_HINTS[stageFilter]}</p>
+      )}
 
       <div className="deals-list">
         <div className="deals-list-head">
@@ -123,7 +131,13 @@ export function DealList({
             </button>
           </div>
         ) : visibleDeals.length === 0 ? (
-          <div className="py-8 text-center text-[#8f99a8] text-[12px]">No deals match this filter.</div>
+          <div className="py-8 text-center text-[#8f99a8] text-[12px]">
+            {query.trim() || stageFilter === 'All'
+              ? 'No deals match this filter.'
+              : stageFilter === 'Won'
+                ? 'No won deals yet. A deal is won once the contract is signed.'
+                : `No deals in ${stageFilter}.`}
+          </div>
         ) : (
           visibleDeals.map((deal) => (
             <div
@@ -144,9 +158,26 @@ export function DealList({
               <div className="deal-title min-w-0">
                 <span className={`deal-avatar shrink-0 ${deal.color}`}>{deal.contactName.charAt(0)}</span>
                 <div className="min-w-0">
-                  <strong className="truncate block" title={deal.title}>
-                    {deal.title}
-                  </strong>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <strong className="truncate block" title={deal.title}>
+                      {deal.title}
+                    </strong>
+                    {onOpenNotes && deal.notes?.trim() && (
+                      <button
+                        type="button"
+                        aria-label={`Notes for ${deal.title}`}
+                        title={deal.notes.trim().split('\n')[0]}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onOpenNotes(deal)
+                        }}
+                        onKeyDown={(e) => e.stopPropagation()}
+                        className="shrink-0 text-[#8f99a8] hover:text-[#266df0] cursor-pointer"
+                      >
+                        <FileText size={12} />
+                      </button>
+                    )}
+                  </div>
                   <span className="truncate block" title={deal.contactName}>
                     {deal.contactName}
                   </span>
@@ -161,7 +192,7 @@ export function DealList({
                   className="stage-select"
                 >
                   {DEAL_STAGES.map((s) => (
-                    <option key={s} value={s}>
+                    <option key={s} value={s} title={DEAL_STAGE_HINTS[s]}>
                       {s}
                     </option>
                   ))}
@@ -171,7 +202,7 @@ export function DealList({
               <strong className="font-mono tabular-nums">{formatDealValue(deal.value, settings)}</strong>
 
               <div className="deals-list-next min-w-0">
-                {deal.stage === 'Paid' || !deal.next ? (
+                {!deal.next ? (
                   <span className="text-[#8f99a8]">—</span>
                 ) : (
                   <>
@@ -196,6 +227,7 @@ export function DealList({
                 <RowActionMenu
                   triggerLabel={`Options for ${deal.title}`}
                   items={[
+                    ...(onOpenNotes ? [{ label: 'Notes', icon: FileText, onClick: () => onOpenNotes(deal) }] : []),
                     { label: 'Open deal', icon: ExternalLink, onClick: () => onOpenDeal(deal) },
                     {
                       label: 'Edit deal',

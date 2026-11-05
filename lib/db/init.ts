@@ -2,7 +2,7 @@ import { sql } from 'kysely'
 import { normalizeDueDate } from '@/lib/due-date'
 import { db } from './client'
 
-const SCHEMA_VERSION = 9
+const SCHEMA_VERSION = 10
 
 const globalForInit = globalThis as unknown as {
   dbInitPromise?: Promise<void>
@@ -83,6 +83,12 @@ export async function ensureDbInitialized(force = false): Promise<void> {
     if (await columnExists('deals', 'probability')) {
       await sql`ALTER TABLE deals DROP COLUMN probability;`.execute(db)
     }
+
+    // Migration (v10): Paid is no longer a deal stage. Won = contract signed;
+    // payment belongs to project work. 'Discovery' was an old name for
+    // Qualified that validation still accepted; remap any stray rows.
+    await sql`UPDATE deals SET stage = 'Won' WHERE stage = 'Paid';`.execute(db)
+    await sql`UPDATE deals SET stage = 'Qualified' WHERE stage = 'Discovery';`.execute(db)
 
     // 3. Activities
     await sql`

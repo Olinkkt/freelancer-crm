@@ -61,7 +61,6 @@ Operate your entire freelance business without taking your hands off the keyboar
 Cash flow kills solo businesses. Freelancer CRM enforces healthy invoicing by default:
 - Automatically splits accepted quotes into **50% Upfront Deposit** and **50% Final Delivery** invoices.
 - Marking the deposit as paid automatically advances the deal to **Won • Active Work**.
-- Collecting the final invoice automatically moves the deal to **Paid • Delivered**.
 - Generates 1-click shareable payment links and instant QR targets.
 
 ### 3. 🎯 Milestone Templates & Client Sign-Offs

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { DEAL_STAGES } from '@/lib/crm-types'
 
 export const ContactBackupSchema = z.object({
   id: z.string().min(1),
@@ -11,12 +12,18 @@ export const ContactBackupSchema = z.object({
   color: z.string().optional(),
 })
 
+/** Stage names from older versions, mapped onto the current pipeline */
+const LEGACY_STAGES: Record<string, (typeof DEAL_STAGES)[number]> = {
+  Paid: 'Won',
+  Discovery: 'Qualified',
+}
+
 export const DealBackupSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
   value: z.string().default('0'),
   rawAmount: z.number().nonnegative().optional(),
-  stage: z.string(),
+  stage: z.preprocess((v) => (typeof v === 'string' && LEGACY_STAGES[v]) || v, z.enum(DEAL_STAGES)),
   next: z.string().default(''),
   nextDueDate: z.string().nullable().optional(),
   color: z.string().optional(),
@@ -110,7 +117,7 @@ const DealInputBaseSchema = z.object({
     .transform((val) => (typeof val === 'number' ? String(val) : val))
     .optional(),
   rawAmount: z.number().min(0, 'Amount cannot be negative').optional(),
-  stage: z.enum(['Lead', 'Discovery', 'Proposal', 'Won', 'Paid', 'Lost']),
+  stage: z.enum(DEAL_STAGES),
   next: z.string().optional(),
   nextDueDate: z.string().nullable().optional(),
   color: z.string().optional(),

@@ -205,9 +205,8 @@ export async function createDeal(dealData: Omit<Deal, 'id'>): Promise<Deal> {
   const fallback = settings || OPERATOR_CONFIG
   const defaultValue = formatMoney(rawAmount, fallback)
 
-  const isPaid = dealData.stage === 'Paid'
-  const nextAction = isPaid ? '' : (dealData.next || '')
-  const nextDueDate = isPaid ? null : normalizeDueDate(dealData.nextDueDate)
+  const nextAction = dealData.next || ''
+  const nextDueDate = normalizeDueDate(dealData.nextDueDate)
 
   const client = await resolveDealClient(db, dealData)
   const contactName = client.name
@@ -246,7 +245,7 @@ export async function createDeal(dealData: Omit<Deal, 'id'>): Promise<Deal> {
     contactName,
     contactEmail: contactEmail || undefined,
     next: nextAction,
-    nextDueDate: isPaid ? undefined : dealData.nextDueDate,
+    nextDueDate: dealData.nextDueDate,
     createdAt: now,
     deliverables: dealData.deliverables || [],
     invoices: dealData.invoices || [],
@@ -283,9 +282,8 @@ export async function updateDeal(deal: Deal): Promise<Deal | null> {
   const now = new Date().toISOString()
   const rawAmount = Number(deal.rawAmount) || 0
 
-  const isPaid = deal.stage === 'Paid'
-  const nextAction = isPaid ? '' : (deal.next || '')
-  const nextDueDate = isPaid ? null : normalizeDueDate(deal.nextDueDate)
+  const nextAction = deal.next || ''
+  const nextDueDate = normalizeDueDate(deal.nextDueDate)
   const clientGiven = !!(deal.contactId || deal.contactName?.trim() || deal.contactEmail?.trim())
   const client = await resolveDealClient(
     db,
@@ -323,7 +321,7 @@ export async function updateDeal(deal: Deal): Promise<Deal | null> {
     contactName: client.name,
     contactEmail: client.email || undefined,
     next: nextAction,
-    nextDueDate: isPaid ? undefined : deal.nextDueDate,
+    nextDueDate: deal.nextDueDate,
   }
 }
 
@@ -415,36 +413,16 @@ export async function moveDealStage(dealId: string, stage: DealStage): Promise<D
 
   if (!existing) return null
 
-  const isClosedWon = stage === 'Won' || stage === 'Paid'
-  const isPaid = stage === 'Paid'
+  // Moving stages only changes the stage. Won = contract signed; the next
+  // action and deliverables carry over into project work untouched.
   const now = new Date().toISOString()
   const dealColor = (existing.color as Deal['color']) || 'blue'
-  const nextAction = isPaid ? '' : existing.next
-  const nextDueDate = isPaid ? null : existing.next_due_date
-
-  // Sync deliverables and invoices when advancing to Won or Paid
-  let currentInvoices = safeParseJson<InvoiceMilestone[]>(existing.invoices, [])
-  let currentDeliverables = safeParseJson<DeliverableItem[]>(existing.deliverables, [])
-
-  if (isClosedWon) {
-    if (isPaid && currentDeliverables.length > 0) {
-      currentDeliverables = currentDeliverables.map((d) => ({
-        ...d,
-        status: 'Done',
-        clientSignOff: true,
-      }))
-    }
-  }
 
   await db
     .updateTable('deals')
     .set({
       stage,
       color: dealColor,
-      next: nextAction,
-      next_due_date: nextDueDate,
-      deliverables: currentDeliverables.length > 0 ? JSON.stringify(currentDeliverables) : existing.deliverables,
-      invoices: currentInvoices.length > 0 ? JSON.stringify(currentInvoices) : existing.invoices,
       updated_at: now,
     })
     .where('id', '=', dealId)
@@ -456,8 +434,8 @@ export async function moveDealStage(dealId: string, stage: DealStage): Promise<D
     value: existing.value,
     rawAmount: Number(existing.raw_amount) || 0,
     stage,
-    next: nextAction,
-    nextDueDate: isPaid ? undefined : (existing.next_due_date ?? undefined),
+    next: existing.next,
+    nextDueDate: existing.next_due_date ?? undefined,
     color: dealColor,
     contactId: existing.contact_id ?? undefined,
     contactName: existing.contact_name ?? '',
@@ -466,7 +444,7 @@ export async function moveDealStage(dealId: string, stage: DealStage): Promise<D
     startDate: existing.start_date ?? undefined,
     endDate: existing.end_date ?? undefined,
     deliverables: safeParseJson<DeliverableItem[]>(existing.deliverables, []),
-    invoices: currentInvoices,
+    invoices: safeParseJson<InvoiceMilestone[]>(existing.invoices, []),
     createdAt: existing.created_at,
   }
 }

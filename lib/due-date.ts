@@ -141,7 +141,6 @@ export const NEXT_ACTION_PRESETS: Record<string, string[]> = {
   Qualified: ['Send proposal', 'Scope review call', 'Share case studies', 'Confirm timeline'],
   Proposal: ['Follow up on proposal', 'Send revised scope', 'Answer questions', 'Send contract'],
   Won: ['Kickoff meeting', 'Send deposit invoice', 'Collect assets', 'Share project plan'],
-  Paid: [],
 }
 
 export function nextActionPresets(stage: string): string[] {

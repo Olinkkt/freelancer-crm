@@ -76,33 +76,10 @@ export interface WorkspaceSettingsTable {
   updated_at: string
 }
 
-export interface GoogleCalendarIntegrationTable {
-  id: string
-  access_token: string
-  refresh_token: string | null
-  token_expiry: number
-  calendar_id: string
-  calendar_name: string
-  auto_sync: number // 0 or 1
-  last_synced_at: string | null
-  created_at: string
-  updated_at: string
-}
-
-export interface GoogleCalendarEventTable {
-  id: string
-  crm_type: string
-  crm_id: string
-  google_event_id: string
-  synced_at: string
-}
-
 export interface Database {
   contacts: ContactTable
   deals: DealTable
   activities: ActivityTable
   follow_ups: FollowUpTable
   workspace_settings: WorkspaceSettingsTable
-  google_calendar_integrations: GoogleCalendarIntegrationTable
-  google_calendar_events: GoogleCalendarEventTable
 }

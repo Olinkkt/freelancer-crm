@@ -1,5 +1,22 @@
-import { GoogleCalendarWebLinkParams, GoogleCalendarEventDateTime } from './types'
 import { extractStartHour } from '@/lib/date-utils'
+
+/** Event date/time in the shape calendar apps expect */
+export interface GoogleCalendarEventDateTime {
+  dateTime?: string
+  date?: string
+  timeZone?: string
+}
+
+/** Inputs for a one-click "Add to Google Calendar" link (no OAuth) */
+export interface GoogleCalendarWebLinkParams {
+  title: string
+  details?: string
+  location?: string
+  startTime?: string
+  endTime?: string
+  date?: string
+  addHourDuration?: number
+}
 
 function pad(num: number): string {
   return String(num).padStart(2, '0')
@@ -249,4 +266,33 @@ export function resolveEventDates(dateStr?: string | null): {
     start: { dateTime: targetDay.toISOString() },
     end: { dateTime: new Date(targetDay.getTime() + defaultDurationMs).toISOString() },
   }
+}
+
+/**
+ * One-click "Add to Google Calendar" link for a deal's next action.
+ * Resolves fuzzy due dates ("Tomorrow, 10:00", "2026-11-12") the same way the .ics feed does.
+ */
+export function generateDealNextActionLink(deal: {
+  title: string
+  next: string
+  nextDueDate?: string | null
+  contactName?: string
+  value?: string
+}): string {
+  const { start, end } = resolveEventDates(deal.nextDueDate)
+  const details = [
+    `Deal: ${deal.title}`,
+    deal.contactName ? `Client: ${deal.contactName}` : null,
+    deal.value ? `Value: ${deal.value}` : null,
+  ]
+    .filter(Boolean)
+    .join('\n')
+
+  return generateGoogleCalendarWebLink({
+    title: deal.contactName ? `${deal.next} (${deal.contactName})` : deal.next,
+    details,
+    ...(start.dateTime
+      ? { startTime: start.dateTime, endTime: end.dateTime }
+      : { date: start.date, endTime: end.date }),
+  })
 }

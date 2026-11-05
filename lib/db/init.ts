@@ -1,7 +1,7 @@
 import { sql } from 'kysely'
 import { db } from './client'
 
-const SCHEMA_VERSION = 6
+const SCHEMA_VERSION = 7
 
 const globalForInit = globalThis as unknown as {
   dbInitPromise?: Promise<void>
@@ -133,32 +133,9 @@ export async function ensureDbInitialized(force = false): Promise<void> {
       // Column already exists
     }
 
-    // 6. Google Calendar Integration
-    await sql`
-      CREATE TABLE IF NOT EXISTS google_calendar_integrations (
-        id TEXT PRIMARY KEY,
-        access_token TEXT NOT NULL,
-        refresh_token TEXT,
-        token_expiry INTEGER NOT NULL,
-        calendar_id TEXT NOT NULL DEFAULT 'primary',
-        calendar_name TEXT NOT NULL DEFAULT 'Primary',
-        auto_sync INTEGER NOT NULL DEFAULT 1,
-        last_synced_at TEXT,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL
-      );
-    `.execute(db)
-
-    // 7. Google Calendar Events Mapping
-    await sql`
-      CREATE TABLE IF NOT EXISTS google_calendar_events (
-        id TEXT PRIMARY KEY,
-        crm_type TEXT NOT NULL,
-        crm_id TEXT NOT NULL,
-        google_event_id TEXT NOT NULL,
-        synced_at TEXT NOT NULL
-      );
-    `.execute(db)
+    // Migration (v7): Google Calendar OAuth removed; drop its token and event-mapping tables
+    await sql`DROP TABLE IF EXISTS google_calendar_events;`.execute(db)
+    await sql`DROP TABLE IF EXISTS google_calendar_integrations;`.execute(db)
 
     // Helpful query indexes for fast lookups
     try {
@@ -166,8 +143,6 @@ export async function ensureDbInitialized(force = false): Promise<void> {
       await sql`CREATE INDEX IF NOT EXISTS idx_deals_contact ON deals(contact_id);`.execute(db)
       await sql`CREATE INDEX IF NOT EXISTS idx_activities_deal ON activities(deal_id);`.execute(db)
       await sql`CREATE INDEX IF NOT EXISTS idx_follow_ups_deal ON follow_ups(deal_id);`.execute(db)
-      await sql`CREATE INDEX IF NOT EXISTS idx_gcal_events_crm ON google_calendar_events(crm_type, crm_id);`.execute(db)
-      await sql`CREATE INDEX IF NOT EXISTS idx_gcal_events_google_id ON google_calendar_events(google_event_id);`.execute(db)
     } catch {
       // Ignore index creation errors if dialect differs
     }

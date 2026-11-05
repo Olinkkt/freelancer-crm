@@ -1,4 +1,10 @@
-import { DayColumn } from '@/components/calendar/types'
+export interface DayColumn {
+  dayNumber: string // "21"
+  dayName: string // "MON"
+  fullDate: Date
+  isToday?: boolean
+  isBlockedAfterHour?: number // e.g. 12 for hatched pattern
+}
 
 /**
  * Returns date in YYYY-MM-DD format based on local time

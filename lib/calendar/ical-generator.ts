@@ -1,5 +1,5 @@
 import { Activity, Deal } from '@/lib/crm-types'
-import { resolveEventDates } from '@/lib/google-calendar/web-links'
+import { resolveEventDates } from '@/lib/calendar/web-links'
 
 /**
  * Escapes characters with special meaning in iCalendar format per RFC 5545 Section 3.3.11.

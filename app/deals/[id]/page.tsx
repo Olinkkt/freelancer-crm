@@ -22,6 +22,7 @@ import {
   ChevronDown,
   ChevronUp,
   Sparkles,
+  CalendarPlus,
 } from 'lucide-react'
 import {
   Deal,
@@ -42,6 +43,7 @@ import {
   syncTodosAction,
 } from '@/app/actions/crm'
 import { formatDealValue } from '@/lib/config'
+import { generateDealNextActionLink } from '@/lib/calendar/web-links'
 import { DeliverablesTracker } from '@/components/drawers/deliverables-tracker'
 import { ScratchpadEditor } from '@/components/drawers/scratchpad-editor'
 import { MarkdownFormatter } from '@/components/ui/markdown-formatter'
@@ -742,6 +744,17 @@ export default function DealProjectPage() {
                     <Clock size={12} className="text-[#266df0]" />
                     <span>{deal.nextDueDate || 'Pending schedule'}</span>
                   </div>
+                  {deal.next && (
+                    <a
+                      href={generateDealNextActionLink(deal)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 pt-1 text-[11px] font-semibold text-[#266df0] hover:underline"
+                    >
+                      <CalendarPlus size={12} />
+                      <span>Add to Google Calendar</span>
+                    </a>
+                  )}
                 </div>
               )}
             </div>

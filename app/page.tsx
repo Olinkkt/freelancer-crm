@@ -79,11 +79,6 @@ import {
   logoutOperator,
   updateWorkspaceSettingsAction,
 } from '@/app/actions/auth'
-import {
-  getGoogleCalendarStatusAction,
-  triggerGoogleCalendarSyncAction,
-} from '@/app/actions/google-calendar'
-import { GoogleCalendarStatusResponse } from '@/lib/google-calendar/types'
 
 
 function NavItem({
@@ -149,9 +144,7 @@ export default function Page() {
   const [editingContact, setEditingContact] = useState<Contact | null>(null)
   const [editingFollowUp, setEditingFollowUp] = useState<FollowUpItem | null>(null)
   const [isEditSettingsOpen, setIsEditSettingsOpen] = useState(false)
-  const [settingsModalInitialTab, setSettingsModalInitialTab] = useState<'profile' | 'integrations'>('profile')
-  const [gcalStatus, setGcalStatus] = useState<GoogleCalendarStatusResponse | null>(null)
-  const [isSyncingGcal, setIsSyncingGcal] = useState(false)
+  const [settingsModalInitialTab, setSettingsModalInitialTab] = useState<'profile' | 'calendar'>('profile')
   const [settingsTab, setSettingsTab] = useState<'profile' | 'shortcuts' | 'export' | 'system'>('profile')
   const [shortcutFilter, setShortcutFilter] = useState('')
 
@@ -229,52 +222,15 @@ export default function Page() {
     loadData()
   }, [loadData])
 
-  const refreshGoogleCalendarStatus = useCallback(async () => {
-    try {
-      const status = await getGoogleCalendarStatusAction()
-      setGcalStatus(status)
-    } catch (err: any) {
-      console.error('Failed to load Google Calendar status:', err)
-    }
-  }, [])
-
-  useEffect(() => {
-    refreshGoogleCalendarStatus()
-  }, [refreshGoogleCalendarStatus])
-
-  // Google Calendar OAuth redirect handling & deep-link parameters
+  // ?settings=open deep link opens the settings modal
   useEffect(() => {
     if (typeof window === 'undefined') return
-    const params = new URLSearchParams(window.location.search)
-    const settingsParam = params.get('settings')
-    const gcalParam = params.get('gcal')
-    const messageParam = params.get('message')
-
-    if (settingsParam === 'open' || gcalParam) {
-      if (gcalParam === 'connected') {
-        addToast('Google Calendar connected successfully! 📅', undefined, 'success')
-        setSettingsModalInitialTab('integrations')
-        setIsEditSettingsOpen(true)
-        refreshGoogleCalendarStatus()
-      } else if (gcalParam === 'error') {
-        const errorMsg = messageParam || 'Failed to connect Google Calendar'
-        addToast(errorMsg, undefined, 'warning')
-        setSettingsModalInitialTab('integrations')
-        setIsEditSettingsOpen(true)
-      } else if (settingsParam === 'open') {
-        setIsEditSettingsOpen(true)
-      }
-
-      // Clean up URL search params using window.history.replaceState so refresh does not re-trigger
-      const url = new URL(window.location.href)
-      url.searchParams.delete('settings')
-      url.searchParams.delete('gcal')
-      url.searchParams.delete('message')
-      const cleanUrl = url.pathname + (url.search ? url.search : '') + url.hash
-      window.history.replaceState({}, '', cleanUrl)
-    }
-  }, [addToast, refreshGoogleCalendarStatus])
-
+    const url = new URL(window.location.href)
+    if (url.searchParams.get('settings') !== 'open') return
+    setIsEditSettingsOpen(true)
+    url.searchParams.delete('settings')
+    window.history.replaceState({}, '', url.pathname + url.search + url.hash)
+  }, [])
 
   // Two-key chord navigation state ("G" then another key)
   const pendingChordRef = useRef<string | null>(null)
@@ -1311,16 +1267,12 @@ export default function Page() {
                     </div>
                   </div>
 
-                  {/* SECTION 4: INTEGRATIONS & GOOGLE CALENDAR */}
+                  {/* SECTION 4: CALENDAR FEED */}
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start pt-8 border-t border-[#e4e7ec]">
                     <div className="md:col-span-4">
-                      <h3 className="text-[15px] font-semibold text-[#1c1d1f] tracking-tight">Integrations & Sync</h3>
+                      <h3 className="text-[15px] font-semibold text-[#1c1d1f] tracking-tight">Calendar</h3>
                       <p className="text-[13px] text-[#6f7988] mt-1 leading-relaxed">
-                        {gcalStatus?.connected
-                          ? 'Client calls, meetings and deal milestones sync to Google Calendar.'
-                          : gcalStatus?.configured
-                          ? 'Connect Google Calendar to sync client calls, meetings and deal milestones.'
-                          : 'Google Calendar sync needs setup on this server. Add-to-calendar links work without it.'}
+                        Subscribe to your deals’ next actions from any calendar app. Nothing to configure.
                       </p>
                     </div>
                     <div className="md:col-span-8">
@@ -1331,80 +1283,25 @@ export default function Page() {
                               <Calendar size={20} />
                             </div>
                             <div className="min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <strong className="text-[15px] font-semibold text-[#1c1d1f] tracking-tight">
-                                  Google Calendar
-                                </strong>
-                                {gcalStatus?.connected ? (
-                                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#027a48] bg-[#ecfdf3] border border-[#d1fadf] px-2 py-0.5 rounded-[7px]">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-[#12b76a]" />
-                                    Connected
-                                  </span>
-                                ) : gcalStatus?.configured ? (
-                                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#505967] bg-[#f4f5f6] border border-[#e4e7ec] px-2 py-0.5 rounded-[7px]">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-[#9fa1a7]" />
-                                    Disconnected
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#b54708] bg-[#fffaeb] border border-[#fedf89] px-2 py-0.5 rounded-[7px]">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-[#f79009]" />
-                                    Setup Needed
-                                  </span>
-                                )}
-                              </div>
+                              <strong className="text-[15px] font-semibold text-[#1c1d1f] tracking-tight">
+                                Calendar feed (.ics)
+                              </strong>
                               <p className="text-[12px] text-[#6f7988] mt-1 leading-normal">
-                                {gcalStatus?.connected
-                                  ? `Synced with ${gcalStatus.calendarName || 'primary'} calendar. Auto-sync is ${gcalStatus.autoSync ? 'enabled' : 'disabled'}.`
-                                  : gcalStatus?.configured
-                                  ? 'OAuth credentials configured. Ready to connect your Google account.'
-                                  : 'Two-way sync isn’t set up on this server yet. Add-to-calendar links still work on every deal and follow-up.'}
+                                Works with Google Calendar, Apple Calendar and phone calendars. Deal pages also have an Add to Google Calendar link.
                               </p>
-                              {gcalStatus?.connected && gcalStatus.lastSyncedAt && (
-                                <span className="block text-[11px] text-[#8f99a8] mt-1">
-                                  Last synced: {new Date(gcalStatus.lastSyncedAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
-                                </span>
-                              )}
                             </div>
                           </div>
-                          <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
-                            {gcalStatus?.connected && (
-                              <button
-                                type="button"
-                                disabled={isSyncingGcal}
-                                onClick={async () => {
-                                  setIsSyncingGcal(true)
-                                  try {
-                                    const res = await triggerGoogleCalendarSyncAction()
-                                    if (res.success) {
-                                      addToast(`Synced ${res.syncedCount} item${res.syncedCount === 1 ? '' : 's'} to Google Calendar`, undefined, 'success')
-                                      await refreshGoogleCalendarStatus()
-                                    } else {
-                                      addToast(res.error || 'Sync failed', undefined, 'warning')
-                                    }
-                                  } catch (err: any) {
-                                    addToast(err?.message || 'Sync failed', undefined, 'warning')
-                                  } finally {
-                                    setIsSyncingGcal(false)
-                                  }
-                                }}
-                                className="select-button text-[12px] py-1.5 px-2.5 cursor-pointer disabled:opacity-50"
-                              >
-                                <RefreshCw size={12} className={isSyncingGcal ? 'animate-spin' : ''} />
-                                <span>{isSyncingGcal ? 'Syncing...' : 'Sync Now'}</span>
-                              </button>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setSettingsModalInitialTab('integrations')
-                                setIsEditSettingsOpen(true)
-                              }}
-                              className="select-button text-[12px] py-1.5 px-3 font-semibold text-[#1c1d1f] cursor-pointer"
-                            >
-                              <span>Manage</span>
-                              <ChevronRight size={13} className="text-[#6f7988]" />
-                            </button>
-                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSettingsModalInitialTab('calendar')
+                              setIsEditSettingsOpen(true)
+                            }}
+                            className="select-button text-[12px] py-1.5 px-3 font-semibold text-[#1c1d1f] cursor-pointer self-start sm:self-center shrink-0"
+                          >
+                            <span>Get feed link</span>
+                            <ChevronRight size={13} className="text-[#6f7988]" />
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -1711,18 +1608,6 @@ export default function Page() {
                       <span className="text-[11px] font-medium text-[#6f7988] block mb-1">Software License</span>
                       <strong className="text-[14px] text-[#1c1d1f] font-semibold block">AGPL-3.0 Open Source</strong>
                       <p className="text-[12px] text-[#8f99a8] mt-1">Freelancer CRM v1.0.4 • Personal Workspace.</p>
-                    </div>
-
-                    <div className="sm:col-span-2 bg-white border border-[#e4e7ec] rounded-xl p-4 shadow-[rgba(28,40,64,0.04)_0px_2px_4px_-1px]">
-                      <span className="text-[11px] font-medium text-[#6f7988] block mb-1">Google Calendar sync (server setup)</span>
-                      <strong className="text-[14px] text-[#1c1d1f] font-semibold block">
-                        {gcalStatus?.configured ? 'OAuth credentials configured' : 'OAuth credentials missing'}
-                      </strong>
-                      <p className="text-[12px] text-[#8f99a8] mt-1">
-                        Set <code className="font-mono text-[#1c1d1f]">GOOGLE_CLIENT_ID</code> and{' '}
-                        <code className="font-mono text-[#1c1d1f]">GOOGLE_CLIENT_SECRET</code> in the server environment, with redirect URI{' '}
-                        <code className="font-mono text-[#1c1d1f]">/api/integrations/google-calendar/callback</code>. See <code className="font-mono">.env.example</code>.
-                      </p>
                     </div>
                   </div>
                 </div>
@@ -2209,7 +2094,6 @@ export default function Page() {
         isOpen={isEditSettingsOpen}
         onClose={() => {
           setIsEditSettingsOpen(false)
-          refreshGoogleCalendarStatus()
         }}
         currentSettings={currentSettings}
         onSettingsUpdated={(updated) => {
@@ -2217,7 +2101,6 @@ export default function Page() {
           const firstName = updated.operatorName.trim().split(' ')[0]
           setGreeting(getDynamicGreeting(firstName))
           addToast('Preferences saved successfully')
-          refreshGoogleCalendarStatus()
         }}
         initialTab={settingsModalInitialTab}
         onToast={addToast}

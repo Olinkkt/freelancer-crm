@@ -107,10 +107,6 @@ export function DealList({
         ))}
       </div>
 
-      {stageFilter !== 'All' && (
-        <p className="px-4 pt-2 text-[11px] text-[#8f99a8]">{FILTER_HINTS[stageFilter]}</p>
-      )}
-
       <div className="deals-list">
         <div className="deals-list-head">
           <span>Deal</span>

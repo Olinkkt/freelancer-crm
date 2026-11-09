@@ -7,6 +7,8 @@ interface ContactTable {
   deals: number
   last_touch: string
   color: 'blue' | 'violet' | 'amber' | 'green'
+  /** Id of the matching client in the Invoicer, set by the one-way sync */
+  invoicer_client_id?: string | null
   created_at: string
   updated_at: string
 }
@@ -90,6 +92,16 @@ interface ApiAuditLogTable {
   response: string | null // JSON, replayed for idempotent retries
 }
 
+/** One row ('default'): where the Invoicer lives and the token to push clients with */
+interface InvoicerLinkTable {
+  id: string
+  url: string
+  token: string
+  connected_at: string
+  last_sync_at: string | null
+  last_error: string | null
+}
+
 export interface Database {
   contacts: ContactTable
   deals: DealTable
@@ -97,4 +109,5 @@ export interface Database {
   workspace_settings: WorkspaceSettingsTable
   api_tokens: ApiTokenTable
   api_audit_log: ApiAuditLogTable
+  invoicer_link: InvoicerLinkTable
 }

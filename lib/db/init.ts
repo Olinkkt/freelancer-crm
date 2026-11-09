@@ -2,7 +2,7 @@ import { sql } from 'kysely'
 import { normalizeDueDate } from '@/lib/due-date'
 import { db } from './client'
 
-const SCHEMA_VERSION = 16
+const SCHEMA_VERSION = 17
 
 const globalForInit = globalThis as unknown as {
   dbInitPromise?: Promise<void>
@@ -175,6 +175,19 @@ export async function ensureDbInitialized(force = false): Promise<void> {
         response TEXT
       );
     `.execute(db)
+
+    // v17: one-way client sync to the Invoicer (CRM pushes, the Invoicer never calls back)
+    await sql`
+      CREATE TABLE IF NOT EXISTS invoicer_link (
+        id TEXT PRIMARY KEY,
+        url TEXT NOT NULL,
+        token TEXT NOT NULL,
+        connected_at TEXT NOT NULL,
+        last_sync_at TEXT,
+        last_error TEXT
+      );
+    `.execute(db)
+    await addColumnIfMissing('contacts', 'invoicer_client_id', 'TEXT')
 
     // Migration (v7): Google Calendar OAuth removed; drop its token and event-mapping tables
     await sql`DROP TABLE IF EXISTS google_calendar_events;`.execute(db)

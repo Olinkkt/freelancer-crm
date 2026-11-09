@@ -45,6 +45,7 @@ import { useShortcuts } from '@/lib/use-shortcuts'
 import { ShortcutId, bindingLabel, eventToStep, hasModifier } from '@/lib/shortcuts'
 import { ShortcutsSettings } from '@/components/settings/shortcuts-settings'
 import { ApiTokensSettings } from '@/components/settings/api-tokens-settings'
+import { InvoicerSettings } from '@/components/settings/invoicer-settings'
 import { EditSettingsModal } from '@/components/modals/edit-settings-modal'
 import { DealList } from '@/components/deals/deal-list'
 import { DealDetail } from '@/components/deals/deal-detail'
@@ -141,7 +142,7 @@ export default function Page() {
   const [editingFollowUp, setEditingFollowUp] = useState<FollowUpItem | null>(null)
   const [isEditSettingsOpen, setIsEditSettingsOpen] = useState(false)
   const [settingsModalInitialTab, setSettingsModalInitialTab] = useState<'profile' | 'calendar'>('profile')
-  const [settingsTab, setSettingsTab] = useState<'profile' | 'shortcuts' | 'export' | 'api'>('profile')
+  const [settingsTab, setSettingsTab] = useState<'profile' | 'shortcuts' | 'export' | 'api' | 'invoicer'>('profile')
 
   // Floating Toasts / HUD
   const [toasts, setToasts] = useState<ToastHUDItem[]>([])
@@ -1043,6 +1044,13 @@ export default function Page() {
                 >
                   API
                 </button>
+                <button
+                  type="button"
+                  className={settingsTab === 'invoicer' ? 'tab-active' : ''}
+                  onClick={() => setSettingsTab('invoicer')}
+                >
+                  Invoicer
+                </button>
               </div>
 
               {/* TAB 1: GENERAL & PROFILE */}
@@ -1219,6 +1227,8 @@ export default function Page() {
               {settingsTab === 'shortcuts' && <ShortcutsSettings />}
 
               {settingsTab === 'api' && <ApiTokensSettings />}
+
+              {settingsTab === 'invoicer' && <InvoicerSettings />}
 
               {/* TAB 3: DATA & PORTABILITY */}
               {settingsTab === 'export' && (

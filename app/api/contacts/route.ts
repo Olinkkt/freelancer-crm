@@ -3,6 +3,7 @@ import { checkIsAuthenticated } from '@/lib/auth/session'
 import * as repo from '@/lib/db/repository'
 import { ContactCreateInputSchema } from '@/lib/validations'
 import { sanitizeErrorMessage } from '@/lib/errors'
+import { queueContactSync } from '@/lib/invoicer/sync'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,6 +33,7 @@ export async function POST(req: Request) {
       )
     }
     const contact = await repo.createContact(parsed.data as any)
+    queueContactSync(contact.id)
     return NextResponse.json(contact, { status: 201 })
   } catch (err: any) {
     return NextResponse.json({ error: sanitizeErrorMessage(err, 'Failed to create contact') }, { status: 400 })
@@ -60,6 +62,7 @@ export async function PUT(req: Request) {
     if (!contact) {
       return NextResponse.json({ error: 'Contact not found' }, { status: 404 })
     }
+    queueContactSync(contact.id)
     return NextResponse.json(contact, { status: 200 })
   } catch (err: any) {
     return NextResponse.json({ error: sanitizeErrorMessage(err, 'Failed to update contact') }, { status: 400 })

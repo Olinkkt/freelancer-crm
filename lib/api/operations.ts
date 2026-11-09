@@ -38,6 +38,7 @@ import {
   WorkspaceSchema,
   page,
 } from './schemas'
+import { queueContactSync } from '@/lib/invoicer/sync'
 
 // -------------------------------------------------------------
 // Helpers
@@ -945,6 +946,7 @@ const createClient = defineOperation({
     if (ctx.dryRun) return { ...draft, id: 'dry-run' }
     const created = await repo.createContact(draft)
     ctx.record({ entityType: 'client', entityId: created.id, after: created })
+    queueContactSync(created.id)
     return created
   },
 })
@@ -979,6 +981,7 @@ const updateClient = defineOperation({
     const saved = await repo.updateContact(next)
     if (!saved) throw notFound('Client', input.id)
     ctx.record({ entityType: 'client', entityId: input.id, before, after: saved })
+    queueContactSync(saved.id)
     return saved
   },
 })

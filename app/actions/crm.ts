@@ -12,6 +12,7 @@ import {
 } from '@/lib/crm-types'
 import { sanitizeErrorMessage } from '@/lib/errors'
 import { ChecklistSchema, DealStageSchema } from '@/lib/validations'
+import { queueContactSync } from '@/lib/invoicer/sync'
 
 async function assertAuth() {
   const isAuthed = await checkIsAuthenticated()
@@ -91,7 +92,9 @@ export async function updateDealChecklistAction(
 export async function createContactAction(contactData: Omit<Contact, 'id'>): Promise<Contact> {
   await assertAuth()
   try {
-    return await repo.createContact(contactData)
+    const created = await repo.createContact(contactData)
+    queueContactSync(created.id)
+    return created
   } catch (err: any) {
     throw new Error(sanitizeErrorMessage(err, 'Failed to create contact'))
   }
@@ -104,6 +107,7 @@ export async function updateContactAction(contact: Contact): Promise<Contact> {
     if (!updated) {
       throw new Error('Contact not found')
     }
+    queueContactSync(updated.id)
     return updated
   } catch (err: any) {
     throw new Error(sanitizeErrorMessage(err, 'Failed to update contact'))

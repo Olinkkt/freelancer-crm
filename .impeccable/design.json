@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-09T00:00:00Z",
+  "title": "Design System: Freelancer CRM",
+  "extensions": {
+    "colorMeta": {
+      "cobalt-core": { "role": "primary", "displayName": "Cobalt Core", "canonical": "#266df0", "tonalRamp": ["#0b2a66", "#123f99", "#1a55c7", "#266df0", "#538bf3", "#a6b9df", "#bad0fa", "#e4edff"] },
+      "ink-black": { "role": "neutral", "displayName": "Ink Black", "canonical": "#1c1d1f", "tonalRamp": ["#101113", "#1c1d1f", "#232529", "#505967", "#6f7988", "#8f99a8", "#cad0d9", "#f4f5f6"] },
+      "graphite": { "role": "neutral", "displayName": "Graphite", "canonical": "#232529" },
+      "slate-600": { "role": "neutral", "displayName": "Slate 600", "canonical": "#6f7988" },
+      "mist-50": { "role": "neutral", "displayName": "Hairline Mist", "canonical": "#e4e7ec" },
+      "app-canvas": { "role": "neutral", "displayName": "App Canvas", "canonical": "#f7f8fa" },
+      "amber-ink": { "role": "status", "displayName": "Amber", "canonical": "#c4882b", "tonalRamp": ["#5c3d0a", "#925807", "#c4882b", "#d99b38", "#f2cb7d", "#fae8c3", "#fff3df", "#fff9ee"] },
+      "danger-ink": { "role": "status", "displayName": "Red", "canonical": "#d92d20", "tonalRamp": ["#5a120d", "#8f1d15", "#b4241a", "#d92d20", "#ec6a60", "#f6b4ae", "#fbd9d6", "#fdeceb"] },
+      "success-ink": { "role": "status", "displayName": "Green", "canonical": "#3b9b6d", "tonalRamp": ["#123d2a", "#1d5e40", "#2a7d56", "#3b9b6d", "#50b884", "#9fdcbc", "#cdeedd", "#e5f7ee"] }
+    },
+    "typographyMeta": {
+      "page-title": { "displayName": "Page Title", "purpose": "h1 of top-level views." },
+      "headline": { "displayName": "Headline", "purpose": "Home greeting, deal header, metric values." },
+      "title": { "displayName": "Title", "purpose": "Panel headings." },
+      "body": { "displayName": "Body", "purpose": "Default UI text." },
+      "body-small": { "displayName": "Body Small", "purpose": "Secondary buttons, search, alerts." },
+      "meta": { "displayName": "Meta", "purpose": "Pills, counts, due tags, timestamps." },
+      "label": { "displayName": "Label", "purpose": "Uppercase eyebrows and sidebar section labels." }
+    },
+    "shadows": [
+      { "name": "card-rest", "value": "rgba(28,40,64,0.1) 0 2px 3px -2px, rgba(28,40,64,0.04) 0 4px 6px -2px", "purpose": "Panels and metric cards." },
+      { "name": "button-primary", "value": "0 1px 3px rgba(28,40,64,0.08)", "purpose": "Primary button only." },
+      { "name": "popover", "value": "rgba(28,40,64,0.06) 0 2px 6px, rgba(28,40,64,0.08) 0 6px 20px -2px", "purpose": "Menus and comboboxes." },
+      { "name": "modal", "value": "rgba(0,0,0,0.04) 0 12px 30px, 0 20px 50px rgba(28,40,64,0.12)", "purpose": "Modals and the command palette." },
+      { "name": "toast", "value": "0 12px 30px rgba(0,0,0,0.18)", "purpose": "Dark toast HUD." },
+      { "name": "focus-halo", "value": "0 0 0 3px #e4edff", "purpose": "Focused fields." }
+    ],
+    "motion": [
+      { "name": "hover", "value": "120-150ms ease", "purpose": "Hover color and background changes." },
+      { "name": "tab-indicator", "value": "220ms cubic-bezier(0.77, 0, 0.175, 1)", "purpose": "Sliding tab underline." },
+      { "name": "popover-in", "value": "160ms cubic-bezier(0.23, 1, 0.32, 1)", "purpose": "Menus opening." },
+      { "name": "modal-in", "value": "150ms fade + zoom-in-95", "purpose": "Modals, palette, toasts." }
+    ],
+    "breakpoints": [
+      { "name": "wide", "value": "1050px" },
+      { "name": "tablet", "value": "900px" },
+      { "name": "mobile", "value": "760px" },
+      { "name": "small", "value": "460px" }
+    ]
+  },
+  "components": [
+    { "name": "Primary Button", "kind": "button", "refersTo": "button-primary", "description": "The one dark action per view.", "html": "<button class=\"ds-btn-primary\">New deal</button>", "css": ".ds-btn-primary{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 16px;border:0;border-radius:10px;background:#232529;color:#fff;font:500 13px/1 Inter,system-ui,sans-serif;letter-spacing:-0.01em;font-feature-settings:'ss03' on;box-shadow:0 1px 3px rgba(28,40,64,0.08);transition:background .15s ease;cursor:pointer}.ds-btn-primary:hover{background:#101113}.ds-btn-primary:focus-visible{outline:2px solid #266df0;outline-offset:2px}" },
+    { "name": "Secondary Button", "kind": "button", "refersTo": "button-secondary", "description": "Hairline button for filters and secondary actions.", "html": "<button class=\"ds-btn-secondary\">All stages</button>", "css": ".ds-btn-secondary{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border:1px solid #e4e7ec;border-radius:10px;background:#fff;color:#6f7988;font:500 12px/1.2 Inter,system-ui,sans-serif;letter-spacing:-0.01em;transition:all .15s ease;cursor:pointer}.ds-btn-secondary:hover{background:#f4f5f6;color:#1c1d1f;border-color:#cbd0d8}.ds-btn-secondary:focus-visible{outline:2px solid #266df0;outline-offset:2px}" },
+    { "name": "Text Field", "kind": "input", "refersTo": "input", "description": "Modal form field with cobalt focus.", "html": "<input class=\"ds-input\" placeholder=\"Deal title\">", "css": ".ds-input{width:260px;height:40px;padding:0 12px;border:1px solid #e4e7ec;border-radius:10px;background:#fff;color:#1c1d1f;font:500 13px Inter,system-ui,sans-serif;letter-spacing:-0.01em;outline:none;transition:border-color .12s,box-shadow .12s}.ds-input::placeholder{color:#9fa1a7}.ds-input:focus{border-color:#266df0;box-shadow:0 0 0 2px rgba(38,109,240,0.15)}" },
+    { "name": "Sidebar Nav", "kind": "nav", "refersTo": "nav-item", "description": "Sidebar items with selection-wash active state.", "html": "<nav class=\"ds-nav\"><div class=\"ds-nav-label\">Workspace</div><a class=\"ds-nav-item is-active\">Home</a><a class=\"ds-nav-item\">Deals</a><a class=\"ds-nav-item\">Clients</a></nav>", "css": ".ds-nav{width:208px;font-family:Inter,system-ui,sans-serif;letter-spacing:-0.01em}.ds-nav-label{margin:0 10px 8px;color:#9fa1a7;font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}.ds-nav-item{display:block;padding:8px 10px;border-radius:10px;color:#6f7988;font-size:13px;font-weight:500;cursor:pointer;transition:all .12s ease}.ds-nav-item:hover,.ds-nav-item.is-active{background:#f1f5ff;color:#1c1d1f}" },
+    { "name": "Status Pills", "kind": "chip", "refersTo": "stage-pill", "description": "Wash pills: stage, prospect, late.", "html": "<span class=\"ds-pill ds-pill-stage\">Proposal</span> <span class=\"ds-pill ds-pill-amber\">Prospect</span> <span class=\"ds-pill ds-pill-danger\">Late</span>", "css": ".ds-pill{display:inline-block;padding:4px 8px;border-radius:7px;font:500 11px Inter,system-ui,sans-serif}.ds-pill-stage{background:#f1f5ff;color:#266df0}.ds-pill-amber{background:#fff3df;color:#c4882b}.ds-pill-danger{background:#fdeceb;color:#d92d20;font-weight:600}" },
+    { "name": "Panel", "kind": "card", "refersTo": "card", "description": "White hairline card on the app canvas.", "html": "<section class=\"ds-panel\"><h2>Today</h2><p>3 due · 2 waiting</p></section>", "css": ".ds-panel{width:300px;padding:20px 22px;background:#fff;border:1px solid #e4e7ec;border-radius:12px;box-shadow:rgba(28,40,64,0.1) 0 2px 3px -2px,rgba(28,40,64,0.04) 0 4px 6px -2px;font-family:Inter,system-ui,sans-serif}.ds-panel h2{margin:0 0 6px;font-size:18px;font-weight:600;letter-spacing:-0.025em;color:#1c1d1f}.ds-panel p{margin:0;font-size:12px;font-weight:500;color:#8f99a8}" },
+    { "name": "Toast", "kind": "custom", "refersTo": "toast", "description": "Dark HUD toast at the bottom of the screen.", "html": "<div class=\"ds-toast\"><span class=\"ds-toast-dot\"></span>Deal moved to Build</div>", "css": ".ds-toast{display:inline-flex;align-items:center;gap:10px;padding:10px 14px;background:#232529;border:1px solid #343840;border-radius:12px;color:#fff;font:500 12px Inter,system-ui,sans-serif;box-shadow:0 12px 30px rgba(0,0,0,0.18)}.ds-toast-dot{width:8px;height:8px;border-radius:50%;background:#266df0}" }
+  ],
+  "narrative": {
+    "northStar": "The Quiet Ledger",
+    "overview": "Freelancer CRM is a working tool for one person, used many times a day. It looks like a well-kept ledger: white sheets on a barely grey desk, ink-dark text, ruled hairlines, and one cobalt pen used only to mark what matters now. Density is compact on purpose; light mode only; keyboard-first, so focus states, kbd hints and the command palette are part of the visual language.",
+    "keyCharacteristics": [
+      "One typeface (Inter, ss03 on), two weights (500 body, 600 emphasis).",
+      "One chromatic accent (cobalt #266df0); everything else is ink, slate and hairline grey.",
+      "White cards with 1 px hairline borders on a #f7f8fa canvas, lifted by near-invisible blue-tinted shadows.",
+      "Status is said with soft tinted pills (wash background + saturated ink), never with filled color blocks.",
+      "Compact 10/11/12/13 px type scale; headings only at 18, 22 and 31 px."
+    ],
+    "rules": [
+      { "name": "The One Pen Rule", "body": "Cobalt marks the one thing to look at: the focused field, today, the current stage, a link. If two cobalt things compete in one panel, one of them should be ink.", "section": "colors" },
+      { "name": "The Wash, Not Fill Rule", "body": "Status is a pale wash with saturated text. Solid colored backgrounds are only for the dark graphite primary action and the toast.", "section": "colors" },
+      { "name": "The Small Type, Firm Weight Rule", "body": "Text under 13px is never weight 400. Keep 500 so 11px metadata stays legible on white.", "section": "typography" },
+      { "name": "The Tabular Money Rule", "body": "Amounts and numeric columns use tabular-nums so values line up in lists and tables.", "section": "typography" },
+      { "name": "The Hairline First Rule", "body": "A surface is defined by its 1px mist-50 border first and its shadow second. Never a shadow without a border on a white card.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do use the CSS custom properties in app/globals.css (--color-*, --radius-*, --shadow-*) or the hex values in this file's frontmatter. Nothing else.",
+      "Do keep running text at 13px / 500 and metadata at 11px / 500; add emphasis with weight 600 or ink color, not with size.",
+      "Do give every white surface a 1px mist-50 border and a 12px radius.",
+      "Do show status as a wash pill (pale background, saturated text).",
+      "Do show a <kbd> hint next to any action that has a shortcut.",
+      "Do keep hover transitions at 120–150ms ease and respect prefers-reduced-motion (already wired in three places)."
+    ],
+    "donts": [
+      "Don't add a second accent hue. Tailwind's #3b82f6 (blue-500) has crept into some focus rings; replace it with cobalt core.",
+      "Don't introduce new slate greys (#636c7e, #525968 exist as drift); pick the nearest of slate-500 / 600 / 700.",
+      "Don't use weight 400 or 700, a display face or a serif.",
+      "Don't use solid colored buttons or banners for status; red, amber and green are washes and text only.",
+      "Don't add dark mode styling ad hoc. The app is light-only until a full dark theme is designed.",
+      "Don't bring back a Kanban pipeline look for deals; the card board style is only for tasks inside one deal."
+    ]
+  }
+}

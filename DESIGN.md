@@ -1,481 +1,349 @@
-# Attio — Style Reference
-> Architectural editorial on white marble
+---
+name: Freelancer CRM
+description: A quiet, keyboard-first workspace for one freelancer's clients, deals and projects.
+colors:
+  cobalt-core: "#266df0"
+  cobalt-bright: "#407ff2"
+  cobalt-soft: "#538bf3"
+  periwinkle: "#bad0fa"
+  ice-wash: "#e4edff"
+  selection-wash: "#f1f5ff"
+  ink-black: "#1c1d1f"
+  graphite: "#232529"
+  obsidian: "#101113"
+  slate-500: "#505967"
+  slate-600: "#6f7988"
+  slate-700: "#8f99a8"
+  fog-400: "#9fa1a7"
+  cloud-200: "#cad0d9"
+  mist-50: "#e4e7ec"
+  hairline-soft: "#f0f1f3"
+  field-wash: "#edf0f3"
+  paper: "#f4f5f6"
+  row-wash: "#fafbfc"
+  app-canvas: "#f7f8fa"
+  page-canvas: "#ffffff"
+  scrim: "#10141c"
+  amber-ink: "#c4882b"
+  amber-wash: "#fff3df"
+  alert-ink: "#925807"
+  alert-wash: "#fff9ee"
+  alert-border: "#fae8c3"
+  danger-ink: "#d92d20"
+  danger-wash: "#fdeceb"
+  success-ink: "#3b9b6d"
+  success-dot: "#50b884"
+  success-wash: "#e5f7ee"
+typography:
+  page-title:
+    fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, sans-serif"
+    fontSize: "31px"
+    fontWeight: 600
+    lineHeight: 1.1
+    letterSpacing: "-0.035em"
+    fontFeature: "'ss03' on"
+  headline:
+    fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "22px"
+    fontWeight: 600
+    lineHeight: 1.2
+    letterSpacing: "-0.03em"
+    fontFeature: "'ss03' on"
+  title:
+    fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "18px"
+    fontWeight: 600
+    lineHeight: 1.25
+    letterSpacing: "-0.025em"
+    fontFeature: "'ss03' on"
+  body:
+    fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "13px"
+    fontWeight: 500
+    lineHeight: 1.45
+    letterSpacing: "-0.01em"
+    fontFeature: "'ss03' on"
+  body-small:
+    fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "12px"
+    fontWeight: 500
+    lineHeight: 1.4
+    letterSpacing: "-0.01em"
+    fontFeature: "'ss03' on"
+  meta:
+    fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "11px"
+    fontWeight: 500
+    lineHeight: 1.35
+    letterSpacing: "-0.005em"
+    fontFeature: "'ss03' on"
+  label:
+    fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "10px"
+    fontWeight: 600
+    lineHeight: 1
+    letterSpacing: "0.08em"
+    fontFeature: "'ss03' on"
+rounded:
+  hairline: "4px"
+  chip: "6px"
+  badge: "7px"
+  control-sm: "8px"
+  control: "10px"
+  card: "12px"
+  round: "999px"
+spacing:
+  xs: "4px"
+  sm: "8px"
+  md: "12px"
+  lg: "16px"
+  xl: "20px"
+  2xl: "24px"
+  page-x: "48px"
+components:
+  button-primary:
+    backgroundColor: "{colors.graphite}"
+    textColor: "{colors.page-canvas}"
+    typography: "{typography.body}"
+    rounded: "{rounded.control}"
+    padding: "0 16px"
+    height: "40px"
+  button-primary-hover:
+    backgroundColor: "{colors.obsidian}"
+    textColor: "{colors.page-canvas}"
+  button-secondary:
+    backgroundColor: "{colors.page-canvas}"
+    textColor: "{colors.slate-600}"
+    typography: "{typography.body-small}"
+    rounded: "{rounded.control}"
+    padding: "7px 11px"
+  button-secondary-hover:
+    backgroundColor: "{colors.paper}"
+    textColor: "{colors.ink-black}"
+  button-text:
+    textColor: "{colors.cobalt-core}"
+    typography: "{typography.body-small}"
+  button-icon:
+    textColor: "{colors.slate-600}"
+    rounded: "{rounded.control}"
+    size: "34px"
+  button-icon-hover:
+    backgroundColor: "{colors.paper}"
+    textColor: "{colors.ink-black}"
+  input:
+    backgroundColor: "{colors.page-canvas}"
+    textColor: "{colors.ink-black}"
+    typography: "{typography.body}"
+    rounded: "{rounded.control}"
+    padding: "0 12px"
+    height: "40px"
+  search-field:
+    backgroundColor: "{colors.page-canvas}"
+    textColor: "{colors.fog-400}"
+    typography: "{typography.body-small}"
+    rounded: "{rounded.control}"
+    padding: "0 11px"
+    height: "34px"
+  card:
+    backgroundColor: "{colors.page-canvas}"
+    rounded: "{rounded.card}"
+    padding: "20px 22px"
+  modal:
+    backgroundColor: "{colors.page-canvas}"
+    rounded: "{rounded.card}"
+    width: "512px"
+  nav-item:
+    textColor: "{colors.slate-600}"
+    typography: "{typography.body}"
+    rounded: "{rounded.control}"
+    padding: "8px 10px"
+  nav-item-active:
+    backgroundColor: "{colors.selection-wash}"
+    textColor: "{colors.ink-black}"
+  stage-pill:
+    backgroundColor: "{colors.selection-wash}"
+    textColor: "{colors.cobalt-core}"
+    typography: "{typography.meta}"
+    rounded: "{rounded.badge}"
+    padding: "4px 8px"
+  status-pill:
+    backgroundColor: "#f0f2f5"
+    textColor: "{colors.slate-600}"
+    typography: "{typography.meta}"
+    rounded: "{rounded.badge}"
+    padding: "4px 8px"
+  flag-pill-danger:
+    backgroundColor: "{colors.danger-wash}"
+    textColor: "{colors.danger-ink}"
+    typography: "{typography.meta}"
+    rounded: "{rounded.badge}"
+    padding: "2px 8px"
+  toast:
+    backgroundColor: "{colors.graphite}"
+    textColor: "{colors.page-canvas}"
+    typography: "{typography.body-small}"
+    rounded: "{rounded.card}"
+    padding: "10px 14px"
+---
 
-**Theme:** light
+# Design System: Freelancer CRM
 
-Source measurements are normalized; roles and recommendations are interpreted. Font summary lists are independent, not paired by position. HTML examples are reconstructions, not source components.
+## Overview
 
-Attio uses an editorial SaaS language: near-white canvas, near-black type, and one vivid cobalt accent (#266df0) that does the talking while everything else stays quiet. The type stack is a deliberate three-voice system — Inter for UI, InterDisplay for marketing headlines at weight 600 with tight tracking, and TiemposText (serif) for testimonial/pull-quote moments that need warmth and human weight. Components feel light and precise: 7px and 12px radii, hairline borders, blue-tinted shadows at very low opacity, and ghost/outline buttons that defer to the primary filled dark action. Layout breathes — generous vertical rhythm with a 1440px max-width — but density is compact within cards and lists. The signature move is restraint: the same monochrome restraint you'd see in a financial publication, punctuated by exactly one chromatic moment per screen.
+**Creative North Star: "The Quiet Ledger"**
 
-## Tokens — Colors
+Freelancer CRM is a working tool for one person, used many times a day. It looks like a well-kept ledger: white sheets on a barely grey desk, ink-dark text, ruled hairlines, and one cobalt pen used only to mark what matters now. Nothing on screen competes with the operator's own data. Expression lives in small things: Inter's `ss03` alternates, tight negative tracking on headings, a 220 ms tab indicator, a cobalt dot that means "today".
 
-| Name | Value | Token | Role |
-|------|-------|-------|------|
-| Page Canvas | `#ffffff` | `--color-page-canvas` | Primary page background, card surfaces, button backgrounds |
-| Ink Black | `#1c1d1f` | `--color-ink-black` | Primary heading and body text, logo mark |
-| Graphite | `#232529` | `--color-graphite` | Dark surface text, dark filled button background |
-| Obsidian | `#101113` | `--color-obsidian` | Deepest text and dark surface fills |
-| Carbon | `#2e3238` | `--color-carbon` | Secondary dark text, nav states, button text on light fills |
-| Slate 500 | `#505967` | `--color-slate-500` | Dark borders and separators for elevated surfaces and inverted UI. Do not promote it to the primary CTA color |
-| Slate 600 | `#6f7988` | `--color-slate-600` | Muted body text, secondary descriptions |
-| Slate 700 | `#8f99a8` | `--color-slate-700` | Tertiary headings, captions, low-emphasis text |
-| Fog 400 | `#9fa1a7` | `--color-fog-400` | Placeholder text, disabled states, subtle icons |
-| Mist 300 | `#b5bdc9` | `--color-mist-300` | Muted body text, secondary copy |
-| Cloud 200 | `#cad0d9` | `--color-cloud-200` | Hairline borders on cards, input borders, dividers |
-| Cloud 100 | `#d3d8df` | `--color-cloud-100` | Card borders, surface boundaries |
-| Mist 50 | `#e4e7ec` | `--color-mist-50` | Primary border color, dividers, subtle backgrounds, button borders |
-| Haze | `#eeeff1` | `--color-haze` | Subtle background fills, section bands, inset borders |
-| Paper | `#f4f5f6` | `--color-paper` | Alternate surface background, subtle elevated panels |
-| Cobalt Core | `#266df0` | `--color-cobalt-core` | Primary brand accent — link text, focus rings, active states, highlighted icons, gradient midtone |
-| Cobalt Bright | `#407ff2` | `--color-cobalt-bright` | Secondary accent, hover states, decorative strokes in illustrations |
-| Cobalt Soft | `#538bf3` | `--color-cobalt-soft` | Violet wash for highlight backgrounds, decorative bands, and soft emphasis behind content. |
-| Periwinkle | `#bad0fa` | `--color-periwinkle` | Decorative card borders, subtle blue-tinted surface outlines |
-| Ice Wash | `#e4edff` | `--color-ice-wash` | Soft blue-tinted background, highlight washes, button box-shadow tints |
-| Onyx Footer | `#000000` | `--color-onyx-footer` | Footer background, dark section backgrounds, high-contrast text on light |
+Density is compact on purpose. Most text sits between 11 and 13 px, rows are short, and panels sit close together (14 px gaps) so Home, Deals and a deal's workspace fit on a laptop screen without scrolling. Light mode only (`color-scheme: light`). The app is keyboard-first, so focus states, `<kbd>` hints and the ⌘K palette are part of the visual language, not extras.
 
-## Tokens — Typography
+The look grew out of an Attio-inspired reference, but it now stands on its own: no display face, no serif, no marketing surfaces. The logo (an F drawn as a key you press) shares the cobalt and ink, see `brand/GUIDELINES.md`.
 
-### Inter — UI body — used for all body text, buttons, nav, links, card content, footers, icons. Weight 500 is the default for nearly all UI text (buttons, nav, body), giving Attio a slightly heavier, more confident UI voice than typical 400-only systems. Activated 'ss03' alternates give the text a distinctive geometric character. · `--font-inter`
-- **Substitute:** Inter (Google Fonts) — already a freely available open-source font, no substitute needed
-- **Weights:** 400, 500, 600, 700
-- **Sizes:** 10, 11, 12, 13, 14, 15, 16, 18, 20, 32px
-- **Line height:** 1.2–1.5
-- **Letter spacing:** -0.02em at 14px, -0.01em at 16px, 0 at 12px
-- **OpenType features:** `"ss03" on`
-- **Role:** UI body — used for all body text, buttons, nav, links, card content, footers, icons. Weight 500 is the default for nearly all UI text (buttons, nav, body), giving Attio a slightly heavier, more confident UI voice than typical 400-only systems. Activated 'ss03' alternates give the text a distinctive geometric character.
+**Key Characteristics:**
+- One typeface (Inter, `ss03` on), two weights (500 body, 600 emphasis).
+- One chromatic accent (cobalt `#266df0`); everything else is ink, slate and hairline grey.
+- White cards with 1 px hairline borders on a `#f7f8fa` canvas, lifted by near-invisible blue-tinted shadows.
+- Status is said with soft tinted pills (wash background + saturated ink), never with filled color blocks.
+- Compact 10/11/12/13 px type scale; headings only at 18, 22 and 31 px.
 
-### InterDisplay — Marketing headlines and display copy — weight 600 exclusively for large hero and section headings, with tight tracking (-0.015em to -0.02em) and near-1.0 line-heights creating dramatic, compact display blocks. The 56px size with -0.015em tracking is the signature hero voice. Activates 'ss03' and 'calt' for the same alternate character as Inter body. · `--font-interdisplay`
-- **Substitute:** Inter Tight (Google Fonts) — same family tree, tighter default metrics
-- **Weights:** 500, 600
-- **Sizes:** 12, 19, 20, 32, 40, 56, 64px
-- **Line height:** 1.0–1.2
-- **Letter spacing:** -0.02em at 64px, -0.015em at 56px, -0.01em at 32-40px, -0.017em at 19px body display, 0.06em at 12px eyebrow
-- **OpenType features:** `"ss03" on, "calt" on`
-- **Role:** Marketing headlines and display copy — weight 600 exclusively for large hero and section headings, with tight tracking (-0.015em to -0.02em) and near-1.0 line-heights creating dramatic, compact display blocks. The 56px size with -0.015em tracking is the signature hero voice. Activates 'ss03' and 'calt' for the same alternate character as Inter body.
+## Colors
 
-### TiemposText — Editorial pull-quote and testimonial headings — a humanist serif that breaks the sans-serif system to create warmth and editorial weight. Used sparingly for quoted customer voices. This serif/sans contrast is the single most distinctive typographic choice in the system. · `--font-tiempostext`
-- **Substitute:** Source Serif 4 (Google Fonts) or Spectral (Google Fonts)
-- **Weights:** 400, 500
-- **Sizes:** 28, 40px
-- **Line height:** 1.1–1.23
-- **Letter spacing:** -0.015em at 28-40px
-- **OpenType features:** `"ss03" on`
-- **Role:** Editorial pull-quote and testimonial headings — a humanist serif that breaks the sans-serif system to create warmth and editorial weight. Used sparingly for quoted customer voices. This serif/sans contrast is the single most distinctive typographic choice in the system.
+A monochrome slate-and-ink palette with exactly one cobalt voice, plus three quiet status families (amber, red, green) that only appear when something needs attention.
 
-### Type Scale
+### Primary
+- **Cobalt Core** (`cobalt-core`): the single accent. Links and text buttons, focus borders and rings, the "today" dot, the active stage dot, selected rows in the palette, primary icon highlights. Also the logo color.
+- **Cobalt Bright / Cobalt Soft** (`cobalt-bright`, `cobalt-soft`): only as steps in the stage progress ramp (`dot-1` to `dot-5` run from `#a6b9df` to cobalt core). Not for buttons or text.
+- **Ice Wash** (`ice-wash`): tinted backgrounds behind cobalt content: active status pill, workspace avatar, the 3 px focus halo on fields.
+- **Selection Wash** (`selection-wash`): hover and active background for sidebar nav items and the stage pill.
+- **Periwinkle** (`periwinkle`): rare blue-tinted outline for highlighted cards.
 
-| Role | Family | Weight | Size | Line Height | Letter Spacing | Token |
-|------|--------|--------|------|-------------|----------------|-------|
-| caption | — | — | 11px | 1.42 | -0.22px | `--text-caption` |
-| body-lg | — | — | 16px | 1.38 | -0.16px | `--text-body-lg` |
-| subheading | — | — | 20px | 1.3 | -0.2px | `--text-subheading` |
-| heading-sm | — | — | 32px | 1.19 | -0.32px | `--text-heading-sm` |
-| heading | — | — | 40px | 1.1 | -0.4px | `--text-heading` |
-| heading-lg | — | — | 56px | 1.07 | -0.84px | `--text-heading-lg` |
-| display | — | — | 64px | 1 | -1.28px | `--text-display` |
+### Neutral
+- **Ink Black** (`ink-black`): primary text, headings, the active tab underline. The most used color in the app.
+- **Graphite** (`graphite`): the dark fill of primary buttons, toasts and selected segmented-control items. **Obsidian** (`obsidian`) is its hover state.
+- **Slate 500** (`slate-500`): strong secondary text in tables and modals.
+- **Slate 600** (`slate-600`): default secondary text, nav items, icon buttons, secondary buttons.
+- **Slate 700** (`slate-700`): captions, eyebrows, counts, timestamps.
+- **Fog 400** (`fog-400`): placeholders, disabled text, quiet icons, sidebar section labels.
+- **Mist 50** (`mist-50`): the hairline. Every card, input, table and divider border. Exposed in CSS as `--border`.
+- **Hairline Soft** (`hairline-soft`) and **Field Wash** (`field-wash`): inner dividers inside panels, and the background of hovered icon buttons, inline code and secondary chips.
+- **Paper** (`paper`) and **Row Wash** (`row-wash`): hover fill for buttons and table rows; quiet inset areas.
+- **App Canvas** (`app-canvas`): the page background behind everything. **Page Canvas** (`page-canvas`, white) is reserved for the surfaces on top of it: sidebar, topbar, cards, modals.
+- **Scrim** (`scrim` at 30% opacity): the modal and palette backdrop.
 
-## Tokens — Spacing & Shapes
+### Status
+- **Amber** (`amber-ink` on `amber-wash`): "prospect" pills, `.warning` text, due-soon states. The GTD alert strip uses the calmer `alert-ink` on `alert-wash` with an `alert-border` hairline.
+- **Red** (`danger-ink` on `danger-wash`): overdue dots, blocked / unpaid invoice / late project flags, destructive actions.
+- **Green** (`success-ink`, `success-dot` with a `success-wash` halo): positive deltas and the "healthy" status dot. Used least of all.
 
-**Base unit:** 4px
+### Named Rules
+**The One Pen Rule.** Cobalt marks the one thing to look at: the focused field, today, the current stage, a link. If two cobalt things compete in one panel, one of them should be ink.
 
-**Density:** compact
+**The Wash, Not Fill Rule.** Status is a pale wash with saturated text (`danger-ink` on `danger-wash`). Solid colored backgrounds are only for the dark graphite primary action and the toast.
 
-### Spacing Scale
+## Typography
 
-| Name | Value | Token |
-|------|-------|-------|
-| 4 | 4px | `--spacing-4` |
-| 8 | 8px | `--spacing-8` |
-| 12 | 12px | `--spacing-12` |
-| 16 | 16px | `--spacing-16` |
-| 20 | 20px | `--spacing-20` |
-| 24 | 24px | `--spacing-24` |
-| 28 | 28px | `--spacing-28` |
-| 32 | 32px | `--spacing-32` |
-| 36 | 36px | `--spacing-36` |
-| 40 | 40px | `--spacing-40` |
-| 44 | 44px | `--spacing-44` |
-| 48 | 48px | `--spacing-48` |
-| 60 | 60px | `--spacing-60` |
-| 80 | 80px | `--spacing-80` |
-| 100 | 100px | `--spacing-100` |
-| 120 | 120px | `--spacing-120` |
+**Body Font:** Inter (via `next/font`, CSS variable `--font-inter`), falling back to `ui-sans-serif, system-ui, -apple-system`.
+**Label/Mono Font:** the system monospace stack, only inside `<kbd>` shortcut hints and inline code in notes.
 
-### Border Radius
+**Character:** a single geometric-leaning sans with `font-feature-settings: 'ss03' on` and slight negative tracking everywhere. Weight 500 is the default for running text, which makes small sizes read firmly; 600 carries every heading, count and emphasized value. 400 and 700 are not used.
 
-| Element | Value |
-|---------|-------|
-| tabs | 10px |
-| cards | 11-14px |
-| badges | 7px |
-| inputs | 10px |
-| buttons | 10px |
+### Hierarchy
+- **Page Title** (600, 31px, 1.1, -0.035em): the `h1` of top-level views (Clients, Deals, Settings).
+- **Headline** (600, 22px, -0.03em): the Home greeting, deal titles in the workspace header, metric values.
+- **Title** (600, 18px, -0.025em): panel headings (`.panel-heading h2`). Group heads in Today use 14px / 600.
+- **Body** (500, 13px): default UI text, nav items, form fields, buttons, table cells.
+- **Body Small** (500, 12px): secondary buttons, search field, alert strips, descriptions.
+- **Meta** (500, 11px): pills, due tags, counts, timestamps, next-action text in rows. The most frequent size in the app.
+- **Label** (600, 10px, 0.08em, uppercase): eyebrows and sidebar section labels only.
 
-### Shadows
+### Named Rules
+**The Small Type, Firm Weight Rule.** Text under 13px is never weight 400. Keep 500 so 11px metadata stays legible on white.
 
-| Name | Value | Token |
-|------|-------|-------|
-| subtle | `rgb(238, 239, 241) 0px 0px 0px 1px inset` | `--shadow-subtle` |
-| subtle-2 | `rgba(28, 40, 64, 0.1) 0px 2px 3px -2px, rgba(28, 40, 64, ...` | `--shadow-subtle-2` |
-| subtle-3 | `rgba(28, 40, 64, 0.18) 0px 0px 2px 0px, rgba(0, 0, 0, 0.0...` | `--shadow-subtle-3` |
-| sm | `rgba(28, 40, 64, 0.06) 0px 2px 6px 0px, rgba(28, 40, 64, ...` | `--shadow-sm` |
-| xl | `rgba(0, 0, 0, 0.04) 0px 12px 30px 0px` | `--shadow-xl` |
-| subtle-4 | `rgba(0, 0, 0, 0.06) 0px 1px 2px 0px, rgba(0, 0, 0, 0.1) 0...` | `--shadow-subtle-4` |
-| subtle-5 | `lab(74.4644 0.482172 -39.075 / 0.25) 0px 0px 0px 4px` | `--shadow-subtle-5` |
-
-### Layout
-
-- **Page max-width:** 1440px
-- **Section gap:** 80-120px
-- **Card padding:** 24px
-- **Element gap:** 8px
-
-## Components
-
-### Primary Filled Button
-**Role:** Main conversion action
-
-Dark filled button, background #232529 (Graphite) or near-black, text #ffffff (white), 10px border-radius, 12px horizontal padding, height ~40px. Inter weight 500, 15px. No border. Signature element: the only colored-fill button in the system. Examples: 'Start for free'.
-
-### Secondary Outline Button
-**Role:** Companion action beside primary
-
-White background (#ffffff), 1px border #e4e7ec (Mist 50), text #1c1d1f (Ink Black), 10px radius, 12px horizontal padding. Inter weight 500, 15px. Ghost-like restraint — sits beside the dark primary without competing. Examples: 'Talk to sales'.
-
-### Ghost Text Button
-**Role:** Tertiary inline action
-
-Transparent background, no border, text in #1c1d1f or #2e3238, 10px radius, 0px padding. Inter weight 500, 15px. Used in nav and inline contexts where the action is implied, not proclaimed. Examples: nav items, 'Sign in'.
-
-### Dark Inverted Button
-**Role:** Action on dark surfaces
-
-Background #1c1d1f (Ink Black), text #ffffff, 1px border #2e3238, 10px radius. Same dimensions as primary but inverted for use on dark bands or footers.
-
-### Tab Bar
-**Role:** Section navigation
-
-Horizontal tab strip with bottom-border active indicator. Text Inter 15px weight 500, inactive in #6f7988 (Slate 600), active in #1c1d1f (Ink Black) with a 2px bottom border in Ink Black. No background fill. Examples: 'Ask Attio / Data model / Workflows / Reporting'.
-
-### Product Screenshot Card
-**Role:** Product visual showcase
-
-White background (#ffffff), 11-14px border-radius, subtle blue-tinted shadow (rgba(28, 40, 64, 0.04) 0px 12px 30px 0px or rgba(28, 40, 64, 0.08) 0px 6px 20px -2px). Zero or very minimal internal padding — the screenshot IS the card. No border.
-
-### Feature Card
-**Role:** Content card with description
-
-White background, 12px border-radius, 1px border #e4e7ec or subtle shadow stack (rgba(28, 40, 64, 0.1) 0px 2px 3px -2px + rgba(28, 40, 64, 0.04) 0px 4px 6px -2px), 11-24px internal padding. Heading 20-32px InterDisplay 600, body 15-16px Inter 500 in #6f7988.
-
-### Logo Strip
-**Role:** Social proof / customer logos
-
-Inline row of monochrome customer logos on white background, all rendered in #1c1d1f or #2e3238. No card wrapping, no dividers. Generous vertical padding (60-80px) above and below. Example: granola, Flow, Listen, Obvious, Modal, USV logos.
-
-### Eyebrow Pill / Tag
-**Role:** Section category label
-
-Small pill or bordered label above section headings. Transparent or very light background, 1px border #e4e7ec, 7px radius, 6-8px vertical padding, 10-12px horizontal. Inter weight 500, 12px. Used as a quiet signifier. Example: 'Explore GTM frameworks from operators like Elena Verna'.
-
-### New Badge
-**Role:** Status indicator
-
-Small filled badge, background #538bf3 (Cobalt Soft), text #ffffff or dark, 7px radius, ~5px vertical / 8px horizontal padding. Inter weight 500, 11-12px. The only chromatic badge in the system — its rarity makes it meaningful.
-
-### Promo Banner
-**Role:** Top-of-page announcement
-
-Thin dark bar at top of page (48px height), background #000000 or #101113, text #ffffff, Inter 14px weight 500, centered content with an arrow link in white. Dismissable. Example: 'Orchestrate revenue agents with the new Workflows →'.
-
-### Chat Input Field
-**Role:** AI query input
-
-White background, 1px border #e4e7ec, 10-12px radius, subtle shadow, generous internal padding (12-16px). Placeholder text in #9fa1a7 (Fog 400). Send button: small cobalt blue square, #266df0 background, 7px radius.
-
-### Sidebar Navigation
-**Role:** In-product navigation
-
-Light background (#ffffff or #f4f5f6), no visible border separating from main content. Items: Inter 14-15px weight 500, text #1c1d1f, hover/active state in #2e3238. Indentation uses 16-24px left padding. Icons: 16px, 1.5px stroke, monochrome.
-
-### Footer
-**Role:** Site-wide footer
-
-Black background (#000000), text #ffffff and #b5bdc9 (muted), Inter 14-15px weight 500. Column-based layout (4 columns: Platform, Import from, Apps, Resources). Logo + wordmark in white at top-left. Generous vertical padding (80-120px).
-
-## Do's and Don'ts
-
-### Do
-- Use #266df0 (Cobalt Core) as the single accent for all interactive highlights, active states, and link text — never introduce additional saturated colors
-- Set display headlines in InterDisplay weight 600 at 40-64px with tracking -0.015em to -0.02em and line-height 1.0-1.1
-- Use 10px border-radius for all buttons and inputs, 7px for tags and badges, 11-14px for cards
-- Apply blue-tinted shadows at very low opacity (rgba(28, 40, 64, 0.04) to rgba(28, 40, 64, 0.1)) — never use warm-gray or pure-black shadows
-- Use Inter weight 500 as the default UI weight, not 400 — the slightly heavier weight is the system's default voice
-- Activate 'ss03' on all Inter and InterDisplay text for the alternate geometric character
-- Keep the max-width at 1440px and maintain 80-120px vertical gaps between major sections
-
-### Don't
-- Don't use rounded buttons with radius above 12px — the 10px radius is part of the system identity
-- Don't introduce secondary accent colors, gradients on buttons, or decorative color — one blue accent is the rule
-- Don't use TiemposText for anything other than testimonial pull-quote headings — the serif/sans contrast is earned by rarity
-- Don't use Inter weight 400 as a default — weight 500 carries the UI voice
-- Don't apply shadows warmer than rgba(28, 40, 64, ...) — the blue-tinted shadow is deliberate, not neutral
-- Don't use letter-spacing wider than 0 for body or heading text — the system is consistently tight-tracked
-- Don't place the cobalt accent on filled backgrounds in body copy — it belongs to links, icons, and small interactive moments
-
-## Surfaces
-
-| Level | Name | Value | Purpose |
-|-------|------|-------|---------|
-| 0 | Page Canvas | `#ffffff` | Primary page background, dominant surface |
-| 1 | Paper | `#f4f5f6` | Subtle elevated panels, alternate section backgrounds |
-| 2 | Card Surface | `#ffffff` | Cards, inputs, product screenshots — sits on Canvas |
-| 3 | Dark Surface | `#000000` | Footer, promo banner, dark section bands |
-
-## Elevation
-
-- **Card (subtle):** `rgba(28, 40, 64, 0.1) 0px 2px 3px -2px, rgba(28, 40, 64, 0.04) 0px 4px 6px -2px`
-- **Card (elevated):** `rgba(28, 40, 64, 0.06) 0px 2px 6px 0px, rgba(28, 40, 64, 0.08) 0px 6px 20px -2px`
-- **Card (drifting):** `rgba(0, 0, 0, 0.04) 0px 12px 30px 0px`
-- **Inset border (input/focus):** `rgb(238, 239, 241) 0px 0px 0px 1px inset`
-
-## Imagery
-
-Product screenshots are the primary visual — real interface captures rendered as cards with subtle blue-tinted shadows, zero internal padding (the screenshot fills the card). One hero section uses a grid of small user avatar tiles arranged in a wave/contour pattern as decorative atmosphere. Customer logos appear in a monochrome strip (all rendered in near-black) — no photography, no lifestyle imagery. Iconography is 16-20px line icons, 1.5px stroke weight, monochrome, consistent across nav and UI. The overall visual density is low — white space dominates, and imagery is either product UI or abstract decorative elements, never stock photography.
+**The Tabular Money Rule.** Amounts and numeric columns use `tabular-nums` so values line up in lists and tables.
 
 ## Layout
 
-Max-width 1440px centered, with a prominent top promo banner (48px) + nav header (68px) → fixed total header of ~116px. Hero pattern: centered headline + subtext + two-button row, with a product screenshot card below — no split-image, no full-bleed hero. Section rhythm: white → white with subtle Paper-tone bands, alternating full-bleed white and off-white. Content arrangement is predominantly centered stacks and symmetrical 2-column grids; asymmetric layouts are rare. Feature sections use 3-column card grids and side-by-side text+product-screenshot rows. Footer is full-bleed black with a 4-column link grid. Overall density is spacious — 80-120px between major sections, compact 8-12px gaps within cards and lists.
+A fixed app shell: a 240px white sidebar on the left (24px top padding, 16px sides), a 68px white topbar with 48px horizontal padding, and the main content on the `app-canvas` background. Content uses CSS grid with tight gaps (14px between Home panels; Home is two columns at 1fr / 1.25fr). Panels pad 20px × 22px; metric cards 16px × 18px. Page headings sit 24px above content.
 
-## Agent Prompt Guide
+Spacing follows a 4px base with frequent steps at 8, 12, 16, 20 and 24px; odd values (7px, 9px, 11px) appear inside controls to optically center small text.
 
-Quick Color Reference:
-- text primary: #1c1d1f (Ink Black)
-- text muted: #6f7988 (Slate 600)
-- background: #ffffff (Page Canvas)
-- border: #e4e7ec (Mist 50)
-- accent: #266df0 (Cobalt Core)
-- primary action: #232529 (filled action)
+Responsive breakpoints step down at 1050px and 900px (grids collapse to one column), 760px (the sidebar disappears and a fixed bottom navigation bar takes over, padded with `env(safe-area-inset-bottom)`; the deal workspace stacks), and 460px (smallest phone tweaks). Page scrollbars are hidden; scrolling stays native.
 
-Example Component Prompts:
+## Elevation & Depth
 
-1. Create a Primary Action Button: #232529 background, #ffffff text, 9999px radius, compact pill padding. Use this filled treatment for the main CTA.
+Mostly flat, with depth from layering white on near-white and from hairlines. Shadows are blue-tinted (`rgba(28, 40, 64, …)`), very low opacity, and structural: they separate a surface from the canvas, they are not decoration.
 
-2. Create a product screenshot card: white background, 14px border-radius, shadow rgba(0,0,0,0.04) 0px 12px 30px 0px, zero internal padding, product UI image fills the card edge-to-edge.
+### Shadow Vocabulary
+- **Card rest** (`box-shadow: rgba(28,40,64,0.1) 0 2px 3px -2px, rgba(28,40,64,0.04) 0 4px 6px -2px`, `--shadow-subtle-2`): panels and metric cards.
+- **Primary button** (`box-shadow: 0 1px 3px rgba(28,40,64,0.08)`): the only button with a shadow.
+- **Popover** (`--shadow-sm`: `rgba(28,40,64,0.06) 0 2px 6px, rgba(28,40,64,0.08) 0 6px 20px -2px`): menus, comboboxes, the stage menu.
+- **Modal** (`--shadow-xl` plus `0 20px 50px rgba(28,40,64,0.12)`): modals and the ⌘K palette, over a `scrim` at 30%.
+- **Toast** (`0 12px 30px rgba(0,0,0,0.18)`): the dark toast HUD at the bottom.
+- **Focus halo** (`0 0 0 3px` ice-wash, or a 2px cobalt ring at 15% opacity): focused inputs.
 
-3. Create a section with eyebrow pill + heading + body: Eyebrow pill (7px radius, 1px border #e4e7ec, Inter 12px weight 500, #6f7988 text, 8px 12px padding). Heading at 40px InterDisplay 600, #1c1d1f, tracking -0.4px. Body at 16px Inter weight 500, #6f7988, line-height 1.38.
+### Named Rules
+**The Hairline First Rule.** A surface is defined by its 1px `mist-50` border first and its shadow second. Never a shadow without a border on a white card.
 
-4. Create a chat input field: white background, 1px border #e4e7ec, 12px radius, shadow rgba(28,40,64,0.06) 0px 2px 6px 0px. Placeholder in #9fa1a7 (Fog 400) Inter 15px weight 500. Send button: 28px square, #266df0 background, 7px radius, white arrow icon.
+## Shapes
 
-5. Create a footer: full-bleed #000000 background, 4-column grid with column titles (Inter 15px weight 500, #b5bdc9) and links below (Inter 14px weight 500, #ffffff). Logo + wordmark in white at top-left, 80-120px vertical padding.
+Softly rounded, never pill-shaped except for dots and avatars. Corners scale with the size of the object: 4px for `<kbd>` and inline code, 6px for small chips and icon tiles, 7px for badges and pills, 8px for small controls and menu items, 10px for buttons, inputs, nav items and tabs, 12px for cards, modals, alert strips and toasts. Status dots, avatars and the health dot are full circles. Borders are always 1px; the only 2px line is the active tab underline.
 
-## Similar Brands
+## Components
 
-- **Linear** — Same monochrome restraint with a single vivid accent (Linear's purple), Inter-based type stack, hairline borders, and near-white canvas with tight 10px button radii
-- **Stripe** — Editorial SaaS language with a custom display sans for headlines, generous white space, and the same 'one accent color doing all the work' philosophy
-- **Vercel** — Black-and-white interface with a single bright accent, Inter at weight 500 for UI, and the same compact card padding with subtle shadows
-- **Notion** — Near-white canvas with a serif/sans contrast in headings, compact component density, and the same editorial approach to product marketing pages
-- **Framer** — Bold display headlines, single cobalt-blue accent, dark footer inversion, and the same 'architectural editorial' treatment of product UI cards
+### Buttons
+Restrained and compact; the dark one is the only loud thing in a view.
+- **Shape:** gently rounded (10px).
+- **Primary:** graphite fill, white 13px / 500 text, 40px tall, 16px side padding, faint shadow. Hover goes to obsidian. One per view or modal footer.
+- **Secondary (select-button):** white with a `mist-50` hairline, slate-600 12px text, 7px × 11px padding. Hover: paper fill, ink text, border darkens to `#cbd0d8`.
+- **Text button:** cobalt 12px text, no chrome, underline on hover.
+- **Icon button:** 34px square, transparent, slate-600 icon; paper fill and ink icon on hover.
+- **Disabled:** 50% opacity, `not-allowed` cursor.
 
-## Quick Start
+### Pills & Tags
+- **Stage pill:** selection-wash background, cobalt 11px text, 7px radius.
+- **Status pill:** neutral `#f0f2f5` / slate-600 by default; `active` uses ice-wash / cobalt, `prospect` uses amber, `inactive` stays grey.
+- **Project flag pill:** 11px / 600; `blocked`, `invoice` and `late` switch to danger-wash / danger-ink.
+- **Next-action pill:** `#f6f7f9` fill with a `#e5e8ec` hairline, graphite 11px text, a due tag inside; hover darkens both slightly. Clicking it edits the action.
 
-### CSS Custom Properties
+### Cards / Panels
+- **Corner Style:** 12px.
+- **Background:** white on the app canvas.
+- **Shadow Strategy:** card rest shadow (see Elevation).
+- **Border:** 1px mist-50.
+- **Internal Padding:** 20px × 22px; inner dividers in `hairline-soft`.
 
-```css
-:root {
-  /* Colors */
-  --color-page-canvas: #ffffff;
-  --color-ink-black: #1c1d1f;
-  --color-graphite: #232529;
-  --color-obsidian: #101113;
-  --color-carbon: #2e3238;
-  --color-slate-500: #505967;
-  --color-slate-600: #6f7988;
-  --color-slate-700: #8f99a8;
-  --color-fog-400: #9fa1a7;
-  --color-mist-300: #b5bdc9;
-  --color-cloud-200: #cad0d9;
-  --color-cloud-100: #d3d8df;
-  --color-mist-50: #e4e7ec;
-  --color-haze: #eeeff1;
-  --color-paper: #f4f5f6;
-  --color-cobalt-core: #266df0;
-  --color-cobalt-bright: #407ff2;
-  --color-cobalt-soft: #538bf3;
-  --color-periwinkle: #bad0fa;
-  --color-ice-wash: #e4edff;
-  --color-onyx-footer: #000000;
+### Inputs / Fields
+- **Style:** white, 1px mist-50 border, 10px radius, 40px tall in modals (34px for the topbar search), 13px ink text, fog-400 placeholder.
+- **Focus:** border turns cobalt and a soft cobalt ring (2px at 15%) or ice-wash halo appears. No outline glow beyond that.
+- **Error:** danger-ink text below the field.
 
-  /* Typography — Font Families */
-  --font-inter: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-interdisplay: 'InterDisplay', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-tiempostext: 'TiemposText', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+### Navigation
+- **Sidebar:** 240px, white, hairline right border. Brand mark (27px graphite square, 8px radius), a workspace switcher row, uppercase 10px section labels, then 13px nav items. Hover and active both use selection-wash with ink text; badges sit right-aligned.
+- **Tabs:** 13px slate-600 labels, ink when active, with a single 2px ink indicator that slides between tabs (220ms, `cubic-bezier(0.77, 0, 0.175, 1)`).
+- **Mobile (≤760px):** the sidebar is replaced by a fixed white bottom bar with a hairline top border.
 
-  /* Typography — Scale */
-  --text-caption: 11px;
-  --leading-caption: 1.42;
-  --tracking-caption: -0.22px;
-  --text-body-lg: 16px;
-  --leading-body-lg: 1.38;
-  --tracking-body-lg: -0.16px;
-  --text-subheading: 20px;
-  --leading-subheading: 1.3;
-  --tracking-subheading: -0.2px;
-  --text-heading-sm: 32px;
-  --leading-heading-sm: 1.19;
-  --tracking-heading-sm: -0.32px;
-  --text-heading: 40px;
-  --leading-heading: 1.1;
-  --tracking-heading: -0.4px;
-  --text-heading-lg: 56px;
-  --leading-heading-lg: 1.07;
-  --tracking-heading-lg: -0.84px;
-  --text-display: 64px;
-  --leading-display: 1;
-  --tracking-display: -1.28px;
+### Modals & Command Palette
+- White, 12px radius, mist-50 border, modal shadow, max width ~512px, over a 30% scrim. They enter with a fast fade + zoom-in-95 (150ms). The palette's selected row is graphite with white text; its shortcut hints are small `<kbd>` chips (paper fill, hairline border, 4–5px radius, mono 9–10px).
 
-  /* Typography — Weights */
-  --font-weight-regular: 400;
-  --font-weight-medium: 500;
-  --font-weight-semibold: 600;
-  --font-weight-bold: 700;
+### Toast HUD
+Dark graphite capsule (12px radius, `#343840` border) at the bottom of the screen, white 12px / 500 text, with an amber or cobalt leading icon. Slides up and fades in over 150ms.
 
-  /* Spacing */
-  --spacing-unit: 4px;
-  --spacing-4: 4px;
-  --spacing-8: 8px;
-  --spacing-12: 12px;
-  --spacing-16: 16px;
-  --spacing-20: 20px;
-  --spacing-24: 24px;
-  --spacing-28: 28px;
-  --spacing-32: 32px;
-  --spacing-36: 36px;
-  --spacing-40: 40px;
-  --spacing-44: 44px;
-  --spacing-48: 48px;
-  --spacing-60: 60px;
-  --spacing-80: 80px;
-  --spacing-100: 100px;
-  --spacing-120: 120px;
+### Today list & Projects overview (signature)
+Home's two signature components. Today groups rows under 14px / 600 heads with an 11px slate-700 count and a `hairline-soft` rule; each row has a colored dot (red = overdue, cobalt = today). Projects shows active PM-stage deals with flag pills, a thin task progress bar and a five-step stage ramp from pale blue-grey to cobalt.
 
-  /* Layout */
-  --page-max-width: 1440px;
-  --section-gap: 80-120px;
-  --card-padding: 24px;
-  --element-gap: 8px;
+## Do's and Don'ts
 
-  /* Border Radius */
-  --radius-md: 7px;
-  --radius-xl: 12px;
+### Do:
+- **Do** use the CSS custom properties in `app/globals.css` (`--color-*`, `--radius-*`, `--shadow-*`) or the hex values in this file's frontmatter. Nothing else.
+- **Do** keep running text at 13px / 500 and metadata at 11px / 500; add emphasis with weight 600 or ink color, not with size.
+- **Do** give every white surface a 1px `mist-50` border and a 12px radius.
+- **Do** show status as a wash pill (pale background, saturated text).
+- **Do** show a `<kbd>` hint next to any action that has a shortcut.
+- **Do** keep hover transitions at 120–150ms ease and respect `prefers-reduced-motion` (already wired in three places).
 
-  /* Named Radii */
-  --radius-tabs: 10px;
-  --radius-cards: 11-14px;
-  --radius-badges: 7px;
-  --radius-inputs: 10px;
-  --radius-buttons: 10px;
-
-  /* Shadows */
-  --shadow-subtle: rgb(238, 239, 241) 0px 0px 0px 1px inset;
-  --shadow-subtle-2: rgba(28, 40, 64, 0.1) 0px 2px 3px -2px, rgba(28, 40, 64, 0.04) 0px 4px 6px -2px;
-  --shadow-subtle-3: rgba(28, 40, 64, 0.18) 0px 0px 2px 0px, rgba(0, 0, 0, 0.04) 0px 1px 3px 0px;
-  --shadow-sm: rgba(28, 40, 64, 0.06) 0px 2px 6px 0px, rgba(28, 40, 64, 0.08) 0px 6px 20px -2px;
-  --shadow-xl: rgba(0, 0, 0, 0.04) 0px 12px 30px 0px;
-  --shadow-subtle-4: rgba(0, 0, 0, 0.06) 0px 1px 2px 0px, rgba(0, 0, 0, 0.1) 0px 1px 3px 0px;
-  --shadow-subtle-5: lab(74.4644 0.482172 -39.075 / 0.25) 0px 0px 0px 4px;
-
-  /* Surfaces */
-  --surface-page-canvas: #ffffff;
-  --surface-paper: #f4f5f6;
-  --surface-card-surface: #ffffff;
-  --surface-dark-surface: #000000;
-}
-```
-
-### Tailwind v4
-
-```css
-@theme {
-  /* Colors */
-  --color-page-canvas: #ffffff;
-  --color-ink-black: #1c1d1f;
-  --color-graphite: #232529;
-  --color-obsidian: #101113;
-  --color-carbon: #2e3238;
-  --color-slate-500: #505967;
-  --color-slate-600: #6f7988;
-  --color-slate-700: #8f99a8;
-  --color-fog-400: #9fa1a7;
-  --color-mist-300: #b5bdc9;
-  --color-cloud-200: #cad0d9;
-  --color-cloud-100: #d3d8df;
-  --color-mist-50: #e4e7ec;
-  --color-haze: #eeeff1;
-  --color-paper: #f4f5f6;
-  --color-cobalt-core: #266df0;
-  --color-cobalt-bright: #407ff2;
-  --color-cobalt-soft: #538bf3;
-  --color-periwinkle: #bad0fa;
-  --color-ice-wash: #e4edff;
-  --color-onyx-footer: #000000;
-
-  /* Typography */
-  --font-inter: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-interdisplay: 'InterDisplay', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-tiempostext: 'TiemposText', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-
-  /* Typography — Scale */
-  --text-caption: 11px;
-  --leading-caption: 1.42;
-  --tracking-caption: -0.22px;
-  --text-body-lg: 16px;
-  --leading-body-lg: 1.38;
-  --tracking-body-lg: -0.16px;
-  --text-subheading: 20px;
-  --leading-subheading: 1.3;
-  --tracking-subheading: -0.2px;
-  --text-heading-sm: 32px;
-  --leading-heading-sm: 1.19;
-  --tracking-heading-sm: -0.32px;
-  --text-heading: 40px;
-  --leading-heading: 1.1;
-  --tracking-heading: -0.4px;
-  --text-heading-lg: 56px;
-  --leading-heading-lg: 1.07;
-  --tracking-heading-lg: -0.84px;
-  --text-display: 64px;
-  --leading-display: 1;
-  --tracking-display: -1.28px;
-
-  /* Spacing */
-  --spacing-4: 4px;
-  --spacing-8: 8px;
-  --spacing-12: 12px;
-  --spacing-16: 16px;
-  --spacing-20: 20px;
-  --spacing-24: 24px;
-  --spacing-28: 28px;
-  --spacing-32: 32px;
-  --spacing-36: 36px;
-  --spacing-40: 40px;
-  --spacing-44: 44px;
-  --spacing-48: 48px;
-  --spacing-60: 60px;
-  --spacing-80: 80px;
-  --spacing-100: 100px;
-  --spacing-120: 120px;
-
-  /* Border Radius */
-  --radius-md: 7px;
-  --radius-xl: 12px;
-
-  /* Shadows */
-  --shadow-subtle: rgb(238, 239, 241) 0px 0px 0px 1px inset;
-  --shadow-subtle-2: rgba(28, 40, 64, 0.1) 0px 2px 3px -2px, rgba(28, 40, 64, 0.04) 0px 4px 6px -2px;
-  --shadow-subtle-3: rgba(28, 40, 64, 0.18) 0px 0px 2px 0px, rgba(0, 0, 0, 0.04) 0px 1px 3px 0px;
-  --shadow-sm: rgba(28, 40, 64, 0.06) 0px 2px 6px 0px, rgba(28, 40, 64, 0.08) 0px 6px 20px -2px;
-  --shadow-xl: rgba(0, 0, 0, 0.04) 0px 12px 30px 0px;
-  --shadow-subtle-4: rgba(0, 0, 0, 0.06) 0px 1px 2px 0px, rgba(0, 0, 0, 0.1) 0px 1px 3px 0px;
-  --shadow-subtle-5: lab(74.4644 0.482172 -39.075 / 0.25) 0px 0px 0px 4px;
-}
-```
+### Don't:
+- **Don't** add a second accent hue. Tailwind's `#3b82f6` (blue-500) has crept into some focus rings; replace it with cobalt core.
+- **Don't** introduce new slate greys (`#636c7e`, `#525968` exist as drift); pick the nearest of slate-500 / 600 / 700.
+- **Don't** use weight 400 or 700, a display face or a serif.
+- **Don't** use solid colored buttons or banners for status; red, amber and green are washes and text only.
+- **Don't** add dark mode styling ad hoc. The app is light-only until a full dark theme is designed.
+- **Don't** bring back a Kanban pipeline look for deals; the card board style is only for tasks inside one deal.

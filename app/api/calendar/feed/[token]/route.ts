@@ -1,7 +1,15 @@
+import crypto from 'crypto'
 import { getWorkspaceData, getWorkspaceSettings } from '@/lib/db/repository'
 import { generateIcsCalendar } from '@/lib/calendar/ical-generator'
 
 export const dynamic = 'force-dynamic'
+
+/** Constant-time comparison, so response timing doesn't leak the token */
+function sameToken(a: string, b: string): boolean {
+  const ab = Buffer.from(a)
+  const bb = Buffer.from(b)
+  return ab.length === bb.length && crypto.timingSafeEqual(ab, bb)
+}
 
 export async function GET(
   req: Request,
@@ -20,8 +28,7 @@ export async function GET(
   const settings = await getWorkspaceSettings()
   const validToken = settings?.calendarFeedToken
 
-  // Timing safe or constant length check
-  if (!validToken || requestedToken !== validToken) {
+  if (!validToken || !sameToken(requestedToken, validToken)) {
     return new Response('Unauthorized: Invalid or revoked calendar feed token', {
       status: 401,
       headers: { 'Content-Type': 'text/plain' },

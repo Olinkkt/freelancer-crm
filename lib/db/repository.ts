@@ -122,13 +122,19 @@ export async function getWorkspaceData(): Promise<WorkspaceData> {
 
   const deals: Deal[] = dealRows.map(mapDealRow)
 
+  // The stored contacts.deals counter is never maintained; count the real deals
+  const dealCounts = new Map<string, number>()
+  for (const d of deals) {
+    if (d.contactId) dealCounts.set(d.contactId, (dealCounts.get(d.contactId) ?? 0) + 1)
+  }
+
   const contacts: Contact[] = contactRows.map((r) => ({
     id: r.id,
     name: r.name,
     email: r.email,
     phone: r.phone ?? undefined,
     notes: r.notes ?? undefined,
-    deals: Number(r.deals) || 0,
+    deals: dealCounts.get(r.id) ?? 0,
     lastTouch: r.last_touch,
     color: r.color as Contact['color'],
   }))
@@ -234,10 +240,11 @@ export async function createDeal(dealData: Omit<Deal, 'id'>): Promise<Deal> {
     contactName,
     contactEmail: contactEmail || undefined,
     next: nextAction,
-    nextDueDate: dealData.nextDueDate,
+    nextDueDate: nextDueDate ?? undefined,
     waiting: !!dealData.waiting,
     waitingSince: dealData.waiting ? now : undefined,
     createdAt: now,
+    updatedAt: now,
     deliverables: dealData.deliverables || [],
     invoices: dealData.invoices || [],
   }
@@ -321,9 +328,10 @@ export async function updateDeal(deal: Deal): Promise<Deal | null> {
     contactName: client.name,
     contactEmail: client.email || undefined,
     next: nextAction,
-    nextDueDate: deal.nextDueDate,
+    nextDueDate: nextDueDate ?? undefined,
     waiting: !!deal.waiting,
     waitingSince: waitingSince ?? undefined,
+    updatedAt: now,
   }
 }
 
@@ -403,27 +411,7 @@ export async function moveDealStage(dealId: string, stage: DealStage): Promise<D
     .where('id', '=', dealId)
     .execute()
 
-  return {
-    id: existing.id,
-    title: existing.title,
-    value: existing.value,
-    rawAmount: Number(existing.raw_amount) || 0,
-    stage,
-    next: existing.next,
-    nextDueDate: existing.next_due_date ?? undefined,
-    waiting: Number(existing.waiting) === 1,
-    waitingSince: existing.waiting_since ?? undefined,
-    color: dealColor,
-    contactId: existing.contact_id ?? undefined,
-    contactName: existing.contact_name ?? '',
-    contactEmail: existing.contact_email ?? undefined,
-    notes: existing.notes ?? undefined,
-    startDate: existing.start_date ?? undefined,
-    endDate: existing.end_date ?? undefined,
-    deliverables: safeParseJson<DeliverableItem[]>(existing.deliverables, []),
-    invoices: safeParseJson<InvoiceMilestone[]>(existing.invoices, []),
-    createdAt: existing.created_at,
-  }
+  return mapDealRow({ ...existing, stage, color: dealColor, updated_at: now })
 }
 
 /** Replace a deal's checklist (client materials + deliverables) without touching other fields */
@@ -941,8 +929,9 @@ export async function restoreWorkspaceData(snapshot: {
             end_date: (d as any).endDate ?? null,
             deliverables: d.deliverables ? JSON.stringify(d.deliverables) : null,
             invoices: d.invoices ? JSON.stringify(d.invoices) : null,
-            created_at: now,
-            updated_at: now,
+            // Keep the original timestamps: deals are listed newest first by created_at
+            created_at: d.createdAt || now,
+            updated_at: d.updatedAt || d.createdAt || now,
           })
           .execute()
       }

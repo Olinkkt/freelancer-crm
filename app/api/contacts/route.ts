@@ -3,6 +3,7 @@ import { checkIsAuthenticated } from '@/lib/auth/session'
 import * as repo from '@/lib/db/repository'
 import { ContactCreateInputSchema } from '@/lib/validations'
 import { sanitizeErrorMessage } from '@/lib/errors'
+import type { Contact } from '@/lib/crm-types'
 import { queueContactSync } from '@/lib/invoicer/sync'
 
 export const dynamic = 'force-dynamic'
@@ -58,7 +59,15 @@ export async function PUT(req: Request) {
         { status: 400 }
       )
     }
-    const contact = await repo.updateContact(body)
+    // Merge the validated fields into the stored client, so a partial body
+    // doesn't blank the phone, notes or the email on the client's deals
+    const { contacts } = await repo.getWorkspaceData()
+    const existing = contacts.find((c) => c.id === body.id)
+    if (!existing) {
+      return NextResponse.json({ error: 'Contact not found' }, { status: 404 })
+    }
+    const changes = Object.fromEntries(Object.entries(parsed.data).filter(([, v]) => v !== undefined))
+    const contact = await repo.updateContact({ ...existing, ...changes } as Contact)
     if (!contact) {
       return NextResponse.json({ error: 'Contact not found' }, { status: 404 })
     }

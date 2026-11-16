@@ -33,7 +33,9 @@ function createDb(): Kysely<Database> {
   }
 
   // Extract raw path to ensure parent directory exists
-  const rawPath = fileUrl.replace(/^(file:|sqlite:)\/{0,2}/, '')
+  // file:./rel, file:rel, file:/abs and file:///abs are all valid; only the
+  // empty-authority "//" is dropped, so an absolute path keeps its leading slash
+  const rawPath = fileUrl.replace(/^(file:|sqlite:)/, '').replace(/^\/\/(?=\/)/, '')
   if (rawPath && !rawPath.startsWith(':memory:')) {
     try {
       const resolvedPath = path.isAbsolute(rawPath)

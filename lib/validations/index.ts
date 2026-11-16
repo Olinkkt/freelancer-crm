@@ -72,6 +72,8 @@ export const DealBackupSchema = z.object({
   endDate: z.string().nullable().optional(),
   deliverables: z.array(z.any()).optional(),
   invoices: z.array(z.any()).optional(),
+  createdAt: z.string().nullable().optional(),
+  updatedAt: z.string().nullable().optional(),
 })
 
 const FollowUpBackupSchema = z.object({

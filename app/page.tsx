@@ -403,10 +403,23 @@ export default function Page() {
   }
 
   // Create Deal Handler
+  // Saving a deal under a new client name creates that client on the server;
+  // pull the client list again so it shows up without a reload
+  const refreshContactsIfNew = async (contactId?: string) => {
+    if (!contactId || contacts.some((c) => c.id === contactId)) return
+    try {
+      const data = await fetchWorkspaceData()
+      setContacts(data.contacts)
+    } catch {
+      // The deal is saved; the client list catches up on the next load
+    }
+  }
+
   const handleAddDeal = async (dealData: Omit<Deal, 'id'>) => {
     try {
       const newDeal = await createDealAction(dealData)
       setDeals((prev) => [newDeal, ...prev])
+      void refreshContactsIfNew(newDeal.contactId)
       addToast(`Added deal "${newDeal.title}"`, 'N')
     } catch (err: any) {
       addToast(err?.message || 'Failed to create deal', undefined, 'warning')
@@ -426,24 +439,36 @@ export default function Page() {
 
   // Update Deal in list
   const handleUpdateDeal = async (updated: Deal, opts?: { silent?: boolean }) => {
+    const previous = deals.find((d) => d.id === updated.id)
     setDeals((prev) => prev.map((d) => (d.id === updated.id ? updated : d)))
     try {
       const saved = await updateDealAction(updated)
       setDeals((prev) => prev.map((d) => (d.id === saved.id ? saved : d)))
+      void refreshContactsIfNew(saved.contactId)
       if (!opts?.silent) addToast(`Deal "${saved.title}" updated`)
     } catch (err: any) {
+      // Nothing was saved: put back what the server still has
+      if (previous) setDeals((prev) => prev.map((d) => (d === updated ? previous : d)))
       addToast(err?.message || 'Failed to update deal', undefined, 'warning')
     }
   }
 
   // Update Contact
   const handleUpdateContact = async (updated: Contact) => {
+    const previous = contacts.find((c) => c.id === updated.id)
     setContacts((prev) => prev.map((c) => (c.id === updated.id ? updated : c)))
     try {
       const saved = await updateContactAction(updated)
       setContacts((prev) => prev.map((c) => (c.id === saved.id ? saved : c)))
+      // The server copies the name and email onto the client's deals; mirror that here
+      setDeals((prev) =>
+        prev.map((d) =>
+          d.contactId === saved.id ? { ...d, contactName: saved.name, contactEmail: saved.email || undefined } : d
+        )
+      )
       addToast(`Client "${saved.name}" updated`)
     } catch (err: any) {
+      if (previous) setContacts((prev) => prev.map((c) => (c === updated ? previous : c)))
       addToast(err?.message || 'Failed to update client', undefined, 'warning')
     }
   }
@@ -463,11 +488,17 @@ export default function Page() {
   // Sync action items from Scratchpad to Dashboard Follow-ups
   // Delete Deal
   const handleDeleteDeal = async (id: string) => {
+    const index = deals.findIndex((d) => d.id === id)
+    const removed = deals[index]
     setDeals((prev) => prev.filter((d) => d.id !== id))
     try {
       await deleteDealAction(id)
       addToast('Deal deleted')
     } catch (err: any) {
+      // The delete failed, so the deal still exists: show it again
+      if (removed) {
+        setDeals((prev) => (prev.some((d) => d.id === id) ? prev : [...prev.slice(0, index), removed, ...prev.slice(index)]))
+      }
       addToast(err?.message || 'Failed to delete deal', undefined, 'warning')
     }
   }
@@ -505,6 +536,7 @@ export default function Page() {
   }
 
   const handleMoveDealStage = async (dealId: string, newStage: DealStage) => {
+    const previousStage = deals.find((d) => d.id === dealId)?.stage
     setDeals((prev) => prev.map((d) => (d.id === dealId ? { ...d, stage: newStage } : d)))
     addToast(newStage === 'Closed' ? 'Deal closed: contract signed, PM starts' : `Moved deal to ${newStage}`)
 
@@ -514,15 +546,23 @@ export default function Page() {
         setDeals((prev) => prev.map((d) => (d.id === updated.id ? updated : d)))
       }
     } catch (err: any) {
+      if (previousStage) {
+        setDeals((prev) => prev.map((d) => (d.id === dealId && d.stage === newStage ? { ...d, stage: previousStage } : d)))
+      }
       addToast(err?.message || 'Failed to move deal stage', undefined, 'warning')
     }
   }
 
   const handleChecklistChange = async (dealId: string, items: DeliverableItem[]) => {
+    const previousItems = deals.find((d) => d.id === dealId)?.deliverables
     setDeals((prev) => prev.map((d) => (d.id === dealId ? { ...d, deliverables: items } : d)))
     try {
       await updateDealChecklistAction(dealId, items)
     } catch (err: any) {
+      // Only undo this edit; a later one may already be on screen
+      setDeals((prev) =>
+        prev.map((d) => (d.id === dealId && d.deliverables === items ? { ...d, deliverables: previousItems } : d))
+      )
       addToast(err?.message || 'Failed to save board', undefined, 'warning')
     }
   }

@@ -1,6 +1,7 @@
 import { describe, it, before, beforeEach, afterEach, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { db } from '@/lib/db/client'
+import * as repo from '@/lib/db/repository'
 import { ensureDbInitialized } from '@/lib/db/init'
 import {
   getAuthStatus,
@@ -17,7 +18,6 @@ import {
   updateDealChecklistAction,
   createContactAction,
   toggleFollowUpAction,
-  syncTodosAction,
 } from '@/app/actions/crm'
 
 describe('Server Actions Integration', () => {
@@ -149,16 +149,16 @@ describe('Server Actions Integration', () => {
       })
       assert.ok(contact.id)
 
-      // 6. Sync todos action (creates a follow-up)
-      const created = await syncTodosAction(['Send invoice #1'], 'RetailHub', deal.id)
+      // 6. Seed a follow-up
+      const created = await repo.syncTodos(['Send invoice #1'], 'RetailHub', deal.id)
       assert.equal(created.length, 1)
 
       // 7. Toggle follow up action
       const toggled = await toggleFollowUpAction(created[0].id)
       assert.equal(toggled, true)
 
-      // 8. Sync more todos
-      const todos = await syncTodosAction(['Prepare kickoff meeting'], 'RetailHub', deal.id)
+      // 8. Add another follow-up
+      const todos = await repo.syncTodos(['Prepare kickoff meeting'], 'RetailHub', deal.id)
       assert.equal(todos.length, 1)
 
       // 9. Delete deal action

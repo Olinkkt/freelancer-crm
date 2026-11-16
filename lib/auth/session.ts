@@ -118,11 +118,6 @@ export function verifyPassword(providedPassword: string): boolean {
   }
 }
 
-/** True when the workspace has a passcode or AUTH_SECRET, so requests must authenticate */
-export async function isAuthGateEnabled(): Promise<boolean> {
-  return Boolean(await getEffectiveAuthSecret())
-}
-
 /**
  * Browser operator session only (the signed cookie). Unlike checkIsAuthenticated,
  * this never accepts the raw passcode or AUTH_SECRET as a credential.

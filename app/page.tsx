@@ -485,7 +485,6 @@ export default function Page() {
     }
   }
 
-  // Sync action items from Scratchpad to Dashboard Follow-ups
   // Delete Deal
   const handleDeleteDeal = async (id: string) => {
     const index = deals.findIndex((d) => d.id === id)

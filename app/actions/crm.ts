@@ -137,19 +137,6 @@ export async function toggleFollowUpAction(id: string): Promise<boolean> {
   }
 }
 
-export async function syncTodosAction(
-  todos: string[],
-  companyName: string = 'Workspace',
-  dealId?: string
-): Promise<FollowUpItem[]> {
-  await assertAuth()
-  try {
-    return await repo.syncTodos(todos, companyName, dealId)
-  } catch (err: any) {
-    throw new Error(sanitizeErrorMessage(err, 'Failed to sync todos'))
-  }
-}
-
 export async function updateFollowUpAction(followUp: FollowUpItem): Promise<FollowUpItem> {
   await assertAuth()
   try {

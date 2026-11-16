@@ -8,7 +8,6 @@ import { Database } from './schema'
 // Global cache for Next.js hot module reloading
 const globalForDb = globalThis as unknown as {
   kyselyDb?: Kysely<Database>
-  initPromise?: Promise<void>
 }
 
 function createDb(): Kysely<Database> {

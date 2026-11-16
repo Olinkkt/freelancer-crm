@@ -12,7 +12,7 @@ function sameToken(a: string, b: string): boolean {
 }
 
 export async function GET(
-  req: Request,
+  _req: Request,
   props: { params: Promise<{ token: string }> }
 ) {
   const params = await props.params

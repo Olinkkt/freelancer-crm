@@ -15,12 +15,13 @@ export async function GET() {
 
   return NextResponse.json(
     {
-      status: 'healthy',
+      status: dbStatus === 'connected' ? 'healthy' : 'degraded',
       app: 'freelancer-crm',
       database: dbStatus,
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
     },
-    { status: 200 }
+    // 503 lets the Docker healthcheck notice a database that stopped answering
+    { status: dbStatus === 'connected' ? 200 : 503 }
   )
 }

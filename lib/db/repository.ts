@@ -37,7 +37,7 @@ const normalize = (v: string | null | undefined) => (v ? v.trim().toLowerCase() 
  */
 async function resolveDealClient(
   executor: Kysely<Database>,
-  input: { contactId?: string | null; contactName?: string | null; contactEmail?: string | null }
+  input: { contactId?: string | null; contactName?: string | null; contactEmail?: string | null },
 ): Promise<{ id: string; name: string; email: string }> {
   if (input.contactId) {
     const byId = await executor
@@ -122,13 +122,19 @@ export async function getWorkspaceData(): Promise<WorkspaceData> {
 
   const deals: Deal[] = dealRows.map(mapDealRow)
 
+  // The stored contacts.deals counter is never maintained; count the real deals
+  const dealCounts = new Map<string, number>()
+  for (const d of deals) {
+    if (d.contactId) dealCounts.set(d.contactId, (dealCounts.get(d.contactId) ?? 0) + 1)
+  }
+
   const contacts: Contact[] = contactRows.map((r) => ({
     id: r.id,
     name: r.name,
     email: r.email,
     phone: r.phone ?? undefined,
     notes: r.notes ?? undefined,
-    deals: Number(r.deals) || 0,
+    deals: dealCounts.get(r.id) ?? 0,
     lastTouch: r.last_touch,
     color: r.color as Contact['color'],
   }))
@@ -195,36 +201,38 @@ export async function createDeal(dealData: Omit<Deal, 'id'>): Promise<Deal> {
   const nextAction = dealData.next || ''
   const nextDueDate = normalizeDueDate(dealData.nextDueDate)
 
-  const client = await resolveDealClient(db, dealData)
+  // One transaction: a client created for this deal is not left behind if the deal fails to save
+  const client = await db.transaction().execute(async (trx) => {
+    const client = await resolveDealClient(trx, dealData)
+    await trx
+      .insertInto('deals')
+      .values({
+        id,
+        title: dealData.title,
+        value: dealData.value || defaultValue,
+        raw_amount: rawAmount,
+        stage: dealData.stage,
+        next: nextAction,
+        next_due_date: nextDueDate,
+        waiting: dealData.waiting ? 1 : 0,
+        waiting_since: dealData.waiting ? now : null,
+        color: dealData.color || 'blue',
+        contact_id: client.id,
+        contact_name: client.name,
+        contact_email: client.email || null,
+        notes: dealData.notes || null,
+        start_date: dealData.startDate || null,
+        end_date: dealData.endDate || null,
+        deliverables: dealData.deliverables ? JSON.stringify(dealData.deliverables) : null,
+        invoices: dealData.invoices ? JSON.stringify(dealData.invoices) : null,
+        created_at: now,
+        updated_at: now,
+      })
+      .execute()
+    return client
+  })
   const contactName = client.name
   const contactEmail = client.email || null
-
-  await db
-    .insertInto('deals')
-    .values({
-      id,
-      title: dealData.title,
-      value: dealData.value || defaultValue,
-      raw_amount: rawAmount,
-      stage: dealData.stage,
-      next: nextAction,
-      next_due_date: nextDueDate,
-      waiting: dealData.waiting ? 1 : 0,
-      waiting_since: dealData.waiting ? now : null,
-      color: dealData.color || 'blue',
-      contact_id: client.id,
-      contact_name: contactName,
-      contact_email: contactEmail,
-      notes: dealData.notes || null,
-      start_date: dealData.startDate || null,
-      end_date: dealData.endDate || null,
-      deliverables: dealData.deliverables ? JSON.stringify(dealData.deliverables) : null,
-      invoices: dealData.invoices ? JSON.stringify(dealData.invoices) : null,
-      created_at: now,
-      updated_at: now,
-    })
-    .execute()
-
 
   return {
     ...dealData,
@@ -234,10 +242,11 @@ export async function createDeal(dealData: Omit<Deal, 'id'>): Promise<Deal> {
     contactName,
     contactEmail: contactEmail || undefined,
     next: nextAction,
-    nextDueDate: dealData.nextDueDate,
+    nextDueDate: nextDueDate ?? undefined,
     waiting: !!dealData.waiting,
     waitingSince: dealData.waiting ? now : undefined,
     createdAt: now,
+    updatedAt: now,
     deliverables: dealData.deliverables || [],
     invoices: dealData.invoices || [],
   }
@@ -276,12 +285,9 @@ export async function updateDeal(deal: Deal): Promise<Deal | null> {
   const nextAction = deal.next || ''
   const nextDueDate = normalizeDueDate(deal.nextDueDate)
   const clientGiven = !!(deal.contactId || deal.contactName?.trim() || deal.contactEmail?.trim())
-  const client = await resolveDealClient(
-    db,
-    clientGiven
-      ? deal
-      : { contactId: oldDeal.contact_id, contactName: oldDeal.contact_name, contactEmail: oldDeal.contact_email }
-  )
+  const clientInput = clientGiven
+    ? deal
+    : { contactId: oldDeal.contact_id, contactName: oldDeal.contact_name, contactEmail: oldDeal.contact_email }
 
   // Keep the original start while still waiting; reset when waiting begins or ends
   const waitingSince = deal.waiting
@@ -290,30 +296,34 @@ export async function updateDeal(deal: Deal): Promise<Deal | null> {
       : now
     : null
 
-  await db
-    .updateTable('deals')
-    .set({
-      title: deal.title,
-      value: deal.value,
-      raw_amount: rawAmount,
-      stage: deal.stage,
-      next: nextAction,
-      next_due_date: nextDueDate,
-      waiting: deal.waiting ? 1 : 0,
-      waiting_since: waitingSince,
-      color: deal.color,
-      contact_id: client.id,
-      contact_name: client.name,
-      contact_email: client.email || null,
-      notes: deal.notes || null,
-      start_date: deal.startDate || null,
-      end_date: deal.endDate || null,
-      deliverables: deal.deliverables ? JSON.stringify(deal.deliverables) : null,
-      invoices: deal.invoices ? JSON.stringify(deal.invoices) : null,
-      updated_at: now,
-    })
-    .where('id', '=', deal.id)
-    .execute()
+  const client = await db.transaction().execute(async (trx) => {
+    const client = await resolveDealClient(trx, clientInput)
+    await trx
+      .updateTable('deals')
+      .set({
+        title: deal.title,
+        value: deal.value,
+        raw_amount: rawAmount,
+        stage: deal.stage,
+        next: nextAction,
+        next_due_date: nextDueDate,
+        waiting: deal.waiting ? 1 : 0,
+        waiting_since: waitingSince,
+        color: deal.color,
+        contact_id: client.id,
+        contact_name: client.name,
+        contact_email: client.email || null,
+        notes: deal.notes || null,
+        start_date: deal.startDate || null,
+        end_date: deal.endDate || null,
+        deliverables: deal.deliverables ? JSON.stringify(deal.deliverables) : null,
+        invoices: deal.invoices ? JSON.stringify(deal.invoices) : null,
+        updated_at: now,
+      })
+      .where('id', '=', deal.id)
+      .execute()
+    return client
+  })
 
   return {
     ...deal,
@@ -321,20 +331,17 @@ export async function updateDeal(deal: Deal): Promise<Deal | null> {
     contactName: client.name,
     contactEmail: client.email || undefined,
     next: nextAction,
-    nextDueDate: deal.nextDueDate,
+    nextDueDate: nextDueDate ?? undefined,
     waiting: !!deal.waiting,
     waitingSince: waitingSince ?? undefined,
+    updatedAt: now,
   }
 }
 
 export async function getDealById(idOrSlug: string): Promise<Deal | null> {
   await ensureDbInitialized()
 
-  const row = await db
-    .selectFrom('deals')
-    .selectAll()
-    .where('id', '=', idOrSlug)
-    .executeTakeFirst()
+  const row = await db.selectFrom('deals').selectAll().where('id', '=', idOrSlug).executeTakeFirst()
 
   if (row) {
     return mapDealRow(row)
@@ -342,12 +349,18 @@ export async function getDealById(idOrSlug: string): Promise<Deal | null> {
 
   // Fallback: match by title or client name, or slugified match
   const allDeals = await db.selectFrom('deals').selectAll().execute()
-  const normalizedSlug = idOrSlug.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+  const normalizedSlug = idOrSlug
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
   const match = allDeals.find((d) => {
     if (d.title.toLowerCase() === idOrSlug.toLowerCase()) return true
     const clientName = (d.contact_name || '').toLowerCase()
     if (clientName && clientName === idOrSlug.toLowerCase()) return true
-    const titleSlug = d.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+    const titleSlug = d.title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
     const clientSlug = clientName.replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
     return titleSlug === normalizedSlug || (!!clientSlug && clientSlug === normalizedSlug)
   })
@@ -359,32 +372,23 @@ export async function getDealById(idOrSlug: string): Promise<Deal | null> {
 export async function deleteDeal(id: string): Promise<boolean> {
   await ensureDbInitialized()
 
-  const existing = await db
-    .selectFrom('deals')
-    .select('id')
-    .where('id', '=', id)
-    .executeTakeFirst()
+  const existing = await db.selectFrom('deals').select('id').where('id', '=', id).executeTakeFirst()
 
   if (!existing) return false
 
-  // Delete deal
-  await db.deleteFrom('deals').where('id', '=', id).execute()
-
-  // Unlink associated follow-ups
-  await db.updateTable('follow_ups').set({ deal_id: null }).where('deal_id', '=', id).execute()
+  // Delete the deal and unlink its follow-ups together
+  await db.transaction().execute(async (trx) => {
+    await trx.deleteFrom('deals').where('id', '=', id).execute()
+    await trx.updateTable('follow_ups').set({ deal_id: null }).where('deal_id', '=', id).execute()
+  })
 
   return true
 }
 
-
 export async function moveDealStage(dealId: string, stage: DealStage): Promise<Deal | null> {
   await ensureDbInitialized()
 
-  const existing = await db
-    .selectFrom('deals')
-    .selectAll()
-    .where('id', '=', dealId)
-    .executeTakeFirst()
+  const existing = await db.selectFrom('deals').selectAll().where('id', '=', dealId).executeTakeFirst()
 
   if (!existing) return null
 
@@ -403,27 +407,7 @@ export async function moveDealStage(dealId: string, stage: DealStage): Promise<D
     .where('id', '=', dealId)
     .execute()
 
-  return {
-    id: existing.id,
-    title: existing.title,
-    value: existing.value,
-    rawAmount: Number(existing.raw_amount) || 0,
-    stage,
-    next: existing.next,
-    nextDueDate: existing.next_due_date ?? undefined,
-    waiting: Number(existing.waiting) === 1,
-    waitingSince: existing.waiting_since ?? undefined,
-    color: dealColor,
-    contactId: existing.contact_id ?? undefined,
-    contactName: existing.contact_name ?? '',
-    contactEmail: existing.contact_email ?? undefined,
-    notes: existing.notes ?? undefined,
-    startDate: existing.start_date ?? undefined,
-    endDate: existing.end_date ?? undefined,
-    deliverables: safeParseJson<DeliverableItem[]>(existing.deliverables, []),
-    invoices: safeParseJson<InvoiceMilestone[]>(existing.invoices, []),
-    createdAt: existing.created_at,
-  }
+  return mapDealRow({ ...existing, stage, color: dealColor, updated_at: now })
 }
 
 /** Replace a deal's checklist (client materials + deliverables) without touching other fields */
@@ -475,11 +459,7 @@ export async function createContact(contactData: Omit<Contact, 'id'>): Promise<C
 export async function updateContact(contact: Contact): Promise<Contact | null> {
   await ensureDbInitialized()
 
-  const existing = await db
-    .selectFrom('contacts')
-    .select('id')
-    .where('id', '=', contact.id)
-    .executeTakeFirst()
+  const existing = await db.selectFrom('contacts').select('id').where('id', '=', contact.id).executeTakeFirst()
 
   if (!existing) {
     return null
@@ -487,27 +467,29 @@ export async function updateContact(contact: Contact): Promise<Contact | null> {
 
   const now = new Date().toISOString()
 
-  await db
-    .updateTable('contacts')
-    .set({
-      name: contact.name,
-      email: contact.email,
-      phone: contact.phone || null,
-      notes: contact.notes || null,
-      deals: contact.deals,
-      last_touch: contact.lastTouch,
-      color: contact.color,
-      updated_at: now,
-    })
-    .where('id', '=', contact.id)
-    .execute()
+  await db.transaction().execute(async (trx) => {
+    await trx
+      .updateTable('contacts')
+      .set({
+        name: contact.name,
+        email: contact.email,
+        phone: contact.phone || null,
+        notes: contact.notes || null,
+        deals: contact.deals,
+        last_touch: contact.lastTouch,
+        color: contact.color,
+        updated_at: now,
+      })
+      .where('id', '=', contact.id)
+      .execute()
 
-  // Keep denormalized client name/email on the client's deals in sync
-  await db
-    .updateTable('deals')
-    .set({ contact_name: contact.name, contact_email: contact.email || null, updated_at: now })
-    .where('contact_id', '=', contact.id)
-    .execute()
+    // Keep denormalized client name/email on the client's deals in sync
+    await trx
+      .updateTable('deals')
+      .set({ contact_name: contact.name, contact_email: contact.email || null, updated_at: now })
+      .where('contact_id', '=', contact.id)
+      .execute()
+  })
 
   return contact
 }
@@ -515,11 +497,7 @@ export async function updateContact(contact: Contact): Promise<Contact | null> {
 export async function deleteContact(id: string): Promise<boolean> {
   await ensureDbInitialized()
 
-  const linkedDeal = await db
-    .selectFrom('deals')
-    .select('id')
-    .where('contact_id', '=', id)
-    .executeTakeFirst()
+  const linkedDeal = await db.selectFrom('deals').select('id').where('contact_id', '=', id).executeTakeFirst()
   if (linkedDeal) {
     throw new Error('This client still has deals. Delete or reassign them first.')
   }
@@ -535,21 +513,13 @@ export async function deleteContact(id: string): Promise<boolean> {
 export async function toggleFollowUp(id: string): Promise<boolean> {
   await ensureDbInitialized()
 
-  const existing = await db
-    .selectFrom('follow_ups')
-    .select('completed')
-    .where('id', '=', id)
-    .executeTakeFirst()
+  const existing = await db.selectFrom('follow_ups').select('completed').where('id', '=', id).executeTakeFirst()
 
   if (!existing) return false
 
   const newStatus = existing.completed === 1 ? 0 : 1
 
-  await db
-    .updateTable('follow_ups')
-    .set({ completed: newStatus })
-    .where('id', '=', id)
-    .execute()
+  await db.updateTable('follow_ups').set({ completed: newStatus }).where('id', '=', id).execute()
 
   return newStatus === 1
 }
@@ -557,7 +527,7 @@ export async function toggleFollowUp(id: string): Promise<boolean> {
 export async function syncTodos(
   todos: string[],
   companyName: string = 'Workspace',
-  dealId?: string
+  dealId?: string,
 ): Promise<FollowUpItem[]> {
   await ensureDbInitialized()
 
@@ -626,11 +596,7 @@ export async function deleteFollowUp(id: string): Promise<boolean> {
 export async function getWorkspaceSettings(): Promise<(WorkspaceSettings & { passcodeHash?: string | null }) | null> {
   await ensureDbInitialized()
   try {
-    const row = await db
-      .selectFrom('workspace_settings')
-      .selectAll()
-      .where('id', '=', 'current')
-      .executeTakeFirst()
+    const row = await db.selectFrom('workspace_settings').selectAll().where('id', '=', 'current').executeTakeFirst()
 
     if (!row) return null
 
@@ -650,11 +616,7 @@ export async function getWorkspaceSettings(): Promise<(WorkspaceSettings & { pas
     const errorMsg = String(err)
     if (errorMsg.includes('no such table: workspace_settings')) {
       await ensureDbInitialized(true)
-      const row = await db
-        .selectFrom('workspace_settings')
-        .selectAll()
-        .where('id', '=', 'current')
-        .executeTakeFirst()
+      const row = await db.selectFrom('workspace_settings').selectAll().where('id', '=', 'current').executeTakeFirst()
 
       if (!row) return null
 
@@ -692,27 +654,26 @@ export async function claimWorkspace(params: {
     throw new Error('Workspace is already claimed and initialized.')
   }
 
-  await db
-    .deleteFrom('workspace_settings')
-    .where('id', '=', 'current')
-    .execute()
+  await db.transaction().execute(async (trx) => {
+    await trx.deleteFrom('workspace_settings').where('id', '=', 'current').execute()
 
-  await db
-    .insertInto('workspace_settings')
-    .values({
-      id: 'current',
-      operator_name: params.operatorName.trim(),
-      operator_email: params.operatorEmail.trim(),
-      operator_role: params.operatorRole?.trim() || 'Creative & Tech Operator',
-      currency: params.currency.trim(),
-      currency_symbol: params.currencySymbol.trim(),
-      locale: params.locale.trim(),
-      passcode_hash: params.passcodeHash || null,
-      is_claimed: 1,
-      created_at: now,
-      updated_at: now,
-    })
-    .execute()
+    await trx
+      .insertInto('workspace_settings')
+      .values({
+        id: 'current',
+        operator_name: params.operatorName.trim(),
+        operator_email: params.operatorEmail.trim(),
+        operator_role: params.operatorRole?.trim() || 'Creative & Tech Operator',
+        currency: params.currency.trim(),
+        currency_symbol: params.currencySymbol.trim(),
+        locale: params.locale.trim(),
+        passcode_hash: params.passcodeHash || null,
+        is_claimed: 1,
+        created_at: now,
+        updated_at: now,
+      })
+      .execute()
+  })
 
   return {
     operatorName: params.operatorName.trim(),
@@ -879,9 +840,7 @@ export async function restoreWorkspaceData(snapshot: {
   await ensureDbInitialized()
 
   const totalItems =
-    (snapshot.contacts?.length ?? 0) +
-    (snapshot.deals?.length ?? 0) +
-    (snapshot.followUps?.length ?? 0)
+    (snapshot.contacts?.length ?? 0) + (snapshot.deals?.length ?? 0) + (snapshot.followUps?.length ?? 0)
 
   if (totalItems === 0) {
     throw new Error('Cannot restore an empty backup: snapshot contains no data.')
@@ -941,8 +900,9 @@ export async function restoreWorkspaceData(snapshot: {
             end_date: (d as any).endDate ?? null,
             deliverables: d.deliverables ? JSON.stringify(d.deliverables) : null,
             invoices: d.invoices ? JSON.stringify(d.invoices) : null,
-            created_at: now,
-            updated_at: now,
+            // Keep the original timestamps: deals are listed newest first by created_at
+            created_at: d.createdAt || now,
+            updated_at: d.updatedAt || d.createdAt || now,
           })
           .execute()
       }
@@ -984,5 +944,3 @@ export async function restoreWorkspaceData(snapshot: {
 
   return result
 }
-
-

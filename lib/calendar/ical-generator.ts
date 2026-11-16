@@ -19,14 +19,24 @@ export function escapeIcsText(text: string): string {
  * Folds iCalendar content lines to 75 octets per RFC 5545 Section 3.1.
  */
 export function foldIcsLine(line: string, maxLen = 75): string {
-  if (line.length <= maxLen) return line
+  if (Buffer.byteLength(line, 'utf8') <= maxLen) return line
+  // The limit is in octets, not characters, and a multi-byte character
+  // (č, ř, emoji) must never be split across two lines
   const chunks: string[] = []
-  chunks.push(line.slice(0, maxLen))
-  let idx = maxLen
-  while (idx < line.length) {
-    chunks.push(' ' + line.slice(idx, idx + maxLen - 1))
-    idx += maxLen - 1
+  let current = ''
+  let currentBytes = 0
+  for (const char of line) {
+    const bytes = Buffer.byteLength(char, 'utf8')
+    if (currentBytes + bytes > maxLen) {
+      chunks.push(current)
+      // Continuation lines start with a space, which counts toward the limit
+      current = ' '
+      currentBytes = 1
+    }
+    current += char
+    currentBytes += bytes
   }
+  chunks.push(current)
   return chunks.join('\r\n')
 }
 
@@ -80,7 +90,8 @@ export function generateIcsCalendar(options: IcsCalendarOptions = {}): string {
 
   // 1. Process Deals with upcoming milestones
   for (const deal of deals) {
-    if (!deal.next || !deal.nextDueDate || deal.nextDueDate === 'Done') {
+    // A deal waiting on the client has no next action to show, even if an old one is still stored
+    if (deal.waiting || !deal.next || !deal.nextDueDate || deal.nextDueDate === 'Done') {
       continue
     }
 

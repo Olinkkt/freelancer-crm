@@ -3,6 +3,7 @@ import { checkIsAuthenticated } from '@/lib/auth/session'
 import * as repo from '@/lib/db/repository'
 import { DealCreateInputSchema, DealUpdateInputSchema } from '@/lib/validations'
 import { sanitizeErrorMessage } from '@/lib/errors'
+import type { Deal } from '@/lib/crm-types'
 
 export const dynamic = 'force-dynamic'
 
@@ -55,7 +56,20 @@ export async function PUT(req: Request) {
       )
     }
 
-    const deal = await repo.updateDeal(parsed.data as any)
+    // Only the fields in the body change. Saving the partial input as-is would
+    // blank everything it leaves out (amount, next action, notes, checklist…).
+    const existing = await repo.getDealById(parsed.data.id)
+    if (!existing || existing.id !== parsed.data.id) {
+      return NextResponse.json({ error: 'Deal not found' }, { status: 404 })
+    }
+    const changes = Object.fromEntries(Object.entries(parsed.data).filter(([, v]) => v !== undefined))
+    // A new client name or email without a contactId means "move to that client"
+    const reassign = !parsed.data.contactId && !!(parsed.data.contactName?.trim() || parsed.data.contactEmail?.trim())
+    const deal = await repo.updateDeal({
+      ...existing,
+      ...(reassign ? { contactId: undefined, contactName: '', contactEmail: undefined } : {}),
+      ...changes,
+    } as Deal)
     if (!deal) {
       return NextResponse.json({ error: 'Deal not found' }, { status: 404 })
     }

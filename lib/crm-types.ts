@@ -72,6 +72,10 @@ export const BOARD_COLUMNS = [
 ] as const
 export type BoardColumnId = (typeof BOARD_COLUMNS)[number]['id']
 
+/** What to show as a deal's next action: a waiting deal has none, whatever text is still stored */
+export const nextActionLabel = (deal: Pick<Deal, 'next' | 'waiting'>): string =>
+  deal.waiting ? 'Waiting on client' : deal.next
+
 /** Column a card sits in; cards saved before the board existed fall back to their status */
 export function cardColumn(item: DeliverableItem): BoardColumnId {
   return item.column ?? (item.status === 'Done' ? 'done' : 'todo')

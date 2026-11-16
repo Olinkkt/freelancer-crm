@@ -1,9 +1,9 @@
 'use client'
 
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { FolderKanban } from 'lucide-react'
-import { ACTIVE_PROJECT_STAGES, Deal, cardColumn } from '@/lib/crm-types'
-import { daysUntil, formatDue, normalizeDueDate } from '@/lib/due-date'
+import { ACTIVE_PROJECT_STAGES, Deal } from '@/lib/crm-types'
+import { daysUntil, formatDue } from '@/lib/due-date'
 
 import { buildProjects, type ProjectFlag, type ProjectRow } from '@/lib/home/projects'
 

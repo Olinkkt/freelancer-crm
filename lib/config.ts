@@ -43,6 +43,28 @@ export function formatMoney(
 }
 
 /**
+ * Reads an amount someone typed ("25 000 Kč", "$1,500.50", "1.234,56") as a whole number.
+ * Stripping every non-digit would turn 1500.50 into 150050, so the last separator
+ * counts as a decimal point unless it is followed by exactly three digits.
+ */
+export function parseMoneyInput(text: string | number | null | undefined): number {
+  if (typeof text === 'number') return Number.isFinite(text) ? Math.round(text) : 0
+  const s = String(text ?? '').replace(/[^0-9.,]/g, '')
+  const lastSep = Math.max(s.lastIndexOf(','), s.lastIndexOf('.'))
+  if (lastSep === -1) return parseInt(s, 10) || 0
+
+  const sep = s[lastSep]
+  const tail = s.slice(lastSep + 1)
+  const sepCount = s.split(sep).length - 1
+  const mixed = s.includes(sep === ',' ? '.' : ',')
+  const isDecimal = sepCount === 1 && tail.length > 0 && (tail.length !== 3 || mixed)
+
+  const whole = (isDecimal ? s.slice(0, lastSep) : s).replace(/[.,]/g, '')
+  const amount = Number(isDecimal ? `${whole || '0'}.${tail}` : whole)
+  return Number.isFinite(amount) ? Math.round(amount) : 0
+}
+
+/**
  * Formats a deal value (string or number) into standard localized currency.
  */
 export function formatDealValue(
@@ -50,8 +72,8 @@ export function formatDealValue(
   settings?: { currency?: string; currencySymbol?: string; locale?: string }
 ): string {
   if (typeof value === 'number') return formatMoney(value, settings)
-  const numeric = parseInt(String(value).replace(/[^0-9]/g, ''), 10)
-  if (isNaN(numeric) || numeric === 0) {
+  const numeric = parseMoneyInput(value)
+  if (numeric === 0) {
     const symbol = (settings?.currencySymbol || OPERATOR_CONFIG.currencySymbol || '$').trim()
     if (['$', '€', '£', '¥'].includes(symbol)) return `${symbol}0`
     return `0 ${symbol}`

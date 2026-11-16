@@ -23,7 +23,7 @@ export async function PATCH(req: Request) {
 
   try {
     const { id } = await req.json()
-    if (!id) {
+    if (!id || typeof id !== 'string') {
       return NextResponse.json({ error: 'Missing follow-up id' }, { status: 400 })
     }
     const completed = await repo.toggleFollowUp(id)
@@ -41,8 +41,14 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json()
-    if (Array.isArray(body.todos)) {
-      const items = await repo.syncTodos(body.todos, body.company, body.dealId)
+    if (Array.isArray(body?.todos)) {
+      const todos = body.todos
+      if (todos.length > 100 || todos.some((t: unknown) => typeof t !== 'string' || t.length > 500)) {
+        return NextResponse.json({ error: 'todos must be up to 100 strings of at most 500 characters' }, { status: 400 })
+      }
+      const company = typeof body.company === 'string' && body.company.trim() ? body.company.trim().slice(0, 100) : undefined
+      const dealId = typeof body.dealId === 'string' ? body.dealId : undefined
+      const items = await repo.syncTodos(todos, company, dealId)
       return NextResponse.json(items, { status: 201 })
     }
     return NextResponse.json({ error: 'Missing todos array in payload' }, { status: 400 })

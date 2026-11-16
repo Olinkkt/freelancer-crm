@@ -3,8 +3,8 @@
 import { useState } from 'react'
 import { Check, ChevronDown, Inbox, Edit3, Trash2 } from 'lucide-react'
 import { RowActionMenu } from '@/components/ui/row-action-menu'
-import { Deal, FollowUpItem, isPmStage } from '@/lib/crm-types'
-import { daysUntil, formatDue, normalizeDueDate } from '@/lib/due-date'
+import { Deal, FollowUpItem } from '@/lib/crm-types'
+import { formatDue, normalizeDueDate } from '@/lib/due-date'
 
 import { buildToday, buildUpcoming, type TodayGroups, type TodayItem } from '@/lib/home/today'
 

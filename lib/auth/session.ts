@@ -25,8 +25,9 @@ export function verifyPasscode(passcode: string, storedHash?: string | null): bo
     }
   }
   // Fallback to legacy SHA-256 for backward compatibility
-  const legacyHash = crypto.createHash('sha256').update(passcode.trim()).digest('hex')
-  return legacyHash === storedHash
+  const legacyHash = Buffer.from(crypto.createHash('sha256').update(passcode.trim()).digest('hex'))
+  const stored = Buffer.from(storedHash)
+  return legacyHash.length === stored.length && crypto.timingSafeEqual(legacyHash, stored)
 }
 
 export function isAuthRequired(): boolean {
@@ -115,11 +116,6 @@ export function verifyPassword(providedPassword: string): boolean {
   } catch {
     return false
   }
-}
-
-/** True when the workspace has a passcode or AUTH_SECRET, so requests must authenticate */
-export async function isAuthGateEnabled(): Promise<boolean> {
-  return Boolean(await getEffectiveAuthSecret())
 }
 
 /**

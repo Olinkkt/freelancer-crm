@@ -147,9 +147,6 @@ function tagFor(op: Operation): string {
   return 'Overview'
 }
 
-/** Paths in the spec, as `METHOD /path` (used by the drift test) */
-export const specRoutes = () => OPERATIONS.map((op) => `${op.http.method} ${op.http.path}`)
-
 export function buildOpenApiSpec(origin = 'http://localhost:3000') {
   const components: Record<string, JsonSchema> = {}
   components.Error = toSchema(ErrorSchema, 'output', components)

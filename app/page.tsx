@@ -8,29 +8,11 @@ import {
   Settings2,
   Users,
   WalletCards,
-  UserPlus,
-  Download,
-  Trash2,
-  Mail,
-  Edit3,
-  Upload,
-  Calendar,
-  ChevronRight,
 } from 'lucide-react'
-import {
-  exportDealsCSV,
-  exportContactsCSV,
-  exportFollowUpsCSV,
-} from '@/lib/csv-export'
 import { getFormattedToday, getDynamicGreeting } from '@/lib/date-utils'
-import { OPERATOR_CONFIG, formatMoney, getOperatorInitials } from '@/lib/config'
-import { Deal, DeliverableItem, Contact, FollowUpItem, DealStage, OPEN_DEAL_STAGES, isPmStage } from '@/lib/crm-types'
+import { parseMoneyInput, formatMoney, getOperatorInitials } from '@/lib/config'
+import { Deal, Contact, FollowUpItem, OPEN_DEAL_STAGES, isPmStage } from '@/lib/crm-types'
 import { useModKey } from '@/lib/use-mod-key'
-import {
-  INITIAL_CONTACTS,
-  INITIAL_DEALS,
-  INITIAL_FOLLOW_UPS,
-} from '@/lib/crm-data'
 import {
   CommandPalette,
   PaletteActionType,
@@ -43,9 +25,6 @@ import { ContactPreviewModal } from '@/components/modals/contact-preview-modal'
 import { EditFollowUpModal } from '@/components/modals/edit-follow-up-modal'
 import { useShortcuts } from '@/lib/use-shortcuts'
 import { ShortcutId, bindingLabel, eventToStep, hasModifier } from '@/lib/shortcuts'
-import { ShortcutsSettings } from '@/components/settings/shortcuts-settings'
-import { ApiTokensSettings } from '@/components/settings/api-tokens-settings'
-import { InvoicerSettings } from '@/components/settings/invoicer-settings'
 import { EditSettingsModal } from '@/components/modals/edit-settings-modal'
 import { DealList } from '@/components/deals/deal-list'
 import { DealDetail } from '@/components/deals/deal-detail'
@@ -54,26 +33,9 @@ import { ProjectsOverview, buildProjects } from '@/components/home/projects-over
 import { ToastHUD, ToastHUDItem } from '@/components/ui/toast-hud'
 import { OperatorGate } from '@/components/auth/operator-gate'
 import { SetupWizard } from '@/components/auth/setup-wizard'
-import { RowActionMenu } from '@/components/ui/row-action-menu'
-import { WorkspaceSettings } from '@/lib/crm-types'
-import {
-  fetchWorkspaceData,
-  createDealAction,
-  updateDealAction,
-  deleteDealAction,
-  moveDealStageAction,
-  updateDealChecklistAction,
-  createContactAction,
-  updateContactAction,
-  deleteContactAction,
-  deleteFollowUpAction,
-  updateFollowUpAction,
-  toggleFollowUpAction,
-} from '@/app/actions/crm'
-import {
-  getAuthStatus,
-  logoutOperator,
-} from '@/app/actions/auth'
+import { ClientsView } from '@/components/views/clients-view'
+import { SettingsView } from '@/components/views/settings-view'
+import { useWorkspace } from '@/lib/use-workspace'
 
 
 function NavItem({
@@ -118,13 +80,7 @@ export default function Page() {
     setFormattedToday(getFormattedToday())
   }, [])
 
-  // CRM Data State
-  const [deals, setDeals] = useState<Deal[]>(INITIAL_DEALS)
-  const [contacts, setContacts] = useState<Contact[]>(INITIAL_CONTACTS)
-  const [followUps, setFollowUps] = useState<FollowUpItem[]>(INITIAL_FOLLOW_UPS)
-  const [completedFollowUps, setCompletedFollowUps] = useState<string[]>([])
-
-  // Search in sub-views
+  /** Search text of the Clients view (set by the palette when you pick a client) */
   const [contactSearch, setContactSearch] = useState('')
   // Modals State
   const [isPaletteOpen, setIsPaletteOpen] = useState(false)
@@ -142,7 +98,6 @@ export default function Page() {
   const [editingFollowUp, setEditingFollowUp] = useState<FollowUpItem | null>(null)
   const [isEditSettingsOpen, setIsEditSettingsOpen] = useState(false)
   const [settingsModalInitialTab, setSettingsModalInitialTab] = useState<'profile' | 'calendar'>('profile')
-  const [settingsTab, setSettingsTab] = useState<'profile' | 'shortcuts' | 'export' | 'api' | 'invoicer'>('profile')
 
   // Floating Toasts / HUD
   const [toasts, setToasts] = useState<ToastHUDItem[]>([])
@@ -162,57 +117,39 @@ export default function Page() {
     setToasts((prev) => prev.filter((t) => t.id !== id))
   }
 
-  // Auth & Backend Loading State
-  const [isLoading, setIsLoading] = useState(true)
-  const [authRequired, setAuthRequired] = useState(false)
-  const [isAuthenticated, setIsAuthenticated] = useState(true)
-  const [isSetupComplete, setIsSetupComplete] = useState(true)
-  const [currentSettings, setCurrentSettings] = useState<WorkspaceSettings>({
-    operatorName: OPERATOR_CONFIG.name,
-    operatorEmail: OPERATOR_CONFIG.email,
-    operatorRole: OPERATOR_CONFIG.role,
-    currency: OPERATOR_CONFIG.currency,
-    currencySymbol: OPERATOR_CONFIG.currencySymbol,
-    locale: OPERATOR_CONFIG.locale,
-    isClaimed: false,
-  })
+  const {
+    deals,
+    contacts,
+    followUps,
+    completedFollowUps,
+    isLoading,
+    authRequired,
+    isAuthenticated,
+    setIsAuthenticated,
+    isSetupComplete,
+    setIsSetupComplete,
+    currentSettings,
+    setCurrentSettings,
+    loadData,
+    handleAddDeal,
+    handleAddContact,
+    handleUpdateDeal,
+    handleUpdateContact,
+    handleUpdateFollowUp,
+    handleDeleteDeal,
+    handleDeleteContact,
+    handleDeleteFollowUp,
+    handleMoveDealStage,
+    handleChecklistChange,
+    toggleFollowUp,
+    handleLockWorkspace,
+  } = useWorkspace(addToast)
 
-  const loadData = useCallback(async () => {
-    try {
-      const auth = await getAuthStatus()
-      setAuthRequired(auth.required)
-      setIsAuthenticated(auth.authenticated)
-      setIsSetupComplete(auth.isSetupComplete)
-
-      if (auth.settings) {
-        setCurrentSettings(auth.settings)
-        const firstName = auth.settings.operatorName.trim().split(' ')[0]
-        setGreeting(getDynamicGreeting(firstName))
-      }
-
-      if (auth.isSetupComplete && (auth.authenticated || !auth.required)) {
-        const data = await fetchWorkspaceData()
-        setDeals(data.deals)
-        setContacts(data.contacts)
-        setFollowUps(data.followUps)
-        setCompletedFollowUps(
-          data.followUps.filter((f) => f.completed).map((f) => f.id)
-        )
-        if (data.settings) {
-          setCurrentSettings(data.settings)
-        }
-      }
-    } catch (err: any) {
-      console.error('Failed to load workspace data:', err)
-      addToast('Error loading workspace data', undefined, 'warning')
-    } finally {
-      setIsLoading(false)
-    }
-  }, [addToast])
-
+  // Greeting follows the operator's name, including after it is edited in Settings
   useEffect(() => {
-    loadData()
-  }, [loadData])
+    if (!currentSettings.isClaimed) return
+    setGreeting(getDynamicGreeting(currentSettings.operatorName.trim().split(' ')[0]))
+  }, [currentSettings])
 
   // ?settings=open deep link opens the settings modal
   useEffect(() => {
@@ -403,155 +340,10 @@ export default function Page() {
   }
 
   // Create Deal Handler
-  const handleAddDeal = async (dealData: Omit<Deal, 'id'>) => {
-    try {
-      const newDeal = await createDealAction(dealData)
-      setDeals((prev) => [newDeal, ...prev])
-      addToast(`Added deal "${newDeal.title}"`, 'N')
-    } catch (err: any) {
-      addToast(err?.message || 'Failed to create deal', undefined, 'warning')
-    }
-  }
-
-  // Create Contact Handler
-  const handleAddContact = async (contactData: Omit<Contact, 'id'>) => {
-    try {
-      const newContact = await createContactAction(contactData)
-      setContacts((prev) => [newContact, ...prev])
-      addToast(`Added client "${newContact.name}"`, 'C')
-    } catch (err: any) {
-      addToast(err?.message || 'Failed to create client', undefined, 'warning')
-    }
-  }
-
-  // Update Deal in list
-  const handleUpdateDeal = async (updated: Deal, opts?: { silent?: boolean }) => {
-    setDeals((prev) => prev.map((d) => (d.id === updated.id ? updated : d)))
-    try {
-      const saved = await updateDealAction(updated)
-      setDeals((prev) => prev.map((d) => (d.id === saved.id ? saved : d)))
-      if (!opts?.silent) addToast(`Deal "${saved.title}" updated`)
-    } catch (err: any) {
-      addToast(err?.message || 'Failed to update deal', undefined, 'warning')
-    }
-  }
-
-  // Update Contact
-  const handleUpdateContact = async (updated: Contact) => {
-    setContacts((prev) => prev.map((c) => (c.id === updated.id ? updated : c)))
-    try {
-      const saved = await updateContactAction(updated)
-      setContacts((prev) => prev.map((c) => (c.id === saved.id ? saved : c)))
-      addToast(`Client "${saved.name}" updated`)
-    } catch (err: any) {
-      addToast(err?.message || 'Failed to update client', undefined, 'warning')
-    }
-  }
-
-  // Update Follow-up
-  const handleUpdateFollowUp = async (updated: FollowUpItem) => {
-    setFollowUps((prev) => prev.map((f) => (f.id === updated.id ? updated : f)))
-    try {
-      const saved = await updateFollowUpAction(updated as any)
-      setFollowUps((prev) => prev.map((f) => (f.id === saved.id ? saved : f)))
-      addToast('Follow-up updated')
-    } catch (err: any) {
-      addToast(err?.message || 'Failed to update follow-up', undefined, 'warning')
-    }
-  }
-
-  // Sync action items from Scratchpad to Dashboard Follow-ups
-  // Delete Deal
-  const handleDeleteDeal = async (id: string) => {
-    setDeals((prev) => prev.filter((d) => d.id !== id))
-    try {
-      await deleteDealAction(id)
-      addToast('Deal deleted')
-    } catch (err: any) {
-      addToast(err?.message || 'Failed to delete deal', undefined, 'warning')
-    }
-  }
-
-  // Delete Client (server first: a client with deals can't be deleted)
-  const handleDeleteContact = async (id: string, name: string) => {
-    const linkedDeals = deals.filter((d) => d.contactId === id).length
-    if (linkedDeals > 0) {
-      addToast(
-        `"${name}" still has ${linkedDeals} deal${linkedDeals === 1 ? '' : 's'}. Delete or reassign them first.`,
-        undefined,
-        'warning'
-      )
-      return
-    }
-    try {
-      await deleteContactAction(id)
-      setContacts((prev) => prev.filter((c) => c.id !== id))
-      addToast(`Client "${name}" deleted`)
-    } catch (err: any) {
-      addToast(err?.message || 'Failed to delete client', undefined, 'warning')
-    }
-  }
-
-  // Delete Follow-up
-  const handleDeleteFollowUp = async (id: string) => {
-    setFollowUps((prev) => prev.filter((f) => f.id !== id))
-    setCompletedFollowUps((prev) => prev.filter((x) => x !== id))
-    addToast('Follow-up removed')
-    try {
-      await deleteFollowUpAction(id)
-    } catch (err: any) {
-      addToast(err?.message || 'Failed to delete follow-up', undefined, 'warning')
-    }
-  }
-
-  const handleMoveDealStage = async (dealId: string, newStage: DealStage) => {
-    setDeals((prev) => prev.map((d) => (d.id === dealId ? { ...d, stage: newStage } : d)))
-    addToast(newStage === 'Closed' ? 'Deal closed: contract signed, PM starts' : `Moved deal to ${newStage}`)
-
-    try {
-      const updated = await moveDealStageAction(dealId, newStage)
-      if (updated) {
-        setDeals((prev) => prev.map((d) => (d.id === updated.id ? updated : d)))
-      }
-    } catch (err: any) {
-      addToast(err?.message || 'Failed to move deal stage', undefined, 'warning')
-    }
-  }
-
-  const handleChecklistChange = async (dealId: string, items: DeliverableItem[]) => {
-    setDeals((prev) => prev.map((d) => (d.id === dealId ? { ...d, deliverables: items } : d)))
-    try {
-      await updateDealChecklistAction(dealId, items)
-    } catch (err: any) {
-      addToast(err?.message || 'Failed to save board', undefined, 'warning')
-    }
-  }
-
-  // Follow-up toggle complete
-  const toggleFollowUp = async (id: string) => {
-    setCompletedFollowUps((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    )
-    try {
-      await toggleFollowUpAction(id)
-    } catch (err: any) {
-      addToast(err?.message || 'Failed to update follow-up', undefined, 'warning')
-    }
-  }
-
-  // Operator Lock Action
-  const handleLockWorkspace = async () => {
-    await logoutOperator()
-    setIsAuthenticated(false)
-    addToast('Workspace locked')
-  }
-
-
   // Compute metrics
   const openDeals = deals.filter((d) => OPEN_DEAL_STAGES.includes(d.stage))
-  const openDealsCount = openDeals.length
   const totalPipelineAmount = openDeals.reduce(
-    (sum, d) => sum + (d.rawAmount || parseInt(d.value.replace(/[^0-9]/g, '')) || 0),
+    (sum, d) => sum + (d.rawAmount || parseMoneyInput(d.value)),
     0
   )
   const getContactOpenDealsCount = (contact: Contact) =>
@@ -559,7 +351,7 @@ export default function Page() {
 
   const closingDeals = deals.filter((d) => d.stage === 'Proposal')
   const expectedCloseAmount = closingDeals.reduce(
-    (sum, d) => sum + (d.rawAmount || parseInt(d.value.replace(/[^0-9]/g, '')) || 0),
+    (sum, d) => sum + (d.rawAmount || parseMoneyInput(d.value)),
     0
   )
   // Closed = contract signed, so every PM stage (Closed…Completed) counts as closed
@@ -755,7 +547,7 @@ export default function Page() {
               <section className="deal-summary">
                 <div>
                   <span className="metric-label">Open deals</span>
-                  <strong>{openDealsCount}</strong>
+                  <strong>{openDeals.length}</strong>
                   <small>In {OPEN_DEAL_STAGES.join(', ').replace(/, ([^,]*)$/, ' or $1')}</small>
                 </div>
                 <div>
@@ -799,582 +591,41 @@ export default function Page() {
             </>
           ) : activeView === 'Clients' ? (
             /* CLIENTS VIEW */
-            <>
-              <section className="page-heading">
-                <div>
-                  <h1>Clients</h1>
-                  <p className="subcopy">
-                    Everyone you work with. Click a client to edit their details.
-                  </p>
-                </div>
-                <button
-                  className="primary-button"
-                  onClick={() => setIsNewContactOpen(true)}
-                >
-                  <CirclePlus size={17} />
-                  <span>Add client</span>
-                </button>
-              </section>
-
-              <section className="company-summary">
-                <div>
-                  <span className="metric-label">Total clients</span>
-                  <strong>{contacts.length}</strong>
-                  <small>People you work with</small>
-                </div>
-                <div>
-                  <span className="metric-label">Active pipeline</span>
-                  <strong>
-                    {contacts.filter((c) => getContactOpenDealsCount(c) > 0).length}
-                  </strong>
-                  <small>With at least one open deal</small>
-                </div>
-                <div>
-                  <span className="metric-label">Open deals</span>
-                  <strong>{openDealsCount}</strong>
-                  <small>
-                    {formatMoney(totalPipelineAmount, currentSettings)} in pipeline
-                  </small>
-                </div>
-              </section>
-
-              <section className="panel companies-panel">
-                <div className="company-toolbar">
-                  <div>
-                    <p className="section-kicker">People directory</p>
-                    <h2>All clients</h2>
-                  </div>
-                  <div className="company-tools">
-                    <label className="search-field">
-                      <Search size={15} />
-                      <input
-                        value={contactSearch}
-                        onChange={(e) => setContactSearch(e.target.value)}
-                        placeholder="Search clients"
-                      />
-                    </label>
-                  </div>
-                </div>
-
-                <div className="deals-list clients-list">
-                  <div className="deals-list-head">
-                    <span>Client</span>
-                    <span>Phone</span>
-                    <span>Open deals</span>
-                    <span>Last touch</span>
-                    <span>Email</span>
-                    <span />
-                  </div>
-                  {contacts.length === 0 ? (
-                    <div className="py-12 px-4 text-center">
-                      <div className="w-10 h-10 rounded-full bg-[#f4f5f6] text-[#8f99a8] flex items-center justify-center mx-auto mb-2.5">
-                        <Users size={18} />
-                      </div>
-                      <h3 className="text-[13px] font-semibold text-[#1c1d1f] mb-1">No clients yet</h3>
-                      <p className="text-[11px] text-[#8f99a8] max-w-xs mx-auto mb-3">
-                        Save client founders, project stakeholders, and creative partners.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => setIsNewContactOpen(true)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#232529] hover:bg-[#101113] text-white text-[11px] font-medium rounded-[8px] transition-colors cursor-pointer"
-                      >
-                        <UserPlus size={13} />
-                        <span>Add client</span>
-                      </button>
-                    </div>
-                  ) : (
-                    contacts
-                      .filter(
-                        (c) =>
-                          c.name.toLowerCase().includes(contactSearch.toLowerCase()) ||
-                          (c.phone || '').toLowerCase().includes(contactSearch.toLowerCase()) ||
-                          c.email.toLowerCase().includes(contactSearch.toLowerCase())
-                      )
-                      .map((contact) => {
-                        return (
-                          <div
-                            className="deals-list-row"
-                            key={contact.id}
-                            role="button"
-                            tabIndex={0}
-                            aria-label={`View ${contact.name}`}
-                            onClick={() => setPreviewContact(contact)}
-                            onKeyDown={(e) => {
-                              if (e.target !== e.currentTarget) return
-                              if (e.key === 'Enter' || e.key === ' ') {
-                                e.preventDefault()
-                                setPreviewContact(contact)
-                              }
-                            }}
-                          >
-                            <div className="company-name min-w-0">
-                              <span className={`company-avatar shrink-0 ${contact.color}`}>
-                                {contact.name.charAt(0)}
-                              </span>
-                              <div className="min-w-0">
-                                <strong className="truncate block" title={contact.name}>{contact.name}</strong>
-                              </div>
-                            </div>
-                            <div className="company-contact">
-                              {contact.phone ? (
-                                <a href={`tel:${contact.phone}`} onClick={(e) => e.stopPropagation()} className="cell-num hover:underline">
-                                  {contact.phone}
-                                </a>
-                              ) : (
-                                <span className="text-[#8f99a8] text-[11px]">—</span>
-                              )}
-                            </div>
-                            <span className="cell-num">{getContactOpenDealsCount(contact)}</span>
-                            <span className="last-touch">{contact.lastTouch}</span>
-                            <div className="truncate">
-                              {contact.email ? (
-                                <a
-                                  href={`mailto:${contact.email}`}
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="hover:underline truncate block"
-                                  title={contact.email}
-                                >
-                                  {contact.email}
-                                </a>
-                              ) : (
-                                <span className="text-[#8f99a8] text-[11px]">—</span>
-                              )}
-                            </div>
-                            <div className="flex justify-end" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
-                              <RowActionMenu
-                                triggerLabel={`More options for ${contact.name}`}
-                                items={[
-                                  {
-                                    label: 'Edit client',
-                                    icon: Edit3,
-                                    onClick: () => {
-                                      setEditingContact(contact)
-                                      setIsNewContactOpen(true)
-                                    },
-                                  },
-                                  ...(contact.email
-                                    ? [
-                                        {
-                                          label: 'Send email',
-                                          icon: Mail,
-                                          onClick: () => {
-                                            window.location.href = `mailto:${contact.email}`
-                                          },
-                                        },
-                                      ]
-                                    : []),
-                                  {
-                                    label: 'Create deal for client',
-                                    icon: CirclePlus,
-                                    onClick: () => {
-                                      setPrefilledClient(contact.name)
-                                      setIsNewDealOpen(true)
-                                    },
-                                  },
-                                  {
-                                    label: 'Delete client',
-                                    icon: Trash2,
-                                    destructive: true,
-                                    divider: true,
-                                    onClick: () => {
-                                      if (window.confirm(`Are you sure you want to delete client "${contact.name}"?`)) {
-                                        handleDeleteContact(contact.id, contact.name)
-                                      }
-                                    },
-                                  },
-                                ]}
-                              />
-                            </div>
-                          </div>
-                        )
-                      })
-                  )}
-
-                  {contacts.length > 0 &&
-                    contacts.filter(
-                      (c) =>
-                        c.name.toLowerCase().includes(contactSearch.toLowerCase()) ||
-                        (c.phone || '').toLowerCase().includes(contactSearch.toLowerCase()) ||
-                        c.email.toLowerCase().includes(contactSearch.toLowerCase())
-                    ).length === 0 && (
-                      <div className="py-8 text-center text-[#8f99a8] text-[12px]">
-                        No clients matching &ldquo;{contactSearch}&rdquo;
-                      </div>
-                    )}
-                </div>
-              </section>
-            </>
+            <ClientsView
+              contacts={contacts}
+              openDeals={openDeals}
+              pipelineAmount={totalPipelineAmount}
+              settings={currentSettings}
+              search={contactSearch}
+              onSearchChange={setContactSearch}
+              onAddClient={() => setIsNewContactOpen(true)}
+              onPreviewClient={setPreviewContact}
+              onEditClient={(contact) => {
+                setEditingContact(contact)
+                setIsNewContactOpen(true)
+              }}
+              onCreateDeal={(contact) => {
+                setPrefilledClient(contact.name)
+                setIsNewDealOpen(true)
+              }}
+              onDeleteClient={handleDeleteContact}
+            />
           ) : activeView === 'Settings' ? (
             /* SETTINGS VIEW */
-            <>
-              <section className="page-heading">
-                <div>
-                  <h1>Settings</h1>
-                </div>
-              </section>
-
-              {/* ATTIO TAB BAR */}
-              <div className="tabs mb-8">
-                <button
-                  type="button"
-                  className={settingsTab === 'profile' ? 'tab-active' : ''}
-                  onClick={() => setSettingsTab('profile')}
-                >
-                  Profile
-                </button>
-                <button
-                  type="button"
-                  className={settingsTab === 'shortcuts' ? 'tab-active' : ''}
-                  onClick={() => setSettingsTab('shortcuts')}
-                >
-                  Shortcuts
-                </button>
-                <button
-                  type="button"
-                  className={settingsTab === 'export' ? 'tab-active' : ''}
-                  onClick={() => setSettingsTab('export')}
-                >
-                  Data
-                </button>
-                <button
-                  type="button"
-                  className={settingsTab === 'api' ? 'tab-active' : ''}
-                  onClick={() => setSettingsTab('api')}
-                >
-                  API
-                </button>
-                <button
-                  type="button"
-                  className={settingsTab === 'invoicer' ? 'tab-active' : ''}
-                  onClick={() => setSettingsTab('invoicer')}
-                >
-                  Invoicer
-                </button>
-              </div>
-
-              {/* TAB 1: GENERAL & PROFILE */}
-              {settingsTab === 'profile' && (
-                <div className="space-y-8 max-w-4xl">
-                  {/* SECTION 1: OPERATOR IDENTITY */}
-                  <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start pb-8 border-b border-[#e4e7ec]">
-                    <div className="md:col-span-4">
-                      <h3 className="text-[15px] font-semibold text-[#1c1d1f] tracking-tight">Profile</h3>
-                      <p className="text-[13px] text-[#6f7988] mt-1 leading-relaxed">
-                        Your name, email and role.
-                      </p>
-                    </div>
-                    <div className="md:col-span-8">
-                      <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-[rgba(28,40,64,0.04)_0px_2px_4px_-1px]">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                          <div className="flex items-center gap-4 min-w-0">
-                            <span className="avatar large shrink-0 font-semibold text-[15px]">
-                              {getOperatorInitials(currentSettings.operatorName)}
-                            </span>
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-2">
-                                <strong className="text-[16px] font-semibold text-[#1c1d1f] tracking-tight truncate">
-                                  {currentSettings.operatorName}
-                                </strong>
-                              </div>
-                              <span className="text-[13px] text-[#6f7988] truncate block mt-0.5">
-                                {currentSettings.operatorEmail}
-                              </span>
-                              <div className="mt-2">
-                                <span className="inline-flex items-center text-[11px] font-medium text-[#2e3238] bg-[#f4f5f6] border border-[#e4e7ec] px-2.5 py-0.5 rounded-[7px]">
-                                  {currentSettings.operatorRole}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSettingsModalInitialTab('profile')
-                              setIsEditSettingsOpen(true)
-                            }}
-                            className="select-button self-start sm:self-center shrink-0"
-                          >
-                            <Edit3 size={13} className="text-[#6f7988]" />
-                            <span>Edit</span>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* SECTION 2: REGIONAL & CURRENCY */}
-                  <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start pb-8 border-b border-[#e4e7ec]">
-                    <div className="md:col-span-4">
-                      <h3 className="text-[15px] font-semibold text-[#1c1d1f] tracking-tight">Currency & locale</h3>
-                      <p className="text-[13px] text-[#6f7988] mt-1 leading-relaxed">
-                        Used for deal values and dates.
-                      </p>
-                    </div>
-                    <div className="md:col-span-8">
-                      <div className="bg-white border border-[#e4e7ec] rounded-xl divide-y divide-[#f0f1f3] shadow-[rgba(28,40,64,0.04)_0px_2px_4px_-1px] text-[13px]">
-                        <div className="flex items-center justify-between p-4">
-                          <div>
-                            <span className="text-[#1c1d1f] font-medium block">Currency</span>
-                            <span className="text-[#6f7988] text-[12px]">Deal values and totals</span>
-                          </div>
-                          <strong className="font-mono text-[#1c1d1f]">
-                            {currentSettings.currency} <span className="text-[#8f99a8] font-normal">({currentSettings.currencySymbol.trim()})</span>
-                          </strong>
-                        </div>
-                        <div className="flex items-center justify-between p-4">
-                          <div>
-                            <span className="text-[#1c1d1f] font-medium block">Locale</span>
-                            <span className="text-[#6f7988] text-[12px]">Date and number format</span>
-                          </div>
-                          <span className="font-mono text-[#505967]">{currentSettings.locale}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* SECTION 3: WORKSPACE SECURITY */}
-                  <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
-                    <div className="md:col-span-4">
-                      <h3 className="text-[15px] font-semibold text-[#1c1d1f] tracking-tight">Security</h3>
-                      <p className="text-[13px] text-[#6f7988] mt-1 leading-relaxed">
-                        Passcode and session.
-                      </p>
-                    </div>
-                    <div className="md:col-span-8">
-                      <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-[rgba(28,40,64,0.04)_0px_2px_4px_-1px]">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <strong className="text-[15px] font-semibold text-[#1c1d1f] tracking-tight">
-                                {authRequired ? 'Passcode on' : 'Passcode off'}
-                              </strong>
-                            </div>
-                            <p className="text-[12px] text-[#6f7988] mt-1">
-                              {authRequired
-                                ? 'Session lasts 30 days.'
-                                : 'Anyone who can reach this app can open it.'}
-                            </p>
-                          </div>
-                          {authRequired ? (
-                            <button
-                              type="button"
-                              onClick={handleLockWorkspace}
-                              className="primary-button text-[12px] py-1.5 px-3 min-h-0 self-start sm:self-center shrink-0"
-                            >
-                              Lock
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setSettingsModalInitialTab('profile')
-                                setIsEditSettingsOpen(true)
-                              }}
-                              className="select-button text-[12px] self-start sm:self-center shrink-0"
-                            >
-                              Set passcode
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* SECTION 4: CALENDAR FEED */}
-                  <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start pt-8 border-t border-[#e4e7ec]">
-                    <div className="md:col-span-4">
-                      <h3 className="text-[15px] font-semibold text-[#1c1d1f] tracking-tight">Calendar</h3>
-                      <p className="text-[13px] text-[#6f7988] mt-1 leading-relaxed">
-                        Subscribe to next actions from any calendar app.
-                      </p>
-                    </div>
-                    <div className="md:col-span-8">
-                      <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-[rgba(28,40,64,0.04)_0px_2px_4px_-1px]">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                          <div className="flex items-start gap-3.5 min-w-0">
-                            <div className="w-10 h-10 rounded-[10px] bg-[#f0f4fe] border border-[#d6e4fd] flex items-center justify-center text-[#266df0] shrink-0 mt-0.5">
-                              <Calendar size={20} />
-                            </div>
-                            <div className="min-w-0">
-                              <strong className="text-[15px] font-semibold text-[#1c1d1f] tracking-tight">
-                                Calendar feed (.ics)
-                              </strong>
-                              <p className="text-[12px] text-[#6f7988] mt-1 leading-normal">
-                                Works with Google, Apple and phone calendars.
-                              </p>
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSettingsModalInitialTab('calendar')
-                              setIsEditSettingsOpen(true)
-                            }}
-                            className="select-button text-[12px] py-1.5 px-3 font-semibold text-[#1c1d1f] cursor-pointer self-start sm:self-center shrink-0"
-                          >
-                            <span>Get link</span>
-                            <ChevronRight size={13} className="text-[#6f7988]" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* TAB 2: KEYBOARD SHORTCUTS */}
-              {settingsTab === 'shortcuts' && <ShortcutsSettings />}
-
-              {settingsTab === 'api' && <ApiTokensSettings />}
-
-              {settingsTab === 'invoicer' && <InvoicerSettings />}
-
-              {/* TAB 3: DATA & PORTABILITY */}
-              {settingsTab === 'export' && (
-                <div className="space-y-6 max-w-4xl">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-[#e4e7ec]">
-                    <div>
-                      <h3 className="text-[16px] font-semibold text-[#1c1d1f] tracking-tight">Export</h3>
-                      <p className="text-[13px] text-[#6f7988] mt-0.5">
-                        CSV files for Excel, Sheets or Notion.
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        exportDealsCSV(deals, currentSettings.currency)
-                        exportContactsCSV(contacts)
-                        exportFollowUpsCSV(followUps)
-                        addToast('Exported 3 CSV files', 'Export')
-                      }}
-                      className="primary-button text-[12px] py-1.5 px-3 min-h-0 shrink-0"
-                    >
-                      <Download size={13} />
-                      <span>Export all</span>
-                    </button>
-                  </div>
-
-                  <div className="bg-white border border-[#e4e7ec] rounded-xl overflow-hidden shadow-[rgba(28,40,64,0.04)_0px_2px_4px_-1px]">
-                    <div className="divide-y divide-[#f0f1f3]">
-                      {[
-                        {
-                          title: 'Deals',
-                          desc: 'Stages, values, next actions, deliverables',
-                          count: deals.length,
-                          action: () => {
-                            exportDealsCSV(deals, currentSettings.currency)
-                            addToast(`Exported ${deals.length} deals to CSV`, 'CSV')
-                          },
-                        },
-                        {
-                          title: 'Clients',
-                          desc: 'Names, emails, phones, notes',
-                          count: contacts.length,
-                          action: () => {
-                            exportContactsCSV(contacts)
-                            addToast(`Exported ${contacts.length} contacts to CSV`, 'CSV')
-                          },
-                        },
-                        {
-                          title: 'Follow-ups',
-                          desc: 'Next actions, times, completion',
-                          count: followUps.length,
-                          action: () => {
-                            exportFollowUpsCSV(followUps)
-                            addToast(`Exported ${followUps.length} follow-ups to CSV`, 'CSV')
-                          },
-                        },
-                      ].map((item, idx) => (
-                        <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 hover:bg-[#fafbfc] transition-colors">
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <strong className="text-[14px] font-semibold text-[#1c1d1f]">{item.title}</strong>
-                              <span className="text-[11px] font-mono font-medium text-[#266df0] bg-[#e9f0ff] px-2 py-0.5 rounded-[7px]">
-                                {item.count} records
-                              </span>
-                            </div>
-                            <p className="text-[12px] text-[#6f7988] mt-0.5">{item.desc}</p>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={item.action}
-                            className="select-button self-start sm:self-center shrink-0"
-                          >
-                            <Download size={13} className="text-[#266df0]" />
-                            <span>CSV</span>
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* SELF-HOSTED COMPLETE DATABASE BACKUP & RESTORE */}
-                  <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 shadow-[rgba(28,40,64,0.04)_0px_2px_4px_-1px] space-y-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <strong className="text-[15px] font-semibold text-[#1c1d1f]">Backup (JSON)</strong>
-                        </div>
-                        <p className="text-[12px] text-[#6f7988] mt-1 leading-relaxed">
-                          Full snapshot of your workspace. Restoring replaces current records.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 pt-2 border-t border-[#f0f1f3] flex-wrap">
-                      <a
-                        href="/api/backup"
-                        download
-                        onClick={() => addToast('Downloading backup', 'Backup')}
-                        className="primary-button text-[12px] py-1.5 px-3 min-h-0"
-                      >
-                        <Download size={13} />
-                        <span>Download backup</span>
-                      </a>
-
-                      <label className="select-button cursor-pointer text-[12px] py-1.5 px-3 min-h-0">
-                        <Upload size={13} className="text-[#266df0]" />
-                        <span>Restore</span>
-                        <input
-                          type="file"
-                          accept=".json,application/json"
-                          className="hidden"
-                          onChange={async (e) => {
-                            const file = e.target.files?.[0]
-                            if (!file) return
-                            if (!window.confirm('Restoring replaces current workspace records. Continue?')) {
-                              e.target.value = ''
-                              return
-                            }
-                            try {
-                              const text = await file.text()
-                              const json = JSON.parse(text)
-                              const res = await fetch('/api/backup', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify(json),
-                              })
-                              const result = await res.json()
-                              if (res.ok && result.success) {
-                                addToast('Workspace restored', 'Restore')
-                                await loadData()
-                              } else {
-                                addToast(result.error || 'Failed to restore workspace', undefined, 'warning')
-                              }
-                            } catch (err: any) {
-                              addToast(`Invalid backup file: ${err.message}`, undefined, 'warning')
-                            } finally {
-                              e.target.value = ''
-                            }
-                          }}
-                        />
-                      </label>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </>
+            <SettingsView
+              settings={currentSettings}
+              authRequired={authRequired}
+              deals={deals}
+              contacts={contacts}
+              followUps={followUps}
+              addToast={addToast}
+              onLock={handleLockWorkspace}
+              onEditSettings={(tab) => {
+                setSettingsModalInitialTab(tab)
+                setIsEditSettingsOpen(true)
+              }}
+              onRestored={loadData}
+            />
 
           ) : (
             /* HOME VIEW: Today */
@@ -1484,8 +735,6 @@ export default function Page() {
         currentSettings={currentSettings}
         onSettingsUpdated={(updated) => {
           setCurrentSettings(updated)
-          const firstName = updated.operatorName.trim().split(' ')[0]
-          setGreeting(getDynamicGreeting(firstName))
           addToast('Preferences saved successfully')
         }}
         initialTab={settingsModalInitialTab}

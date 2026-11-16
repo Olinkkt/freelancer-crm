@@ -8,8 +8,11 @@ function escapeCSV(val: any): string {
   if (typeof val === 'object') {
     val = JSON.stringify(val)
   }
-  const str = String(val).replace(/"/g, '""')
-  return `"${str}"`
+  let str = String(val)
+  // Text starting with = + - @ runs as a formula in Excel and Sheets; a leading
+  // apostrophe makes it plain text. Phone numbers like "+420 111 222" are left alone.
+  if (typeof val === 'string' && /^([=@\t\r]|[+\-](?![\d\s().+\-]*$))/.test(str)) str = `'${str}`
+  return `"${str.replace(/"/g, '""')}"`
 }
 
 /**

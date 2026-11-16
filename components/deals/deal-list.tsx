@@ -3,7 +3,7 @@
 import { formatDue, isOverdue } from '@/lib/due-date'
 import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Search, CirclePlus, ExternalLink, Edit3, Trash2, Clock, WalletCards, FileText, ArrowRight, Check } from 'lucide-react'
-import { Deal, DealStage, DEAL_STAGES, DEAL_STAGE_HINTS, OPEN_DEAL_STAGES, PM_STAGES, isPmStage, nextDealStage, WorkspaceSettings } from '@/lib/crm-types'
+import { Deal, DealStage, DEAL_STAGES, DEAL_STAGE_HINTS, OPEN_DEAL_STAGES, PM_STAGES, isPmStage, nextActionLabel, nextDealStage, WorkspaceSettings } from '@/lib/crm-types'
 import { RowActionMenu } from '@/components/ui/row-action-menu'
 import { formatDealValue } from '@/lib/config'
 
@@ -196,12 +196,12 @@ export function DealList({
               <span className="cell-num">{formatDealValue(deal.rawAmount || deal.value, settings)}</span>
 
               <div className="deals-list-next min-w-0">
-                {!deal.next ? (
+                {!nextActionLabel(deal) ? (
                   <span className="text-[#8f99a8]">—</span>
                 ) : (
                   <>
-                    <span className="truncate block text-[#1c1d1f]" title={deal.next}>
-                      {deal.next}
+                    <span className="truncate block text-[#1c1d1f]" title={nextActionLabel(deal)}>
+                      {nextActionLabel(deal)}
                     </span>
                     {deal.nextDueDate && !deal.waiting && (
                       <span

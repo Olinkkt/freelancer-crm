@@ -14,6 +14,9 @@
 - Security: CSV exports defuse spreadsheet formulas; a backup file can no longer set the passcode.
 - Security: five wrong passcodes in a row pause login from that address (30 seconds, doubling up to 15 minutes).
 - Security: server actions validate their input.
+- Security: responses carry `X-Frame-Options: DENY`, `nosniff` and a same-origin referrer policy.
+- Fix: a deal waiting on the client shows "Waiting on client" in the list and on the deal, not a leftover next action or a "no next action" warning.
+- Fix: saving a deal with a new client, renaming a client and deleting a deal each run in one transaction.
 - Internal: `app/page.tsx` split into the `useWorkspace` hook and `components/views/`; unused code and styles removed; CI typechecks and fails on unused imports.
 
 ## 0.1.0 - 2026-11-05

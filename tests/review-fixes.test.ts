@@ -299,3 +299,33 @@ describe('Server actions check their input', () => {
     await db.deleteFrom('contacts').execute()
   })
 })
+
+describe('Writes that belong together', () => {
+  it('a deal that fails to save does not leave its new client behind', async () => {
+    await db.deleteFrom('deals').execute()
+    await db.deleteFrom('contacts').execute()
+    await assert.rejects(() =>
+      repo.createDeal({ title: null, value: '', rawAmount: 1, stage: 'Lead', next: '', color: 'blue', contactName: 'Orphan Client' } as any)
+    )
+    const { contacts } = await repo.getWorkspaceData()
+    assert.equal(contacts.find((c) => c.name === 'Orphan Client'), undefined)
+  })
+
+  it('deleting a deal unlinks its follow-ups', async () => {
+    const deal = await repo.createDeal({ title: 'Tx', value: '', rawAmount: 1, stage: 'Lead', next: 'x', color: 'blue', contactName: 'Tx Client' } as any)
+    const [fu] = await repo.syncTodos(['Ping'], 'Tx Client', deal.id)
+    assert.equal(await repo.deleteDeal(deal.id), true)
+    const row = await db.selectFrom('follow_ups').select('deal_id').where('id', '=', fu.id).executeTakeFirst()
+    assert.equal(row?.deal_id, null)
+    await db.deleteFrom('follow_ups').execute()
+    await db.deleteFrom('contacts').execute()
+  })
+
+  it('a waiting deal shows "Waiting on client", not a stale next action', async () => {
+    const { nextActionLabel } = await import('@/lib/crm-types')
+    assert.equal(nextActionLabel({ next: 'Old action', waiting: true }), 'Waiting on client')
+    assert.equal(nextActionLabel({ next: '', waiting: true }), 'Waiting on client')
+    assert.equal(nextActionLabel({ next: 'Send proposal', waiting: false }), 'Send proposal')
+    assert.equal(nextActionLabel({ next: '' }), '')
+  })
+})

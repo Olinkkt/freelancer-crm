@@ -10,6 +10,7 @@ import {
   PM_STAGES,
   WorkspaceSettings,
   isPmStage,
+  nextActionLabel,
   nextDealStage,
 } from '@/lib/crm-types'
 import ReactMarkdown from 'react-markdown'
@@ -109,9 +110,9 @@ export function DealDetail({
         {/* Next action (GTD) */}
         <section className="panel">
           <p className="section-kicker">Next action</p>
-          {deal.next ? (
+          {nextActionLabel(deal) ? (
             <>
-              <h2 className="text-[22px] leading-snug font-semibold text-[#1c1d1f] mt-1">{deal.next}</h2>
+              <h2 className="text-[22px] leading-snug font-semibold text-[#1c1d1f] mt-1">{nextActionLabel(deal)}</h2>
               {deal.nextDueDate && !deal.waiting && (
                 <p
                   className={`mt-1 flex items-center gap-1 text-[12px] ${

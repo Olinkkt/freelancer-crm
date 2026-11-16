@@ -23,7 +23,7 @@ import {
   exportFollowUpsCSV,
 } from '@/lib/csv-export'
 import { getFormattedToday, getDynamicGreeting } from '@/lib/date-utils'
-import { OPERATOR_CONFIG, formatMoney, getOperatorInitials } from '@/lib/config'
+import { parseMoneyInput, OPERATOR_CONFIG, formatMoney, getOperatorInitials } from '@/lib/config'
 import { Deal, DeliverableItem, Contact, FollowUpItem, DealStage, OPEN_DEAL_STAGES, isPmStage } from '@/lib/crm-types'
 import { useModKey } from '@/lib/use-mod-key'
 import {
@@ -591,7 +591,7 @@ export default function Page() {
   const openDeals = deals.filter((d) => OPEN_DEAL_STAGES.includes(d.stage))
   const openDealsCount = openDeals.length
   const totalPipelineAmount = openDeals.reduce(
-    (sum, d) => sum + (d.rawAmount || parseInt(d.value.replace(/[^0-9]/g, '')) || 0),
+    (sum, d) => sum + (d.rawAmount || parseMoneyInput(d.value)),
     0
   )
   const getContactOpenDealsCount = (contact: Contact) =>
@@ -599,7 +599,7 @@ export default function Page() {
 
   const closingDeals = deals.filter((d) => d.stage === 'Proposal')
   const expectedCloseAmount = closingDeals.reduce(
-    (sum, d) => sum + (d.rawAmount || parseInt(d.value.replace(/[^0-9]/g, '')) || 0),
+    (sum, d) => sum + (d.rawAmount || parseMoneyInput(d.value)),
     0
   )
   // Closed = contract signed, so every PM stage (Closed…Completed) counts as closed

@@ -167,3 +167,57 @@ describe('Calendar feed', () => {
     assert.doesNotMatch(ics, /Stale action/)
   })
 })
+
+describe('Money, dates and exports', () => {
+  it('reads typed amounts without inflating decimals', async () => {
+    const { parseMoneyInput, formatDealValue } = await import('@/lib/config')
+    assert.equal(parseMoneyInput('25 000 Kč'), 25000)
+    assert.equal(parseMoneyInput('$25,000'), 25000)
+    assert.equal(parseMoneyInput('1500.50'), 1501)
+    assert.equal(parseMoneyInput('$25,000.00'), 25000)
+    assert.equal(parseMoneyInput('1.234,56 €'), 1235)
+    assert.equal(parseMoneyInput('1.234.567'), 1234567)
+    assert.equal(parseMoneyInput('45 000,5 Kč'), 45001)
+    assert.equal(parseMoneyInput('1 500 Kč.'), 1500)
+    assert.equal(parseMoneyInput('—'), 0)
+    assert.equal(parseMoneyInput(''), 0)
+    assert.equal(formatDealValue('1500.50', { currencySymbol: '$', locale: 'en-US' }), '$1,501')
+  })
+
+  it('rejects dates that do not exist instead of rolling them over', async () => {
+    const { normalizeDueDate } = await import('@/lib/due-date')
+    const now = new Date(2026, 10, 16) // Monday
+    assert.equal(normalizeDueDate('2026-02-28', now), '2026-02-28')
+    assert.equal(normalizeDueDate('2026-11-20T10:00:00.000Z', now), '2026-11-20')
+    assert.equal(normalizeDueDate('2026-02-31', now), null)
+    assert.equal(normalizeDueDate('2026-13-01', now), null)
+    assert.equal(normalizeDueDate('45.13.', now), null)
+    assert.equal(normalizeDueDate('22.9.', now), '2026-09-22')
+    // An explicit date wins over the weekday abbreviation next to it
+    assert.equal(normalizeDueDate('po 23. 11. 2026', now), '2026-11-23')
+    assert.equal(normalizeDueDate('pátek', now), '2026-11-20')
+  })
+
+  it('CSV export defuses formulas but keeps phone numbers and amounts', async () => {
+    const { generateCSV } = await import('@/lib/csv-export')
+    const csv = generateCSV(
+      [{ name: '=HYPERLINK("http://evil","x")', phone: '+420 111 222 333', note: '-2+3', at: '@SUM(A1)', amount: -5 }],
+      ['name', 'phone', 'note', 'at', 'amount'].map((key) => ({ key: key as 'name', label: key }))
+    )
+    const row = csv.split('\n')[1]
+    assert.ok(row.startsWith(`"'=HYPERLINK`))
+    assert.ok(row.includes('"+420 111 222 333"'))
+    assert.ok(row.includes('"-2+3"'))
+    assert.ok(row.includes(`"'@SUM(A1)"`))
+    assert.ok(row.endsWith('"-5"'))
+  })
+
+  it('a backup file cannot set the passcode', () => {
+    const parsed = BackupPayloadSchema.parse({
+      contacts: [{ id: 'c1', name: 'A' }],
+      settings: { operatorName: 'X', passcodeHash: 'scrypt:aa:bb' },
+    })
+    assert.equal((parsed.settings as Record<string, unknown>).passcodeHash, undefined)
+    assert.equal(parsed.settings?.operatorName, 'X')
+  })
+})

@@ -95,7 +95,7 @@ const WorkspaceSettingsBackupSchema = z.object({
   currencySymbol: z.string().optional(),
   locale: z.string().optional(),
   isClaimed: z.boolean().optional(),
-  passcodeHash: z.string().optional(),
+  // No passcodeHash: a backup file must never change who can unlock the workspace
 }).optional()
 
 export const BackupPayloadSchema = z

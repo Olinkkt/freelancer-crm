@@ -22,6 +22,13 @@ function startOfDay(d: Date): Date {
   return out
 }
 
+/** `YYYY-MM-DD` for a date that exists; null for Feb 31 or month 13 instead of rolling over */
+function realDate(year: number, month: number, day: number): string | null {
+  const d = new Date(year, month - 1, day)
+  if (d.getFullYear() !== year || d.getMonth() !== month - 1 || d.getDate() !== day) return null
+  return getDateString(d)
+}
+
 export function addDays(base: Date, days: number): Date {
   const out = startOfDay(base)
   out.setDate(out.getDate() + days)
@@ -64,8 +71,8 @@ export function normalizeDueDate(input?: string | null, now: Date = new Date()):
   const raw = input.trim()
   if (!raw) return null
 
-  const iso = raw.match(/^(\d{4}-\d{2}-\d{2})(?:$|[T\s])/)
-  if (iso) return iso[1]
+  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})(?:$|[T\s])/)
+  if (iso) return realDate(Number(iso[1]), Number(iso[2]), Number(iso[3]))
 
   const s = stripDiacritics(raw.toLowerCase())
   if (s === 'done') return null
@@ -79,16 +86,17 @@ export function normalizeDueDate(input?: string | null, now: Date = new Date()):
 
   if (/\bnext week\b|\bpristi tyden\b/.test(s)) return getDateString(nextWeekday(now, 1))
 
-  for (const { regex, idx } of WEEKDAYS) {
-    if (regex.test(s)) return getDateString(nextWeekday(now, idx))
-  }
-
-  // Czech numeric "22.9." / "22. 9. 2026"
+  // Czech numeric "22.9." / "22. 9. 2026". Checked before weekday names, so
+  // "po 22.9." means the 22nd and not just the next Monday.
   const cz = s.match(/\b(\d{1,2})\.\s*(\d{1,2})\.(?:\s*(\d{4}))?/)
   if (cz) {
     const year = cz[3] ? parseInt(cz[3], 10) : now.getFullYear()
-    const d = new Date(year, parseInt(cz[2], 10) - 1, parseInt(cz[1], 10))
-    if (!isNaN(d.getTime())) return getDateString(d)
+    const date = realDate(year, parseInt(cz[2], 10), parseInt(cz[1], 10))
+    if (date) return date
+  }
+
+  for (const { regex, idx } of WEEKDAYS) {
+    if (regex.test(s)) return getDateString(nextWeekday(now, idx))
   }
 
   // "Sep 22", "22 Sep"

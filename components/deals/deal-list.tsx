@@ -193,7 +193,7 @@ export function DealList({
 
               <span className="font-medium text-[#1c1d1f]">{deal.stage}</span>
 
-              <span className="cell-num">{formatDealValue(deal.value, settings)}</span>
+              <span className="cell-num">{formatDealValue(deal.rawAmount || deal.value, settings)}</span>
 
               <div className="deals-list-next min-w-0">
                 {!deal.next ? (

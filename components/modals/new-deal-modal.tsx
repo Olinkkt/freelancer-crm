@@ -6,7 +6,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { X, CirclePlus, AlertCircle } from 'lucide-react'
 import { Contact, Deal, DealStage, DEAL_STAGE_HINTS, WorkspaceSettings, isPmStage } from '@/lib/crm-types'
 import { StageOptions } from '@/components/deals/stage-options'
-import { formatMoney, OPERATOR_CONFIG } from '@/lib/config'
+import { parseMoneyInput, formatMoney, OPERATOR_CONFIG } from '@/lib/config'
 import { Combobox } from '@/components/ui/combobox'
 import { NextActionFields } from '@/components/deals/next-action-fields'
 import { addDays, isUntouchedPreset, nextActionPresets, normalizeDueDate } from '@/lib/due-date'
@@ -99,7 +99,7 @@ export function NewDealModal({
     }
 
     // Clean number from value
-    const numeric = parseInt(value.replace(/[^0-9]/g, '')) || 0
+    const numeric = parseMoneyInput(value)
     const formattedVal = formatMoney(numeric, settings)
 
     // Signed deals (Closed and every PM stage after it) are green

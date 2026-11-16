@@ -12,6 +12,9 @@
 - Fix: impossible due dates (`2026-02-31`, `45.13.`) are rejected instead of rolling over; `po 22.9.` means the 22nd.
 - Fix: `/api/health` answers 503 when the database is down, so the Docker healthcheck can fail.
 - Security: CSV exports defuse spreadsheet formulas; a backup file can no longer set the passcode.
+- Security: five wrong passcodes in a row pause login from that address (30 seconds, doubling up to 15 minutes).
+- Security: server actions validate their input.
+- Internal: `app/page.tsx` split into the `useWorkspace` hook and `components/views/`; unused code and styles removed; CI typechecks and fails on unused imports.
 
 ## 0.1.0 - 2026-11-05
 

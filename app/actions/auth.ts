@@ -16,6 +16,19 @@ import {
 } from '@/lib/db/repository'
 import { WorkspaceSettings } from '@/lib/crm-types'
 import { sanitizeErrorMessage } from '@/lib/errors'
+import { headers } from 'next/headers'
+import { loginRetryAfter, recordLoginFailure, recordLoginSuccess } from '@/lib/auth/login-throttle'
+
+/** Who is trying to log in, for the attempt limit. Behind a proxy this is the forwarded address. */
+async function loginClient(): Promise<string> {
+  try {
+    const h = await headers()
+    return h.get('x-forwarded-for')?.split(',')[0]?.trim() || h.get('x-real-ip')?.trim() || 'local'
+  } catch {
+    // Outside a request (tests, scripts)
+    return 'local'
+  }
+}
 
 export async function getAuthStatus(): Promise<{
   required: boolean
@@ -129,20 +142,25 @@ export async function loginOperator(passcode: string): Promise<{ success: boolea
     return { success: true }
   }
 
-  // 1. Check against DB passcode hash if configured
-  if (settings?.passcodeHash) {
-    if (verifyPasscode(passcode, settings.passcodeHash)) {
-      await setOperatorSession()
-      return { success: true }
-    }
+  const client = await loginClient()
+  const wait = loginRetryAfter(client)
+  if (wait > 0) {
+    const when = wait >= 90 ? `${Math.ceil(wait / 60)} minutes` : `${wait} seconds`
+    return { success: false, error: `Too many wrong passcodes. Try again in ${when}.` }
   }
 
-  // 2. Fall back to AUTH_SECRET env check
-  if (envAuthRequired && verifyPassword(passcode)) {
+  // The DB passcode hash if configured, else the AUTH_SECRET env value
+  const correct =
+    (typeof passcode === 'string' && !!settings?.passcodeHash && verifyPasscode(passcode, settings.passcodeHash)) ||
+    (typeof passcode === 'string' && envAuthRequired && verifyPassword(passcode))
+
+  if (correct) {
+    recordLoginSuccess(client)
     await setOperatorSession()
     return { success: true }
   }
 
+  recordLoginFailure(client)
   return { success: false, error: 'Incorrect operator passcode.' }
 }
 

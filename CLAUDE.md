@@ -11,13 +11,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `pnpm test` — all tests (`node:test` + `tsx`) against `data/test.db`. Tests wipe tables, so never point them at a real DB.
 - Single file: `DATABASE_URL=file:./data/test.db node --import tsx --test tests/repository.test.ts`
 - Single test by name: add `--test-name-pattern="moveDealStage"`.
-- Typecheck: `npx tsc --noEmit -p .`. There is no lint script (`next lint` no longer exists in this Next version).
+- Typecheck: `pnpm typecheck` (`noUnusedLocals` is on, so unused imports and variables fail it and CI). There is no lint script (`next lint` no longer exists in this Next version).
 
 ## Architecture
 
 Single-operator, local-first CRM: Next.js App Router, React 19, Kysely, SQLite via libsql (or Postgres when `DATABASE_URL` is `postgres://…`).
 
-- **One-page client app.** `app/page.tsx` is the only page and one large client component. Home, Clients, Deals, Deal (the project workspace of one deal) and Settings are switched by `activeView` state, not routes. It loads the whole workspace once (`fetchWorkspaceData`), updates state optimistically, then replaces it with what the server action returns. Modals, the ⌘K palette (`components/command-palette/`) and global keyboard shortcuts all live there too.
+- **One-page client app.** `app/page.tsx` is the only page: the shell, navigation, modals and shortcuts. Home, Clients, Deals, Deal (the project workspace of one deal) and Settings are switched by `activeView` state, not routes; Clients and Settings live in `components/views/`. Data lives in the `useWorkspace` hook (`lib/use-workspace.ts`): it loads the whole workspace once (`fetchWorkspaceData`), updates state optimistically, then replaces it with what the server action returns, or rolls back if the save fails. Modals, the ⌘K palette (`components/command-palette/`) and global keyboard shortcuts all live there too.
 - **Data flow:** UI → server actions in `app/actions/crm.ts` (each one calls `assertAuth()`) → `lib/db/repository.ts`. REST routes in `app/api/*` (deals, contacts, follow-ups, backup, calendar feed, health) call the same repository and validate input with zod schemas from `lib/validations/index.ts`.
 - **Schema and migrations:** there are no migration files. `lib/db/init.ts` `ensureDbInitialized()` creates tables and runs idempotent in-place migrations on every cold start, gated by `SCHEMA_VERSION`. To change the schema, add a step there and bump `SCHEMA_VERSION`. Kysely table types are in `lib/db/schema.ts`. JSON columns (`deliverables`, `invoices`) are parsed with `safeParseJson`.
 - **Domain types:** `lib/crm-types.ts`. `DEAL_STAGES` is the single source for stage type, validation, filters and pickers. Per-deal task board (`BOARD_COLUMNS`, `cardColumn`), checklist sections and `invoices` live on the same file.

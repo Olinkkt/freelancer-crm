@@ -10,6 +10,12 @@ import { PUT as putDeal } from '@/app/api/deals/route'
 import { PUT as putContact } from '@/app/api/contacts/route'
 import type { Deal } from '@/lib/crm-types'
 
+/** Assigning undefined to an env var stores the text "undefined", which would switch auth on */
+function restoreSecret(value: string | undefined) {
+  if (value === undefined) delete process.env.AUTH_SECRET
+  else process.env.AUTH_SECRET = value
+}
+
 describe('Partial updates and restore keep existing data', () => {
   const originalSecret = process.env.AUTH_SECRET
   let token: string
@@ -27,7 +33,7 @@ describe('Partial updates and restore keep existing data', () => {
   })
   beforeEach(wipe)
   after(async () => {
-    process.env.AUTH_SECRET = originalSecret
+    restoreSecret(originalSecret)
     await wipe()
   })
 
@@ -219,5 +225,77 @@ describe('Money, dates and exports', () => {
     })
     assert.equal((parsed.settings as Record<string, unknown>).passcodeHash, undefined)
     assert.equal(parsed.settings?.operatorName, 'X')
+  })
+})
+
+describe('Login attempt limit', () => {
+  it('pauses a client after five wrong passcodes and doubles the pause', async () => {
+    const t = await import('@/lib/auth/login-throttle')
+    t.resetLoginThrottle()
+    const now = 1_000_000
+    for (let i = 0; i < 4; i++) t.recordLoginFailure('1.2.3.4', now)
+    assert.equal(t.loginRetryAfter('1.2.3.4', now), 0)
+    t.recordLoginFailure('1.2.3.4', now)
+    assert.equal(t.loginRetryAfter('1.2.3.4', now), 30)
+    assert.equal(t.loginRetryAfter('5.6.7.8', now), 0, 'other clients are not affected')
+    assert.equal(t.loginRetryAfter('1.2.3.4', now + 31_000), 0)
+    t.recordLoginFailure('1.2.3.4', now + 31_000)
+    assert.equal(t.loginRetryAfter('1.2.3.4', now + 31_000), 60)
+    t.recordLoginSuccess('1.2.3.4')
+    assert.equal(t.loginRetryAfter('1.2.3.4', now + 31_000), 0)
+    t.resetLoginThrottle()
+  })
+
+  it('pauses everyone briefly when guesses come from many addresses', async () => {
+    const t = await import('@/lib/auth/login-throttle')
+    t.resetLoginThrottle()
+    const now = 2_000_000
+    for (let i = 0; i < 30; i++) t.recordLoginFailure(`10.0.0.${i}`, now)
+    assert.equal(t.loginRetryAfter('192.168.1.1', now), 60)
+    assert.equal(t.loginRetryAfter('192.168.1.1', now + 61_000), 0)
+    t.resetLoginThrottle()
+  })
+
+  it('loginOperator refuses further guesses once the limit is hit', async () => {
+    const { loginOperator } = await import('@/app/actions/auth')
+    const t = await import('@/lib/auth/login-throttle')
+    const original = process.env.AUTH_SECRET
+    process.env.AUTH_SECRET = 'throttle-test-secret'
+    t.resetLoginThrottle()
+    try {
+      for (let i = 0; i < 5; i++) assert.equal((await loginOperator('nope')).error, 'Incorrect operator passcode.')
+      const blocked = await loginOperator('throttle-test-secret')
+      assert.equal(blocked.success, false)
+      assert.match(blocked.error ?? '', /Too many wrong passcodes/)
+      t.resetLoginThrottle()
+      assert.equal((await loginOperator('throttle-test-secret')).success, true)
+    } finally {
+      restoreSecret(original)
+      t.resetLoginThrottle()
+    }
+  })
+})
+
+describe('Server actions check their input', () => {
+  it('reject a bad stage, a negative amount and an empty title', async () => {
+    const { createDealAction } = await import('@/app/actions/crm')
+    const base = { title: 'Site', value: '', rawAmount: 100, stage: 'Lead', next: 'Call', color: 'blue', contactName: 'Jana' }
+    await assert.rejects(() => createDealAction({ ...base, stage: 'Paid' } as any), /stage/)
+    await assert.rejects(() => createDealAction({ ...base, rawAmount: -5 } as any), /cannot be negative/)
+    await assert.rejects(() => createDealAction({ ...base, title: '   ' } as any), /Title is required/)
+    await assert.rejects(() => createDealAction({ ...base, title: { $ne: 1 } } as any), /title/)
+  })
+
+  it('keep createdAt and drop unknown fields when a deal is edited', async () => {
+    const { createDealAction, updateDealAction, deleteDealAction } = await import('@/app/actions/crm')
+    const deal = await createDealAction({
+      title: 'Site', value: '', rawAmount: 100, stage: 'Lead', next: 'Call', nextDueDate: '2030-01-15', color: 'blue', contactName: 'Jana',
+    } as any)
+    const saved = await updateDealAction({ ...deal, title: 'Site v2', bogus: true } as any)
+    assert.equal(saved.title, 'Site v2')
+    assert.equal(saved.createdAt, deal.createdAt)
+    assert.equal((saved as any).bogus, undefined)
+    await deleteDealAction(deal.id)
+    await db.deleteFrom('contacts').execute()
   })
 })

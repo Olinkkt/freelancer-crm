@@ -11,7 +11,17 @@ import {
   WorkspaceData,
 } from '@/lib/crm-types'
 import { sanitizeErrorMessage } from '@/lib/errors'
-import { ChecklistSchema, DealStageSchema } from '@/lib/validations'
+import { z } from 'zod'
+import {
+  ChecklistSchema,
+  ContactActionSchema,
+  ContactUpdateActionSchema,
+  DealActionSchema,
+  DealStageSchema,
+  DealUpdateActionSchema,
+  FollowUpActionSchema,
+  IdInput,
+} from '@/lib/validations'
 import { queueContactSync } from '@/lib/invoicer/sync'
 
 async function assertAuth() {
@@ -19,6 +29,15 @@ async function assertAuth() {
   if (!isAuthed) {
     throw new Error('Unauthorized: Please authenticate to access workspace')
   }
+}
+
+/** Checks an action's input and reports the first problem in plain words */
+function parseInput<S extends z.ZodType>(schema: S, input: unknown): z.output<S> {
+  const result = schema.safeParse(input)
+  if (result.success) return result.data
+  const issue = result.error.issues[0]
+  const field = issue?.path.join('.')
+  throw new Error(field ? `${field}: ${issue.message}` : issue?.message || 'Invalid input')
 }
 
 // 1. Fetch entire workspace
@@ -35,7 +54,7 @@ export async function fetchWorkspaceData(): Promise<WorkspaceData> {
 export async function createDealAction(dealData: Omit<Deal, 'id'>): Promise<Deal> {
   await assertAuth()
   try {
-    return await repo.createDeal(dealData)
+    return await repo.createDeal(parseInput(DealActionSchema, dealData) as Omit<Deal, 'id'>)
   } catch (err: any) {
     throw new Error(sanitizeErrorMessage(err, 'Failed to create deal'))
   }
@@ -44,7 +63,7 @@ export async function createDealAction(dealData: Omit<Deal, 'id'>): Promise<Deal
 export async function updateDealAction(deal: Deal): Promise<Deal> {
   await assertAuth()
   try {
-    const updated = await repo.updateDeal(deal)
+    const updated = await repo.updateDeal(parseInput(DealUpdateActionSchema, deal) as Deal)
     if (!updated) {
       throw new Error('Deal not found')
     }
@@ -57,7 +76,7 @@ export async function updateDealAction(deal: Deal): Promise<Deal> {
 export async function deleteDealAction(id: string): Promise<boolean> {
   await assertAuth()
   try {
-    const success = await repo.deleteDeal(id)
+    const success = await repo.deleteDeal(parseInput(IdInput, id))
     if (!success) {
       throw new Error('Deal not found')
     }
@@ -70,7 +89,7 @@ export async function deleteDealAction(id: string): Promise<boolean> {
 export async function moveDealStageAction(dealId: string, stage: DealStage): Promise<Deal | null> {
   await assertAuth()
   try {
-    return await repo.moveDealStage(dealId, DealStageSchema.parse(stage))
+    return await repo.moveDealStage(parseInput(IdInput, dealId), parseInput(DealStageSchema, stage))
   } catch (err: any) {
     throw new Error(sanitizeErrorMessage(err, 'Failed to update deal stage'))
   }
@@ -82,7 +101,7 @@ export async function updateDealChecklistAction(
 ): Promise<Deal | null> {
   await assertAuth()
   try {
-    return await repo.setDealChecklist(dealId, ChecklistSchema.parse(items))
+    return await repo.setDealChecklist(parseInput(IdInput, dealId), parseInput(ChecklistSchema, items))
   } catch (err: any) {
     throw new Error(sanitizeErrorMessage(err, 'Failed to update checklist'))
   }
@@ -92,7 +111,7 @@ export async function updateDealChecklistAction(
 export async function createContactAction(contactData: Omit<Contact, 'id'>): Promise<Contact> {
   await assertAuth()
   try {
-    const created = await repo.createContact(contactData)
+    const created = await repo.createContact(parseInput(ContactActionSchema, contactData))
     queueContactSync(created.id)
     return created
   } catch (err: any) {
@@ -103,7 +122,7 @@ export async function createContactAction(contactData: Omit<Contact, 'id'>): Pro
 export async function updateContactAction(contact: Contact): Promise<Contact> {
   await assertAuth()
   try {
-    const updated = await repo.updateContact(contact)
+    const updated = await repo.updateContact(parseInput(ContactUpdateActionSchema, contact))
     if (!updated) {
       throw new Error('Contact not found')
     }
@@ -117,7 +136,7 @@ export async function updateContactAction(contact: Contact): Promise<Contact> {
 export async function deleteContactAction(id: string): Promise<boolean> {
   await assertAuth()
   try {
-    const success = await repo.deleteContact(id)
+    const success = await repo.deleteContact(parseInput(IdInput, id))
     if (!success) {
       throw new Error('Contact not found')
     }
@@ -131,7 +150,7 @@ export async function deleteContactAction(id: string): Promise<boolean> {
 export async function toggleFollowUpAction(id: string): Promise<boolean> {
   await assertAuth()
   try {
-    return await repo.toggleFollowUp(id)
+    return await repo.toggleFollowUp(parseInput(IdInput, id))
   } catch (err: any) {
     throw new Error(sanitizeErrorMessage(err, 'Failed to toggle follow-up'))
   }
@@ -140,7 +159,7 @@ export async function toggleFollowUpAction(id: string): Promise<boolean> {
 export async function updateFollowUpAction(followUp: FollowUpItem): Promise<FollowUpItem> {
   await assertAuth()
   try {
-    return await repo.updateFollowUp(followUp)
+    return await repo.updateFollowUp(parseInput(FollowUpActionSchema, followUp))
   } catch (err: any) {
     throw new Error(sanitizeErrorMessage(err, 'Failed to update follow-up'))
   }
@@ -149,7 +168,7 @@ export async function updateFollowUpAction(followUp: FollowUpItem): Promise<Foll
 export async function deleteFollowUpAction(id: string): Promise<boolean> {
   await assertAuth()
   try {
-    const success = await repo.deleteFollowUp(id)
+    const success = await repo.deleteFollowUp(parseInput(IdInput, id))
     if (!success) {
       throw new Error('Follow-up not found')
     }

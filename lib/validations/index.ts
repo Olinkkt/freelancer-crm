@@ -173,3 +173,59 @@ export const ContactCreateInputSchema = z.object({
   lastTouch: z.string().optional(),
   color: z.string().optional(),
 })
+
+// -------------------------------------------------------------
+// Server action inputs
+// -------------------------------------------------------------
+// Server actions are plain POST endpoints: TypeScript types don't exist at
+// runtime, so the shape is checked here. The limits are looser than the API's
+// so records saved by older versions can still be edited.
+
+const ColorInput = z.enum(['blue', 'violet', 'amber', 'green']).catch('blue')
+const OptionalText = (max: number) => z.string().max(max).nullish().transform((v) => v ?? undefined)
+
+export const IdInput = z.string().min(1).max(200)
+
+export const DealActionSchema = z.object({
+  title: z.string().trim().min(1, 'Title is required').max(300),
+  value: z.string().max(100).catch(''),
+  rawAmount: z.number().min(0, 'Deal value cannot be negative').default(0),
+  stage: z.enum(DEAL_STAGES),
+  next: z.string().max(1000).catch(''),
+  nextDueDate: OptionalText(100),
+  waiting: z.boolean().optional(),
+  color: ColorInput,
+  contactId: OptionalText(200),
+  contactName: z.string().max(300).catch(''),
+  contactEmail: OptionalText(320),
+  notes: OptionalText(200000),
+  startDate: OptionalText(100),
+  endDate: OptionalText(100),
+  createdAt: OptionalText(100),
+  deliverables: z.array(z.record(z.string(), z.unknown())).max(500).optional(),
+  invoices: z.array(z.record(z.string(), z.unknown())).max(200).optional(),
+})
+
+export const DealUpdateActionSchema = DealActionSchema.extend({ id: IdInput })
+
+export const ContactActionSchema = z.object({
+  name: z.string().trim().min(1, 'Client name is required').max(300),
+  email: z.string().trim().max(320).catch(''),
+  phone: OptionalText(100),
+  notes: OptionalText(50000),
+  deals: z.number().catch(0),
+  lastTouch: z.string().max(100).catch('Today'),
+  color: ColorInput,
+})
+
+export const ContactUpdateActionSchema = ContactActionSchema.extend({ id: IdInput })
+
+export const FollowUpActionSchema = z.object({
+  id: IdInput,
+  day: z.string().max(100).catch('Today'),
+  company: z.string().max(300),
+  action: z.string().trim().min(1, 'Follow-up cannot be empty').max(1000),
+  time: z.string().max(100).catch(''),
+  tone: z.enum(['urgent', 'normal']).catch('normal'),
+  completed: z.boolean().optional(),
+})
